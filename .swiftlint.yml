@@ -1,0 +1,21 @@
+included:
+  - Apps
+  - Packages
+excluded:
+  - .build
+  - Packages/*/.build
+disabled_rules:
+  - trailing_comma        # swift-format owns formatting
+  - opening_brace
+opt_in_rules:
+  - empty_count
+  - first_where
+  - fatal_error_message
+  - force_unwrapping
+line_length:
+  warning: 120
+  error: 160
+identifier_name:
+  excluded: [id, x, y, s, m, l, xs]
+analyzer_rules:
+  - unused_import

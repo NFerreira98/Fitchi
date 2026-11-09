@@ -1,0 +1,125 @@
+# XcodeGen spec — the single source of truth for the Xcode project.
+# Fitchi.xcodeproj is generated from this file and is NOT committed.
+# Regenerate after adding/removing files or changing settings:  ./scripts/bootstrap.sh
+name: Fitchi
+
+options:
+  bundleIdPrefix: com.nicholasferreira
+  deploymentTarget:
+    iOS: "26.0"
+    watchOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+configFiles:
+  Debug: Configs/Base.xcconfig
+  Release: Configs/Base.xcconfig
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+
+packages:
+  FitchiCore:
+    path: Packages/FitchiCore
+  FitchiData:
+    path: Packages/FitchiData
+  FitchiHealth:
+    path: Packages/FitchiHealth
+  FitchiUI:
+    path: Packages/FitchiUI
+
+targets:
+  # ---------------------------------------------------------------- iPhone companion
+  FitchiPhone:
+    type: application
+    platform: iOS
+    sources: [Apps/Phone]
+    settings:
+      base:
+        PRODUCT_NAME: Fitchi
+        PRODUCT_BUNDLE_IDENTIFIER: com.nicholasferreira.fitchi
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Fitchi
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    dependencies:
+      - target: FitchiWatch # embedded under Fitchi.app/Watch
+      - package: FitchiCore
+      - package: FitchiData
+      - package: FitchiHealth
+      - package: FitchiUI
+
+  # ---------------------------------------------------------------- Apple Watch app
+  FitchiWatch:
+    type: application
+    platform: watchOS
+    sources: [Apps/Watch]
+    settings:
+      base:
+        PRODUCT_NAME: Fitchi
+        PRODUCT_BUNDLE_IDENTIFIER: com.nicholasferreira.fitchi.watchkitapp
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Fitchi
+        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.nicholasferreira.fitchi
+        INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    dependencies:
+      - target: FitchiWatchWidgets
+      - package: FitchiCore
+      - package: FitchiData
+      - package: FitchiHealth
+      - package: FitchiUI
+
+  # ---------------------------------------------------------------- Watch complications
+  FitchiWatchWidgets:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - path: Apps/Widgets
+        excludes: [Info.plist]
+    info:
+      path: Apps/Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Fitchi
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_NAME: FitchiWatchWidgets
+        PRODUCT_BUNDLE_IDENTIFIER: com.nicholasferreira.fitchi.watchkitapp.widgets
+        SKIP_INSTALL: YES
+    dependencies:
+      - package: FitchiCore
+      - package: FitchiUI
+
+schemes:
+  FitchiPhone:
+    build:
+      targets:
+        FitchiPhone: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  FitchiWatch:
+    build:
+      targets:
+        FitchiWatch: all
+    run:
+      config: Debug
+    archive:
+      config: Release

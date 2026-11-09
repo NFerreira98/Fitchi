@@ -1,0 +1,17 @@
+{
+  "sweetpad.build.xcodeWorkspacePath": "Fitchi.xcodeproj/project.xcworkspace",
+  "sweetpad.format.path": "swift-format",
+  "sweetpad.format.args": ["--in-place", "--configuration", ".swift-format", "${file}"],
+  "[swift]": {
+    "editor.defaultFormatter": "sweetpad.sweetpad",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4
+  },
+  "files.exclude": {
+    ".build": true,
+    "**/.swiftpm": true
+  },
+  "yaml.schemas": {
+    "https://raw.githubusercontent.com/yonaskolb/XcodeGen/master/Docs/ProjectSpec.schema.json": "project.yml"
+  }
+}

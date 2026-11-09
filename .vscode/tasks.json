@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Fitchi: Bootstrap (regenerate project)",
+      "type": "shell",
+      "command": "./scripts/bootstrap.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Fitchi: Test packages",
+      "type": "shell",
+      "command": "./scripts/test.sh --packages",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": ["$swiftc"]
+    },
+    {
+      "label": "Fitchi: Test + build everything",
+      "type": "shell",
+      "command": "./scripts/test.sh",
+      "group": "test",
+      "problemMatcher": ["$swiftc"]
+    },
+    {
+      "label": "Fitchi: Lint",
+      "type": "shell",
+      "command": "swiftlint lint --quiet",
+      "problemMatcher": []
+    }
+  ]
+}

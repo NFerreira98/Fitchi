@@ -1,0 +1,5 @@
+// Shared build settings for every Fitchi target.
+// Personal values (your Apple Developer Team ID) go in Local.xcconfig, which is gitignored.
+// Copy Local.xcconfig.example -> Local.xcconfig and fill it in to run on a real device.
+
+#include? "Local.xcconfig"
