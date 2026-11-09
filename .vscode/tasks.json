@@ -11,20 +11,45 @@
       "label": "Fitchi: Test packages",
       "type": "shell",
       "command": "./scripts/test.sh --packages",
-      "group": { "kind": "test", "isDefault": true },
-      "problemMatcher": ["$swiftc"]
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$swiftc"
+      ]
     },
     {
       "label": "Fitchi: Test + build everything",
       "type": "shell",
       "command": "./scripts/test.sh",
       "group": "test",
-      "problemMatcher": ["$swiftc"]
+      "problemMatcher": [
+        "$swiftc"
+      ]
     },
     {
       "label": "Fitchi: Lint",
       "type": "shell",
       "command": "swiftlint lint --quiet",
+      "problemMatcher": []
+    },
+    {
+      "label": "Fitchi: Deploy to iPhone + Watch",
+      "type": "shell",
+      "command": "./scripts/deploy.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Fitchi: Deploy to iPhone",
+      "type": "shell",
+      "command": "./scripts/deploy.sh phone",
+      "problemMatcher": []
+    },
+    {
+      "label": "Fitchi: Deploy to Watch",
+      "type": "shell",
+      "command": "./scripts/deploy.sh watch",
       "problemMatcher": []
     }
   ]

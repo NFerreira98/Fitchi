@@ -27,6 +27,16 @@ Install the recommended extensions (**Swift**, **SweetPad**). Then:
 
 Open Xcode only for signing/capabilities, SwiftUI previews, Instruments and archiving.
 
+### Updating your real iPhone / Apple Watch
+
+```sh
+./scripts/deploy.sh          # build + install on both
+./scripts/deploy.sh phone    # iPhone only (fast)
+./scripts/deploy.sh watch    # Apple Watch only
+```
+
+Or use the VS Code tasks *Fitchi: Deploy to …*. Keep the iPhone unlocked and the watch unlocked and awake. On a free Apple account, installs expire after 7 days, so just deploy again.
+
 ## Layout
 
 | Path | What lives there |
@@ -38,13 +48,13 @@ Open Xcode only for signing/capabilities, SwiftUI previews, Instruments and arch
 | `Apps/Watch` | watchOS app: home hub, quick actions, workouts. |
 | `Apps/Phone` | iOS companion: onboarding, shop, wardrobe, achievements. |
 | `Apps/Widgets` | Watch complications (WidgetKit). |
-| `Content/` | JSON catalogs for items, pets, achievements. |
+| `Content/` | JSON catalogs: `species.json`, `items.json`, `eggs.json`, `achievements.json`. |
 | `Assets/` | Source art. |
 
 ## Roadmap
 
 1. ✅ Foundation: project, packages, tooling, CI
-2. Core game logic (`FitchiCore`, test-first)
+2. ✅ Core game logic (`FitchiCore`, test-first)
 3. HealthKit integration
 4. Persistence & iCloud sync
 5. Watch UI
