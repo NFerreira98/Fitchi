@@ -1,0 +1,5 @@
+[
+  { "id": "meadow-egg", "name": "Meadow Egg", "price": 600, "odds": { "common": 80, "uncommon": 18, "rare": 2 } },
+  { "id": "sparkle-egg", "name": "Sparkle Egg", "price": 2000, "odds": { "uncommon": 60, "rare": 32, "epic": 7, "legendary": 1 } },
+  { "id": "golden-egg", "name": "Golden Egg", "price": 5000, "odds": { "rare": 60, "epic": 32, "legendary": 8 } }
+]

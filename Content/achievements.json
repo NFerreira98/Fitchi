@@ -1,0 +1,13 @@
+[
+  { "id": "first-steps", "name": "First Steps", "description": "Complete your first workout.", "reward": 25, "criterion": { "type": "workouts", "count": 1 } },
+  { "id": "ten-runs", "name": "Road Runner", "description": "Complete 10 runs.", "reward": 100, "criterion": { "type": "workouts", "kind": "run", "count": 10 } },
+  { "id": "splash", "name": "Making a Splash", "description": "Complete 5 swims.", "reward": 100, "criterion": { "type": "workouts", "kind": "swim", "count": 5 } },
+  { "id": "iron-paws", "name": "Iron Paws", "description": "Complete 10 strength workouts.", "reward": 100, "criterion": { "type": "workouts", "kind": "strength", "count": 10 } },
+  { "id": "streak-3", "name": "Warming Up", "description": "Stay active 3 days in a row.", "reward": 50, "criterion": { "type": "streakDays", "days": 3 } },
+  { "id": "streak-7", "name": "Week Warrior", "description": "Stay active 7 days in a row.", "reward": 150, "criterion": { "type": "streakDays", "days": 7 } },
+  { "id": "streak-30", "name": "Unstoppable", "description": "Stay active 30 days in a row.", "reward": 600, "criterion": { "type": "streakDays", "days": 30 } },
+  { "id": "minutes-1000", "name": "Thousand Minutes", "description": "Log 1,000 active minutes.", "reward": 300, "criterion": { "type": "activeMinutes", "minutes": 1000 } },
+  { "id": "pep-1000", "name": "Full of Pep", "description": "Earn 1,000 Pep.", "reward": 100, "criterion": { "type": "pepEarned", "amount": 1000 } },
+  { "id": "collector-3", "name": "Growing Family", "description": "Own 3 pets.", "reward": 200, "criterion": { "type": "petsOwned", "count": 3 } },
+  { "id": "shopper-25", "name": "Regular Customer", "description": "Make 25 purchases.", "reward": 100, "criterion": { "type": "itemsPurchased", "count": 25 } }
+]

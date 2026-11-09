@@ -13,9 +13,12 @@ opt_in_rules:
   - fatal_error_message
   - force_unwrapping
 line_length:
-  warning: 120
-  error: 160
+  warning: 140
+  error: 180
+function_parameter_count:
+  warning: 7
+  error: 8
 identifier_name:
-  excluded: [id, x, y, s, m, l, xs]
+  excluded: [id, x, y, s, m, l, xs, v1, v2, v3]
 analyzer_rules:
   - unused_import

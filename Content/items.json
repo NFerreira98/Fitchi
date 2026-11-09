@@ -1,0 +1,27 @@
+[
+  { "id": "kibble", "name": "Kibble", "description": "A filling everyday meal.", "category": "food", "price": 6, "effects": { "hunger": 35 } },
+  { "id": "bone-biscuit", "name": "Bone Biscuit", "description": "Crunchy and beloved by dogs.", "category": "food", "price": 10, "effects": { "hunger": 30, "happiness": 10 } },
+  { "id": "tuna-bites", "name": "Tuna Bites", "description": "Fishy little morsels.", "category": "food", "price": 10, "effects": { "hunger": 30, "happiness": 10 } },
+  { "id": "bloodworm-snack", "name": "Bloodworm Snack", "description": "An aquatic delicacy.", "category": "food", "price": 10, "effects": { "hunger": 30, "happiness": 10 } },
+  { "id": "fresh-salad", "name": "Fresh Salad", "description": "Crisp greens for a light meal.", "category": "food", "price": 8, "effects": { "hunger": 25, "energy": 10 } },
+  { "id": "treat", "name": "Treat", "description": "A little something special.", "category": "treat", "price": 5, "effects": { "hunger": 8, "happiness": 15 } },
+  { "id": "tennis-ball", "name": "Tennis Ball", "description": "Fetch! Again!", "category": "toy", "price": 8, "effects": { "happiness": 35, "energy": -5 } },
+  { "id": "yarn-ball", "name": "Yarn Ball", "description": "Endlessly batable.", "category": "toy", "price": 8, "effects": { "happiness": 35, "energy": -5 } },
+  { "id": "bubble-wand", "name": "Bubble Wand", "description": "Bubbles to chase.", "category": "toy", "price": 8, "effects": { "happiness": 35, "energy": -5 } },
+  { "id": "squeaky-toy", "name": "Squeaky Toy", "description": "Squeak squeak squeak.", "category": "toy", "price": 12, "effects": { "happiness": 45, "energy": -8 } },
+  { "id": "grooming-brush", "name": "Grooming Brush", "description": "A quick tidy-up.", "category": "hygiene", "price": 6, "effects": { "cleanliness": 25, "happiness": 5 } },
+  { "id": "bubble-bath", "name": "Bubble Bath", "description": "Squeaky clean.", "category": "hygiene", "price": 10, "effects": { "cleanliness": 50, "happiness": 5 } },
+  { "id": "nap-mat", "name": "Cozy Nap", "description": "A soft spot for a snooze.", "category": "rest", "price": 8, "effects": { "energy": 40 } },
+  { "id": "energy-smoothie", "name": "Energy Smoothie", "description": "Fruity fuel.", "category": "rest", "price": 12, "effects": { "energy": 30, "hunger": 10 } },
+
+  { "id": "sweatband", "name": "Sweatband", "description": "Ready for a workout.", "category": "accessory", "price": 90, "slot": "head" },
+  { "id": "party-hat", "name": "Party Hat", "description": "Every day is a celebration.", "category": "accessory", "price": 120, "slot": "head" },
+  { "id": "flower-crown", "name": "Flower Crown", "description": "Fresh from the cherry blossoms.", "category": "accessory", "price": 180, "slot": "head" },
+  { "id": "sunglasses", "name": "Sunglasses", "description": "Too cool.", "category": "accessory", "price": 150, "slot": "face" },
+  { "id": "red-bandana", "name": "Red Bandana", "description": "A classic look.", "category": "accessory", "price": 100, "slot": "neck" },
+  { "id": "mini-backpack", "name": "Mini Backpack", "description": "Adventure-ready.", "category": "accessory", "price": 250, "slot": "back" },
+  { "id": "hero-cape", "name": "Hero Cape", "description": "For pets with big ambitions.", "category": "accessory", "price": 400, "slot": "back" },
+
+  { "id": "style-retro", "name": "Retro Pixel Style", "description": "Chunky, classic pixel art for every pet and scene.", "category": "artStyle", "price": 1500 },
+  { "id": "style-painted", "name": "Painterly Style", "description": "Soft, glowing hand-painted art for every pet and scene.", "category": "artStyle", "price": 2500 }
+]
