@@ -62,15 +62,23 @@ public struct PointsRules: Hashable, Sendable {
             .sorted { ($0.start, $0.id) < ($1.start, $1.id) }
             .filter { seen.insert($0.id).inserted }
 
-        var dayTotals: [Date: Double] = [:]
+        // Rounding is applied to each day's running total, not to each sample, so many tiny
+        // samples (Apple logs exercise minutes one at a time) add up to the true total instead
+        // of each 0.6 Pep minute rounding up to 1.
+        var rawTotals: [Date: Double] = [:]
+        var paidTotals: [Date: Double] = [:]
         return eligible.map { sample in
             let day = calendar.startOfDay(for: sample.start)
-            let before = dayTotals[day, default: 0]
+            let rawBefore = rawTotals[day, default: 0]
             let raw = rawPep(for: sample)
-            let underCap = max(0, min(raw, dailySoftCap - before))
+            let underCap = max(0, min(raw, dailySoftCap - rawBefore))
             let overCap = raw - underCap
-            dayTotals[day] = before + raw
-            let amount = (underCap + overCap * overCapRate).rounded()
+            rawTotals[day] = rawBefore + raw
+
+            let paidBefore = paidTotals[day, default: 0]
+            let paidAfter = paidBefore + underCap + overCap * overCapRate
+            paidTotals[day] = paidAfter
+            let amount = paidAfter.rounded() - paidBefore.rounded()
             return Earning(sourceID: sample.id, day: day, amount: Int(amount), rulesVersion: version)
         }
     }

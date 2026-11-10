@@ -1,6 +1,6 @@
 // swift-tools-version: 6.2
-// FitchiHealth — HealthKit adapter. Reads workouts / active energy / exercise minutes and
-// maps them into FitchiCore types. The only package allowed to import HealthKit.
+// FitchiHealth — HealthKit adapter. Reads workouts and exercise minutes and maps them into
+// FitchiCore types. The only package allowed to import HealthKit.
 import PackageDescription
 
 let package = Package(
@@ -14,5 +14,6 @@ let package = Package(
     ],
     targets: [
         .target(name: "FitchiHealth", dependencies: ["FitchiCore"]),
+        .testTarget(name: "FitchiHealthTests", dependencies: ["FitchiHealth"]),
     ]
 )

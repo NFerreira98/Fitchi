@@ -41,6 +41,11 @@ targets:
     type: application
     platform: iOS
     sources: [Apps/Phone]
+    entitlements:
+      path: Apps/Phone/Fitchi.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
     settings:
       base:
         PRODUCT_NAME: Fitchi
@@ -51,6 +56,8 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_NSHealthShareUsageDescription: Fitchi reads your workouts and exercise minutes to earn Pep for your pet.
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: Fitchi saves workouts you start in the app to Apple Health.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     dependencies:
@@ -65,6 +72,12 @@ targets:
     type: application
     platform: watchOS
     sources: [Apps/Watch]
+    entitlements:
+      path: Apps/Watch/FitchiWatch.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+        com.apple.developer.healthkit.background-delivery: true
     settings:
       base:
         PRODUCT_NAME: Fitchi
@@ -73,6 +86,8 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Fitchi
         INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.nicholasferreira.fitchi
         INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp: YES
+        INFOPLIST_KEY_NSHealthShareUsageDescription: Fitchi reads your workouts and exercise minutes to earn Pep for your pet.
+        INFOPLIST_KEY_NSHealthUpdateUsageDescription: Fitchi saves workouts you start in the app to Apple Health.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     dependencies:

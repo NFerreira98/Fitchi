@@ -36,6 +36,14 @@ struct PointsTests {
         #expect(earnings.map(\.sourceID) == ["real"])
     }
 
+    @Test func manySingleMinuteSamplesAddUpToTheTrueTotal() {
+        // 12 passive minutes × 0.6 Pep = 7.2 → 7, not 12 × round(0.6) = 12.
+        let minutes = (0..<12).map { index in
+            TestSupport.sample("p\(index)", .passive, start: morning.addingTimeInterval(Double(index) * 60), minutes: 1)
+        }
+        #expect(earn(minutes).reduce(0) { $0 + $1.amount } == 7)
+    }
+
     @Test func softCapHalvesPepBeyondDailyLimit() {
         // 150 min walk = 180 raw (exactly the cap); a further 50 min walk = 60 raw → 30 after cap.
         let earnings = earn([

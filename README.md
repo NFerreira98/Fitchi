@@ -55,7 +55,7 @@ Or use the VS Code tasks *Fitchi: Deploy to …*. Keep the iPhone unlocked and t
 
 1. ✅ Foundation: project, packages, tooling, CI
 2. ✅ Core game logic (`FitchiCore`, test-first)
-3. HealthKit integration
+3. 🚧 HealthKit integration (reading activity ✅; in-app workouts next)
 4. Persistence & iCloud sync
 5. Watch UI
 6. Phone UI
