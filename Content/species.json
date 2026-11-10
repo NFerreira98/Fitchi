@@ -1,48 +1,48 @@
 [
   {
-    "id": "dog", "name": "Dog", "rarity": "common",
+    "id": "dog", "name": "Dog", "rarity": "common", "emoji": "🐶",
     "traitRanges": { "appetite": [0.6, 0.9], "playfulness": [0.7, 1.0], "stamina": [0.6, 0.9], "tidiness": [0.2, 0.5] },
     "favoriteItemIDs": ["bone-biscuit", "tennis-ball"],
     "defaultNames": ["Biscuit", "Scout", "Pepper", "Waffles", "Maple"]
   },
   {
-    "id": "cat", "name": "Cat", "rarity": "common",
+    "id": "cat", "name": "Cat", "rarity": "common", "emoji": "🐱",
     "traitRanges": { "appetite": [0.3, 0.6], "playfulness": [0.2, 0.5], "stamina": [0.3, 0.6], "tidiness": [0.7, 1.0] },
     "favoriteItemIDs": ["tuna-bites", "yarn-ball"],
     "defaultNames": ["Miso", "Luna", "Tofu", "Pixel", "Noodle"]
   },
   {
-    "id": "axolotl", "name": "Axolotl", "rarity": "common",
+    "id": "axolotl", "name": "Axolotl", "rarity": "common", "emoji": "🦎",
     "traitRanges": { "appetite": [0.4, 0.7], "playfulness": [0.4, 0.7], "stamina": [0.2, 0.5], "tidiness": [0.5, 0.8] },
     "favoriteItemIDs": ["bloodworm-snack", "bubble-wand"],
     "defaultNames": ["Bubbles", "Wasabi", "Gilly", "Pip", "Coral"]
   },
   {
-    "id": "bunny", "name": "Bunny", "rarity": "uncommon",
+    "id": "bunny", "name": "Bunny", "rarity": "uncommon", "emoji": "🐰",
     "traitRanges": { "appetite": [0.5, 0.8], "playfulness": [0.5, 0.8], "stamina": [0.4, 0.7], "tidiness": [0.6, 0.9] },
     "favoriteItemIDs": ["fresh-salad"],
     "defaultNames": ["Clover", "Mochi", "Hopper", "Daisy"]
   },
   {
-    "id": "red-panda", "name": "Red Panda", "rarity": "rare",
+    "id": "red-panda", "name": "Red Panda", "rarity": "rare", "emoji": "🦊",
     "traitRanges": { "appetite": [0.4, 0.7], "playfulness": [0.5, 0.8], "stamina": [0.3, 0.6], "tidiness": [0.6, 0.9] },
     "favoriteItemIDs": ["fresh-salad", "nap-mat"],
     "defaultNames": ["Ember", "Rusty", "Ginger", "Sora"]
   },
   {
-    "id": "penguin", "name": "Penguin", "rarity": "rare",
+    "id": "penguin", "name": "Penguin", "rarity": "rare", "emoji": "🐧",
     "traitRanges": { "appetite": [0.6, 0.9], "playfulness": [0.4, 0.7], "stamina": [0.6, 0.9], "tidiness": [0.4, 0.7] },
     "favoriteItemIDs": ["tuna-bites", "bubble-bath"],
     "defaultNames": ["Waddles", "Pebble", "Tux", "Skipper"]
   },
   {
-    "id": "platypus", "name": "Platypus", "rarity": "epic",
+    "id": "platypus", "name": "Platypus", "rarity": "epic", "emoji": "🦫",
     "traitRanges": { "appetite": [0.5, 0.9], "playfulness": [0.6, 1.0], "stamina": [0.4, 0.8], "tidiness": [0.2, 0.6] },
     "favoriteItemIDs": ["bloodworm-snack", "squeaky-toy"],
     "defaultNames": ["Perry", "Duckie", "Bill", "Paddle"]
   },
   {
-    "id": "golden-axolotl", "name": "Golden Axolotl", "rarity": "legendary",
+    "id": "golden-axolotl", "name": "Golden Axolotl", "rarity": "legendary", "emoji": "🐉",
     "traitRanges": { "appetite": [0.3, 0.6], "playfulness": [0.5, 0.8], "stamina": [0.6, 0.9], "tidiness": [0.7, 1.0] },
     "favoriteItemIDs": ["bloodworm-snack", "bubble-wand"],
     "defaultNames": ["Aurum", "Goldie", "Sunny", "Midas"]

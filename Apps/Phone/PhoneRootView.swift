@@ -26,8 +26,16 @@ struct PhoneHomeView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: FitchiTheme.Spacing.l * 2) {
-                PetPlaceholderView(name: "Mochi")
-                    .padding(.top, FitchiTheme.Spacing.l * 2)
+                VStack(spacing: FitchiTheme.Spacing.s) {
+                    Text("⌚️").font(.system(size: 56))
+                    Text("Your pet lives on your Apple Watch")
+                        .font(.headline)
+                    Text("Seeing it here on your iPhone is coming soon.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .multilineTextAlignment(.center)
+                .padding(.top, FitchiTheme.Spacing.l * 2)
                 today
                     .frame(maxWidth: .infinity)
                     .padding(FitchiTheme.Spacing.l)

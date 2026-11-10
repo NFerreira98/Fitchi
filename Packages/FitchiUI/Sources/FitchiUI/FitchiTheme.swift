@@ -7,6 +7,7 @@ public enum FitchiTheme {
         public static let hunger = Color.orange
         public static let happiness = Color.pink
         public static let energy = Color.mint
+        public static let cleanliness = Color.cyan
         public static let points = Color.yellow
     }
 

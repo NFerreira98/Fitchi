@@ -8,6 +8,8 @@ public struct Species: Codable, Hashable, Sendable, Identifiable {
     public var favoriteItemIDs: [String]
     /// Suggested names offered at hatch time.
     public var defaultNames: [String]
+    /// Stand-in art until sprites exist.
+    public var emoji: String?
 
     public init(
         id: String,
@@ -15,7 +17,8 @@ public struct Species: Codable, Hashable, Sendable, Identifiable {
         rarity: Rarity,
         traitRanges: TraitRanges,
         favoriteItemIDs: [String] = [],
-        defaultNames: [String] = []
+        defaultNames: [String] = [],
+        emoji: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -23,5 +26,6 @@ public struct Species: Codable, Hashable, Sendable, Identifiable {
         self.traitRanges = traitRanges
         self.favoriteItemIDs = favoriteItemIDs
         self.defaultNames = defaultNames
+        self.emoji = emoji
     }
 }

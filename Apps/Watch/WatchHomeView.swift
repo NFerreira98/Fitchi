@@ -1,15 +1,14 @@
+import FitchiData
 import FitchiHealth
 import FitchiUI
 import SwiftUI
 
-/// Watch home hub: the pet on the first page, today's activity on the next.
-/// Stats, feeding and the mini shop arrive in Milestone 5.
+/// Watch home hub: the pet (or its egg) on the first page, today's activity on the next.
 struct WatchHomeView: View {
     var body: some View {
         NavigationStack {
             TabView {
-                PetPlaceholderView(name: "Mochi")
-                    .navigationTitle("Fitchi")
+                PetHomeView()
                 WatchTodayView()
                     .navigationTitle("Today")
             }
@@ -60,4 +59,5 @@ struct WatchTodayView: View {
 #Preview {
     WatchHomeView()
         .environment(ActivityStore.preview())
+        .environment(PetStore.makeDefault())
 }

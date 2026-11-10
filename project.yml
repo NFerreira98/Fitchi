@@ -71,7 +71,11 @@ targets:
   FitchiWatch:
     type: application
     platform: watchOS
-    sources: [Apps/Watch]
+    sources:
+      - Apps/Watch
+      - path: Content # bundled catalog JSON, loaded by PetStore
+        type: folder
+        buildPhase: resources
     entitlements:
       path: Apps/Watch/FitchiWatch.entitlements
       properties:

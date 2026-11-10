@@ -10,11 +10,12 @@ public enum Hatchery {
     public static func hatchStarter(
         from catalog: Catalog,
         at date: Date,
+        rules: HatchRules = .v1,
         using rng: inout some RandomNumberGenerator
     ) throws(HatchError) -> Pet {
         let commons = catalog.species.filter { $0.rarity == .common }
         guard let species = commons.randomElement(using: &rng) else { throw .noSpeciesAvailable }
-        return makePet(species: species, at: date, using: &rng)
+        return makePet(species: species, at: date, initialValue: rules.newbornStatValue, using: &rng)
     }
 
     /// Hatches an egg: rolls a rarity using the egg's odds, then a species of that rarity.
@@ -37,6 +38,7 @@ public enum Hatchery {
         species: Species,
         name: String? = nil,
         at date: Date,
+        initialValue: Double = 80,
         using rng: inout some RandomNumberGenerator
     ) -> Pet {
         Pet(
@@ -44,7 +46,8 @@ public enum Hatchery {
             speciesID: species.id,
             traits: species.traitRanges.roll(using: &rng),
             personality: Personality.allCases.randomElement(using: &rng) ?? .easygoing,
-            hatchedAt: date
+            hatchedAt: date,
+            initialValue: initialValue
         )
     }
 }
