@@ -169,33 +169,6 @@ struct HatchRevealView: View {
     }
 }
 
-/// The pet's live stats. Re-reads every minute since stats are computed from time.
-struct PetView: View {
-    @Environment(PetStore.self) private var pets
-    let pet: Pet
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { timeline in
-            let condition = pet.condition(at: timeline.date, in: pets.decay)
-            ScrollView {
-                VStack(spacing: FitchiTheme.Spacing.s) {
-                    Text(pets.species(of: pet)?.emoji ?? "🐾")
-                        .font(.system(size: 52))
-                        .accessibilityHidden(true)
-                    Text(condition.title)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    StatBarsView(values: pet.values(at: timeline.date, in: pets.decay))
-                        .padding(.vertical, FitchiTheme.Spacing.xs)
-                    NavigationLink("About \(pet.name)") {
-                        PetDetailView(petID: pet.id)
-                    }
-                }
-            }
-        }
-    }
-}
-
 /// Species, personality, traits and renaming.
 struct PetDetailView: View {
     @Environment(PetStore.self) private var pets

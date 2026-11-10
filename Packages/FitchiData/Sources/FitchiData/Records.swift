@@ -29,8 +29,33 @@ public final class StarterEggRecord {
     }
 }
 
+/// One Pep transaction (spend, bonus, reward). Append-only: never edited or deleted.
+@Model
+public final class LedgerRecord {
+    public var entryID: String = ""
+    public var payload: Data = Data()
+    public var date: Date = Date.distantPast
+
+    public init(entryID: String, payload: Data, date: Date) {
+        self.entryID = entryID
+        self.payload = payload
+        self.date = date
+    }
+}
+
+@Model
+public final class InventoryRecord {
+    public var payload: Data = Data()
+    public var updatedAt: Date = Date.distantPast
+
+    public init(payload: Data, updatedAt: Date) {
+        self.payload = payload
+        self.updatedAt = updatedAt
+    }
+}
+
 public enum FitchiStore {
-    public static let schema = Schema([PetRecord.self, StarterEggRecord.self])
+    public static let schema = Schema([PetRecord.self, StarterEggRecord.self, LedgerRecord.self, InventoryRecord.self])
 
     /// The app's on-device store. iCloud sync is switched on in Milestone 4 (it needs a paid
     /// developer account), which is why the records are already CloudKit-shaped.

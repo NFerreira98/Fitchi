@@ -69,3 +69,37 @@ struct PetStoreTests {
         #expect(store.status == .failed("Couldn't load the pet catalog."))
     }
 }
+
+@Suite("Care and Pep ledger")
+@MainActor
+struct CareLedgerTests {
+    let start = Date(timeIntervalSince1970: 1_800_000_000)
+
+    @Test func welcomeBonusOnceAndSpendingSurvivesRelaunch() throws {
+        let container = try FitchiStore.makeContainer(inMemory: true)
+        let suite = PetStoreTests()
+        let store = suite.makeStore(container, at: start)
+        #expect(store.wallet(earnings: []).balance == 100)
+        let pet = try store.hatchStarter(samples: [], force: true)
+
+        // Newborns are full, so come back later when the pet is hungry.
+        let later = suite.makeStore(container, at: start + 12 * 3600)
+        #expect(throws: Never.self) { try later.care(.feed, for: pet.id, earnings: []) }
+        let spent = 100 - later.wallet(earnings: []).balance
+        #expect(spent > 0)
+
+        let relaunched = suite.makeStore(container, at: start + 13 * 3600)
+        #expect(relaunched.wallet(earnings: []).balance == 100 - spent)
+        #expect(relaunched.transactions.filter { $0.kind == .welcomeBonus }.count == 1)
+        let fed = try #require(relaunched.activePet)
+        #expect(fed.value(of: .hunger, at: start + 13 * 3600, in: relaunched.decay) > 80)
+    }
+
+    @Test func fullPetIsNotChargedAndEarningsCount() throws {
+        let store = PetStoreTests().makeStore(try FitchiStore.makeContainer(inMemory: true), at: start)
+        let pet = try store.hatchStarter(samples: [], force: true)
+        #expect(throws: QuickCareError.alreadySatisfied(.hunger)) { try store.care(.feed, for: pet.id, earnings: []) }
+        let earning = Earning(sourceID: "walk", day: start, amount: 40, rulesVersion: 1)
+        #expect(store.wallet(earnings: [earning]).balance == 140)
+    }
+}

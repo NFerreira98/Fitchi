@@ -102,3 +102,24 @@ public struct StatBarsView: View {
     StatBarsView(values: [.hunger: 82, .happiness: 64, .energy: 40, .cleanliness: 12])
         .padding()
 }
+
+extension CareAction {
+    public var title: String {
+        switch self {
+        case .feed: "Feed"
+        case .play: "Play"
+        case .wash: "Wash"
+        case .rest: "Nap"
+        }
+    }
+
+    /// Placeholder effect art until sprite animations exist.
+    public var emoji: String {
+        switch self {
+        case .feed: "🍖"
+        case .play: "🎾"
+        case .wash: "🫧"
+        case .rest: "💤"
+        }
+    }
+}

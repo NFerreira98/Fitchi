@@ -1,16 +1,29 @@
 #!/usr/bin/env bash
 # Builds the latest code and installs it on your physical iPhone and/or Apple Watch.
 #
-# Usage:  ./scripts/deploy.sh          # phone + watch
-#         ./scripts/deploy.sh phone    # iPhone only (fast)
-#         ./scripts/deploy.sh watch    # Apple Watch only
+# Usage:  ./scripts/deploy.sh               # iPhone; it forwards the watch app to the watch (most reliable)
+#         ./scripts/deploy.sh watch         # straight to the watch (faster, needs the Mac-to-watch link)
+#         ./scripts/deploy.sh all           # both of the above
+#         add --no-launch to install without opening the app
+#
+# The iPhone app carries the watch app inside it, so a phone install also updates the watch
+# (usually within a minute or two). If it doesn't, Watch app on iPhone → Fitchi → toggle
+# "Show App on Apple Watch" off and on.
 #
 # Requirements: Configs/Local.xcconfig with your DEVELOPMENT_TEAM, devices paired with this Mac,
 # Developer Mode on, iPhone unlocked, watch unlocked and awake.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-target="${1:-all}"
+target="phone"
+launch=1
+for arg in "$@"; do
+  case "$arg" in
+    --no-launch) launch=0 ;;
+    phone|watch|all) target="$arg" ;;
+    *) echo "Usage: $0 [phone|watch|all] [--no-launch]"; exit 1 ;;
+  esac
+done
 derived=".build/DerivedData"
 
 [ -f Configs/Local.xcconfig ] || { echo "✗ Configs/Local.xcconfig missing (see Configs/Local.xcconfig.example)"; exit 1; }
@@ -41,19 +54,23 @@ deploy() {
 
   echo "▶ Installing on ${label}…"
   xcrun devicectl device install app --device "$udid" "$derived/Build/Products/$product/Fitchi.app" --timeout 600 >/dev/null
-  xcrun devicectl device process launch --device "$udid" "$bundle_id" >/dev/null 2>&1 || true
+  if [ "$launch" = 1 ]; then
+    xcrun devicectl device process launch --device "$udid" "$bundle_id" >/dev/null 2>&1 || true
+  fi
   echo "✓ $label updated"
 }
 
 mkdir -p .build
 ./scripts/bootstrap.sh
 
+phone() {
+  deploy FitchiPhone iPhone com.nicholasferreira.fitchi Debug-iphoneos "iPhone"
+  echo "  The watch app rides along; your iPhone installs it on the watch shortly."
+}
+watch() { deploy FitchiWatch appleWatch com.nicholasferreira.fitchi.watchkitapp Debug-watchos "Apple Watch"; }
+
 case "$target" in
-  phone) deploy FitchiPhone iPhone com.nicholasferreira.fitchi Debug-iphoneos "iPhone" ;;
-  watch) deploy FitchiWatch appleWatch com.nicholasferreira.fitchi.watchkitapp Debug-watchos "Apple Watch" ;;
-  all)
-    deploy FitchiPhone iPhone com.nicholasferreira.fitchi Debug-iphoneos "iPhone"
-    deploy FitchiWatch appleWatch com.nicholasferreira.fitchi.watchkitapp Debug-watchos "Apple Watch"
-    ;;
-  *) echo "Usage: $0 [phone|watch|all]"; exit 1 ;;
+  phone) phone ;;
+  watch) watch ;;
+  all) phone; watch ;;
 esac

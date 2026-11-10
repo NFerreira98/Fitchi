@@ -14,6 +14,7 @@ public enum Care {
     ///
     /// Positive effects are scaled by the pet's personality, whether the item is a species
     /// favorite, and halved while the pet is sick.
+    @discardableResult
     public static func use(
         _ item: ShopItem,
         on pet: inout Pet,
@@ -21,17 +22,29 @@ public enum Care {
         inventory: inout Inventory,
         at date: Date,
         in context: DecayContext
-    ) throws(CareError) {
+    ) throws(CareError) -> CareOutcome {
         guard item.category.isConsumable else { throw .notConsumable }
         let condition = pet.condition(at: date, in: context)
         guard condition.acceptsCare else { throw .petRanAway }
         guard inventory.consume(item.id) else { throw .noneLeft }
 
         let multiplier = effectMultiplier(of: item, for: pet, species: species, condition: condition, config: context.config)
+        var changes: [Stat: Double] = [:]
         for (stat, delta) in item.effects {
             let scaled = delta > 0 ? delta * multiplier : delta
-            pet.setStat(stat, to: pet.value(of: stat, at: date, in: context) + scaled, at: date)
+            let before = pet.value(of: stat, at: date, in: context)
+            pet.setStat(stat, to: before + scaled, at: date)
+            changes[stat] = pet.value(of: stat, at: date, in: context) - before
         }
+        let reaction: CareOutcome.Reaction
+        if condition == .sick || condition == .packing {
+            reaction = .unwell
+        } else if species.favoriteItemIDs.contains(item.id) {
+            reaction = .loved
+        } else {
+            reaction = multiplier < 1 ? .meh : .enjoyed
+        }
+        return CareOutcome(itemID: item.id, changes: changes, reaction: reaction)
     }
 
     public static func effectMultiplier(
@@ -45,6 +58,24 @@ public enum Care {
         let sickness = condition == .sick || condition == .packing ? config.sickCareMultiplier : 1
         return pet.personality.careMultiplier(for: item.category, isFavorite: isFavorite) * sickness
     }
+}
+
+/// What happened when a pet was given an item, for the UI to react to.
+public struct CareOutcome: Hashable, Sendable {
+    public enum Reaction: String, Hashable, Sendable {
+        /// A species favourite.
+        case loved
+        case enjoyed
+        /// The personality didn't care for it (e.g. a picky eater given the wrong food).
+        case meh
+        /// Sick pets get less out of care until they recover.
+        case unwell
+    }
+
+    public var itemID: String
+    /// Actual change per stat after clamping to 0...100.
+    public var changes: [Stat: Double]
+    public var reaction: Reaction
 }
 
 /// Dressing pets up.

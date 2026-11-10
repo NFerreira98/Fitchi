@@ -8,6 +8,13 @@ public struct Earning: Codable, Hashable, Sendable, Identifiable {
     public var amount: Int
     public var rulesVersion: Int
 
+    public init(sourceID: String, day: Date, amount: Int, rulesVersion: Int) {
+        self.sourceID = sourceID
+        self.day = day
+        self.amount = amount
+        self.rulesVersion = rulesVersion
+    }
+
     public var id: String { sourceID }
 }
 

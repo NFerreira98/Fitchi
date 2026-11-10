@@ -35,19 +35,19 @@
       "problemMatcher": []
     },
     {
-      "label": "Fitchi: Deploy to iPhone + Watch",
-      "type": "shell",
-      "command": "./scripts/deploy.sh",
-      "problemMatcher": []
-    },
-    {
-      "label": "Fitchi: Deploy to iPhone",
+      "label": "Fitchi: Deploy (via iPhone)",
       "type": "shell",
       "command": "./scripts/deploy.sh phone",
       "problemMatcher": []
     },
     {
-      "label": "Fitchi: Deploy to Watch",
+      "label": "Fitchi: Deploy (via iPhone, don't open app)",
+      "type": "shell",
+      "command": "./scripts/deploy.sh phone --no-launch",
+      "problemMatcher": []
+    },
+    {
+      "label": "Fitchi: Deploy straight to Watch",
       "type": "shell",
       "command": "./scripts/deploy.sh watch",
       "problemMatcher": []

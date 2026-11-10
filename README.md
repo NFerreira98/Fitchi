@@ -30,12 +30,13 @@ Open Xcode only for signing/capabilities, SwiftUI previews, Instruments and arch
 ### Updating your real iPhone / Apple Watch
 
 ```sh
-./scripts/deploy.sh          # build + install on both
-./scripts/deploy.sh phone    # iPhone only (fast)
-./scripts/deploy.sh watch    # Apple Watch only
+./scripts/deploy.sh               # via iPhone: it installs the watch app on the watch for you (most reliable)
+./scripts/deploy.sh watch         # straight to the watch (faster, needs the Mac to see the watch)
+./scripts/deploy.sh all           # both
+./scripts/deploy.sh --no-launch   # any of the above, without opening the app afterwards
 ```
 
-Or use the VS Code tasks *Fitchi: Deploy to …*. Keep the iPhone unlocked and the watch unlocked and awake. On a free Apple account, installs expire after 7 days, so just deploy again.
+Or use the VS Code tasks *Fitchi: Deploy …*. Keep the iPhone unlocked and the watch unlocked and awake. If the watch doesn't update after a phone deploy, open the Watch app on iPhone → Fitchi and toggle "Show App on Apple Watch" off and on. On a free Apple account, installs expire after 7 days, so just deploy again.
 
 ## Layout
 

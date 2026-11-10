@@ -22,10 +22,14 @@ public final class PetStore {
     public private(set) var status: Status = .loading
     public private(set) var roster = PetRoster()
     public private(set) var starterEgg: StarterEgg?
+    /// Pep spent and granted outside of activity (welcome bonus, purchases). Append-only.
+    public private(set) var transactions: [PepTransaction] = []
+    public private(set) var inventory = Inventory()
 
     public let catalog: Catalog
     public let decay: DecayContext
     public let hatchRules: HatchRules
+    public let pointsRules: PointsRules
     private let repository: GameRepository?
     private let clock: any GameClock
 
@@ -34,12 +38,14 @@ public final class PetStore {
         catalog: Catalog,
         decay: DecayContext = DecayContext(),
         hatchRules: HatchRules = .v1,
+        pointsRules: PointsRules = .v1,
         clock: any GameClock = SystemClock()
     ) {
         self.repository = repository
         self.catalog = catalog
         self.decay = decay
         self.hatchRules = hatchRules
+        self.pointsRules = pointsRules
         self.clock = clock
     }
 
@@ -71,10 +77,52 @@ public final class PetStore {
                 try repository.save(egg, at: clock.now)
                 starterEgg = egg
             }
+            transactions = try repository.loadTransactions()
+            if !transactions.contains(where: { $0.kind == .welcomeBonus }) {
+                let bonus = PepTransaction.welcomeBonus(pointsRules.welcomeBonus, at: clock.now)
+                try repository.append([bonus])
+                transactions.append(bonus)
+            }
+            inventory = try repository.loadInventory() ?? Inventory()
             status = .ready
         } catch {
             status = .failed("Couldn't open your saved pets.")
         }
+    }
+
+    /// The Pep balance: activity earnings (from Health) plus this ledger.
+    public func wallet(earnings: [Earning]) -> Wallet {
+        Wallet(earnings: earnings, transactions: transactions)
+    }
+
+    /// One-tap care. Buys the item if needed, applies it, and saves everything.
+    @discardableResult
+    public func care(_ action: CareAction, for petID: UUID, earnings: [Earning]) throws(QuickCareError) -> CareOutcome {
+        guard var pet = roster[petID] else { throw .noItem }
+        var wallet = wallet(earnings: earnings)
+        var inventory = inventory
+        let now = clock.now
+        let outcome = try QuickCare.perform(
+            action, on: &pet, catalog: catalog,
+            wallet: &wallet, inventory: &inventory, at: now, in: decay
+        )
+        let newTransactions = wallet.transactions.filter { new in !transactions.contains { $0.id == new.id } }
+        try? roster.update(pet)
+        self.inventory = inventory
+        transactions.append(contentsOf: newTransactions)
+        try? repository?.append(newTransactions)
+        try? repository?.save(inventory, at: now)
+        try? repository?.save(pet, at: now)
+        return outcome
+    }
+
+    /// The item a care tap would use right now, for showing its price.
+    public func careItem(_ action: CareAction, for pet: Pet, earnings: [Earning]) -> ShopItem? {
+        guard let species = species(of: pet) else { return nil }
+        return QuickCare.item(
+            for: action, species: species, catalog: catalog,
+            inventory: inventory, balance: wallet(earnings: earnings).balance
+        )
     }
 
     public func hatchProgress(samples: [ActivitySample]) -> HatchProgress? {

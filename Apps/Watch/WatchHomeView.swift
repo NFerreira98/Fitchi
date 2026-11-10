@@ -20,6 +20,7 @@ struct WatchHomeView: View {
 /// Pep and minutes earned today, or why they can't be shown.
 struct WatchTodayView: View {
     @Environment(ActivityStore.self) private var activity
+    @Environment(PetStore.self) private var pets
 
     var body: some View {
         switch activity.status {
@@ -42,7 +43,7 @@ struct WatchTodayView: View {
             ScrollView {
                 TodaySummaryView(
                     summary: activity.today,
-                    balance: activity.wallet.balance,
+                    balance: pets.wallet(earnings: activity.earnings).balance,
                     dailyGoal: Int(activity.rules.dailySoftCap)
                 )
                 if let updated = activity.lastRefreshed {
