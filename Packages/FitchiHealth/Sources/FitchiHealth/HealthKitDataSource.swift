@@ -2,7 +2,7 @@ import FitchiCore
 import Foundation
 import HealthKit
 
-/// Reads workouts and exercise minutes from Apple Health.
+/// Reads workouts, exercise minutes and steps from Apple Health.
 public struct HealthKitDataSource: HealthDataSource {
     private let store: HKHealthStore
 
@@ -14,8 +14,10 @@ public struct HealthKitDataSource: HealthDataSource {
 
     private static var exerciseTime: HKQuantityType { HKQuantityType(.appleExerciseTime) }
 
+    private static var stepCount: HKQuantityType { HKQuantityType(.stepCount) }
+
     private static var readTypes: Set<HKObjectType> {
-        [.workoutType(), exerciseTime, HKQuantityType(.heartRate), HKCharacteristicType(.dateOfBirth)]
+        [.workoutType(), exerciseTime, stepCount, HKQuantityType(.heartRate), HKCharacteristicType(.dateOfBirth)]
     }
 
     public func requestAuthorization() async throws {
@@ -34,13 +36,37 @@ public struct HealthKitDataSource: HealthDataSource {
         ).result(for: store)
 
         let mapper = ActivityMapper(effort: EffortEstimator(age: age(at: end)))
-        return mapper.samples(workouts: workouts.map(WorkoutRecord.init), exercise: exercise.map(ExerciseMinuteRecord.init))
+        return mapper.samples(
+            workouts: workouts.map(WorkoutRecord.init), exercise: exercise.map(ExerciseMinuteRecord.init))
+    }
+
+    public func steps(since start: Date, until end: Date) async throws -> [StepCount] {
+        // Hourly buckets from the top of the hour; Core prorates the first one. Statistics merge
+        // the watch's and phone's steps so overlapping counts aren't added twice.
+        let calendar = Calendar.current
+        let anchor = calendar.dateInterval(of: .hour, for: start)?.start ?? start
+        let typedByHand = HKQuery.predicateForObjects(
+            withMetadataKey: HKMetadataKeyWasUserEntered, allowedValues: [true])
+        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+            HKQuery.predicateForSamples(withStart: anchor, end: end),
+            NSCompoundPredicate(notPredicateWithSubpredicate: typedByHand),
+        ])
+        let collection = try await HKStatisticsCollectionQueryDescriptor(
+            predicate: .quantitySample(type: Self.stepCount, predicate: predicate),
+            options: .cumulativeSum,
+            anchorDate: anchor,
+            intervalComponents: DateComponents(hour: 1)
+        ).result(for: store)
+        return collection.statistics().compactMap { statistics in
+            guard let sum = statistics.sumQuantity()?.doubleValue(for: .count()), sum > 0 else { return nil }
+            return StepCount(start: statistics.startDate, end: statistics.endDate, steps: sum)
+        }
     }
 
     public func changes() -> AsyncStream<HealthChange> {
         let store = store
         return AsyncStream { continuation in
-            let queries = [HKObjectType.workoutType(), Self.exerciseTime].map { type in
+            let queries = [HKObjectType.workoutType(), Self.exerciseTime, Self.stepCount].map { type in
                 HKObserverQuery(sampleType: type, predicate: nil) { _, completion, error in
                     guard error == nil else { return completion() }
                     let box = CompletionBox(completion)
@@ -55,6 +81,7 @@ public struct HealthKitDataSource: HealthDataSource {
     public func enableBackgroundDelivery() async throws {
         try await store.enableBackgroundDelivery(for: .workoutType(), frequency: .immediate)
         try await store.enableBackgroundDelivery(for: Self.exerciseTime, frequency: .hourly)
+        try await store.enableBackgroundDelivery(for: Self.stepCount, frequency: .hourly)
     }
 
     private func age(at date: Date) -> Int? {

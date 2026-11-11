@@ -1,8 +1,8 @@
 import FitchiCore
 import SwiftUI
 
-/// Today's activity at a glance: Pep earned against the daily soft cap, minutes, workouts and
-/// the current balance.
+/// Today's activity at a glance: Pep earned against the daily soft cap, minutes, workouts,
+/// steps and the current balance.
 public struct TodaySummaryView: View {
     private let summary: DailySummary
     private let balance: Int
@@ -33,6 +33,9 @@ public struct TodaySummaryView: View {
                     label: summary.workoutCount == 1 ? "workout" : "workouts",
                     systemImage: "flame.fill"
                 )
+                stat(
+                    summary.steps.formatted(.number.notation(.compactName)), label: "steps",
+                    systemImage: "shoeprints.fill")
             }
 
             Label("\(balance) Pep", systemImage: "sparkles")
@@ -56,7 +59,7 @@ public struct TodaySummaryView: View {
 
 #Preview {
     TodaySummaryView(
-        summary: DailySummary(day: Date(), activeMinutes: 42, workoutCount: 2, pepEarned: 67),
+        summary: DailySummary(day: Date(), activeMinutes: 42, workoutCount: 2, pepEarned: 67, steps: 6420),
         balance: 167,
         dailyGoal: 180
     )

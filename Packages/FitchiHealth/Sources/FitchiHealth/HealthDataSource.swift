@@ -15,6 +15,10 @@ public protocol HealthDataSource: Sendable {
     /// overlaps resolved (see `ActivitySample.resolvingOverlaps`).
     func activity(since start: Date, until end: Date) async throws -> [ActivitySample]
 
+    /// Hourly step totals overlapping `start..<end`, merged across devices, without
+    /// hand-entered steps.
+    func steps(since start: Date, until end: Date) async throws -> [StepCount]
+
     /// Fires whenever Health gets new activity. Call `acknowledge()` once you've handled it, so
     /// watchOS knows a background wake-up finished.
     func changes() -> AsyncStream<HealthChange>
@@ -42,11 +46,16 @@ public enum HealthDataError: Error, Sendable {
 /// reports changes.
 public struct FakeHealthDataSource: HealthDataSource {
     public var samples: [ActivitySample]
+    public var stepCounts: [StepCount]
     public var isAvailable: Bool
     public var failsAuthorization: Bool
 
-    public init(samples: [ActivitySample] = [], isAvailable: Bool = true, failsAuthorization: Bool = false) {
+    public init(
+        samples: [ActivitySample] = [], steps: [StepCount] = [], isAvailable: Bool = true,
+        failsAuthorization: Bool = false
+    ) {
         self.samples = samples
+        self.stepCounts = steps
         self.isAvailable = isAvailable
         self.failsAuthorization = failsAuthorization
     }
@@ -59,13 +68,17 @@ public struct FakeHealthDataSource: HealthDataSource {
         ActivitySample.resolvingOverlaps(samples.filter { $0.end > start && $0.start < end })
     }
 
+    public func steps(since start: Date, until end: Date) async throws -> [StepCount] {
+        stepCounts.filter { $0.end > start && $0.start < end }
+    }
+
     public func changes() -> AsyncStream<HealthChange> {
         AsyncStream { $0.finish() }
     }
 
     public func enableBackgroundDelivery() async throws {}
 
-    /// A believable day so far: a morning walk, a lunchtime run and some passive minutes.
+    /// A believable day so far: a morning walk, a lunchtime run, some passive minutes and steps.
     public static func sampleDay(endingAt now: Date = Date(), calendar: Calendar = .current) -> FakeHealthDataSource {
         let day = calendar.startOfDay(for: now)
         func at(_ hour: Double) -> Date { day.addingTimeInterval(hour * 3600) }
@@ -77,6 +90,11 @@ public struct FakeHealthDataSource: HealthDataSource {
             let start = at(16) + Double(minute) * 60
             samples.append(ActivitySample(id: "fake-passive-\(minute)", kind: .passive, start: start, end: start + 60))
         }
-        return FakeHealthDataSource(samples: samples.filter { $0.end <= now })
+        var steps: [StepCount] = []
+        for hour in 7..<20 {
+            let walked: Double = hour == 7 || hour == 12 ? 3200 : 450
+            steps.append(StepCount(start: at(Double(hour)), end: at(Double(hour + 1)), steps: walked))
+        }
+        return FakeHealthDataSource(samples: samples.filter { $0.end <= now }, steps: steps.filter { $0.end <= now })
     }
 }

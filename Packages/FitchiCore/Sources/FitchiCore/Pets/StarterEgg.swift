@@ -19,6 +19,8 @@ public struct StarterEgg: Codable, Hashable, Sendable {
 /// How far an egg is from hatching.
 public struct HatchProgress: Hashable, Sendable {
     public var activeMinutes: Double
+    /// How far off hatching is, in everyday steps (rounded up to tens).
+    public var stepsRemaining: Int
     public var requiredMinutes: Double
     /// The egg hatches by itself from this moment, even without activity.
     public var fallbackDate: Date
@@ -31,6 +33,8 @@ public struct HatchProgress: Hashable, Sendable {
 public struct HatchRules: Hashable, Sendable {
     /// Active minutes (workouts or exercise minutes) after the egg was granted.
     public var requiredMinutes: Double
+    /// Everyday steps worth one active minute, so ordinary walking hatches it too.
+    public var stepsPerMinute: Double
     /// The fallback hatch is the first `fallbackHour`:00 at least `minimumWait` after granting.
     public var fallbackHour: Int
     public var minimumWait: TimeInterval
@@ -38,7 +42,7 @@ public struct HatchRules: Hashable, Sendable {
     public var newbornStatValue: Double
 
     public static let v1 = HatchRules(
-        requiredMinutes: 5, fallbackHour: 7, minimumWait: 6 * .hour, newbornStatValue: 100)
+        requiredMinutes: 5, stepsPerMinute: 100, fallbackHour: 7, minimumWait: 6 * .hour, newbornStatValue: 100)
 
     public func fallbackDate(for egg: StarterEgg, calendar: Calendar) -> Date {
         let earliest = egg.grantedAt.addingTimeInterval(minimumWait)
@@ -49,26 +53,33 @@ public struct HatchRules: Hashable, Sendable {
         ) ?? earliest
     }
 
-    /// Minutes of real (not hand-entered) activity after the egg was granted. Expects samples
-    /// with overlaps already resolved, as `HealthDataSource` returns them.
-    public func activeMinutes(for egg: StarterEgg, samples: [ActivitySample]) -> Double {
-        samples
+    /// Minutes of real (not hand-entered) activity after the egg was granted, with everyday
+    /// steps converted at `stepsPerMinute`. Expects samples with overlaps already resolved, as
+    /// `HealthDataSource` returns them.
+    public func activeMinutes(for egg: StarterEgg, samples: [ActivitySample], steps: [StepCount] = []) -> Double {
+        let exercise =
+            samples
             .filter { !$0.isUserEntered && $0.end > egg.grantedAt }
             .reduce(0) { total, sample in
                 total + sample.end.timeIntervalSince(max(sample.start, egg.grantedAt)) / 60
             }
+        let walking =
+            stepsPerMinute > 0 ? steps.everydaySteps(after: egg.grantedAt, excluding: samples) / stepsPerMinute : 0
+        return exercise + walking
     }
 
     public func progress(
         for egg: StarterEgg,
         samples: [ActivitySample],
+        steps: [StepCount] = [],
         at date: Date,
         calendar: Calendar
     ) -> HatchProgress {
-        let minutes = activeMinutes(for: egg, samples: samples)
+        let minutes = activeMinutes(for: egg, samples: samples, steps: steps)
         let fallback = fallbackDate(for: egg, calendar: calendar)
         return HatchProgress(
             activeMinutes: minutes,
+            stepsRemaining: Int((max(0, requiredMinutes - minutes) * stepsPerMinute / 10).rounded(.up)) * 10,
             requiredMinutes: requiredMinutes,
             fallbackDate: fallback,
             isReady: !egg.isHatched && (minutes >= requiredMinutes || date >= fallback)

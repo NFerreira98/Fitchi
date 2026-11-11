@@ -19,11 +19,11 @@ Gamified fitness Tamagotchi: Apple Watch app + iPhone companion. See README.md f
 - Randomness (hatching, trait rolls) takes `inout some RandomNumberGenerator`; tests use `SeededRandom`.
 - Tests load the real `Content/` JSON, and `Catalog.validate()` must return no problems.
 
-## Game design (tunable numbers live in `DecayConfig.v1`, `PointsRules.v1`, `ComebackQuest.v1`, `VariantRules.v1`)
+## Game design (tunable numbers live in `DecayConfig.v1`, `PointsRules.current`, `HatchRules.v1`, `ComebackQuest.v1`, `VariantRules.v1`)
 - Currency is **Pep**. "Treat" is a shop item, not the currency.
 - Stats: hunger, happiness, energy, cleanliness, 0–100 where 100 = satisfied. Decay slows at night (22:00–07:00). Resting (non-active) pets decay at 25%.
 - Pets never die. Neglect escalates sad → sick → packing → ranAway (after ~6 days of neglect, typically more than a week from full stats). A ran-away pet returns after a comeback quest (60 active minutes). Vacations pause both decay and the neglect clock.
-- Pep = minutes × 1.2 × activity multiplier (run > walk) × effort bonus. Effort comes from average heart rate vs max HR (`EffortEstimator`). Overlapping samples count once (`ActivitySample.resolvingOverlaps`: workouts beat passive exercise minutes). Rounding is applied to each day's running total, never per sample. Daily soft cap of 180, with half rate beyond it. Hand-entered and pre-install activity earns nothing. Welcome bonus 100.
+- Pep = minutes × 1.2 × activity multiplier (run > walk) × effort bonus. Effort comes from average heart rate vs max HR (`EffortEstimator`). Overlapping samples count once (`ActivitySample.resolvingOverlaps`: workouts beat passive exercise minutes). Rounding is applied to each day's running total, never per sample. Daily soft cap of 180, with half rate beyond it. Hand-entered and pre-install activity earns nothing. Welcome bonus 100. Everyday steps (from `PointsRules.v2`) earn 1 Pep per 200 outside workouts/exercise minutes, max 25/day, as one earning per day keyed `steps:YYYY-MM-DD`; Health returns hourly totals merged across devices.
 - Pets come from eggs with rarity odds. The free starter is a random **common** species (dog, cat, axolotl). Each pet rolls its own traits within its species' range, plus a personality and a colour variant (weighted; 1/64 shiny). Variant colours are `#RRGGBB` data in `species.json`.
 - Pets are vector art drawn in FitchiUI `PetArt` (one drawing per species, recoloured by palette; `PetPose` drives animation). Preview: `cd Packages/FitchiUI && swift run fitchi-art-preview OUT.png`. Backdrops are independent of pets.
 - Fonts: Baloo 2 (`FitchiTheme.Fonts.display`) for names, numbers, buttons; SF Pro Rounded (`.text`) for running text.

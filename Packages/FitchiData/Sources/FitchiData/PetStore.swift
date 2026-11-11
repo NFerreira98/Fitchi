@@ -38,7 +38,7 @@ public final class PetStore {
         catalog: Catalog,
         decay: DecayContext = DecayContext(),
         hatchRules: HatchRules = .v1,
-        pointsRules: PointsRules = .v1,
+        pointsRules: PointsRules = .current,
         clock: any GameClock = SystemClock()
     ) {
         self.repository = repository
@@ -125,15 +125,19 @@ public final class PetStore {
         )
     }
 
-    public func hatchProgress(samples: [ActivitySample]) -> HatchProgress? {
-        pendingEgg.map { hatchRules.progress(for: $0, samples: samples, at: clock.now, calendar: decay.calendar) }
+    public func hatchProgress(samples: [ActivitySample], steps: [StepCount] = []) -> HatchProgress? {
+        pendingEgg.map {
+            hatchRules.progress(for: $0, samples: samples, steps: steps, at: clock.now, calendar: decay.calendar)
+        }
     }
 
     /// Cracks the starter egg. The pet gets a cute default name the player can change.
     @discardableResult
-    public func hatchStarter(samples: [ActivitySample], force: Bool = false) throws(HatchFailure) -> Pet {
+    public func hatchStarter(
+        samples: [ActivitySample], steps: [StepCount] = [], force: Bool = false
+    ) throws(HatchFailure) -> Pet {
         guard var egg = pendingEgg else { throw .alreadyHatched }
-        guard force || hatchProgress(samples: samples)?.isReady == true else { throw .notReady }
+        guard force || hatchProgress(samples: samples, steps: steps)?.isReady == true else { throw .notReady }
 
         var rng = SystemRandomNumberGenerator()
         let now = clock.now

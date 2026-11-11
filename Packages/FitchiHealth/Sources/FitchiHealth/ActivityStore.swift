@@ -21,6 +21,7 @@ public final class ActivityStore {
 
     public private(set) var status: Status = .idle
     public private(set) var samples: [ActivitySample] = []
+    public private(set) var steps: [StepCount] = []
     public private(set) var earnings: [Earning] = []
     public private(set) var lastRefreshed: Date?
 
@@ -34,7 +35,7 @@ public final class ActivityStore {
     public init(
         source: any HealthDataSource,
         installDate: Date,
-        rules: PointsRules = .v1,
+        rules: PointsRules = .current,
         clock: any GameClock = SystemClock(),
         calendar: Calendar = .current
     ) {
@@ -51,7 +52,7 @@ public final class ActivityStore {
     }
 
     public var today: DailySummary {
-        DailySummary(containing: clock.now, samples: samples, earnings: earnings, calendar: calendar)
+        DailySummary(containing: clock.now, samples: samples, steps: steps, earnings: earnings, calendar: calendar)
     }
 
     /// Asks for permission, loads activity, then keeps it current until the calling task is
@@ -88,8 +89,11 @@ public final class ActivityStore {
         let now = clock.now
         do {
             let fetched = try await source.activity(since: installDate, until: now)
+            // Steps are a bonus: if they can't be read, workouts and exercise minutes still count.
+            let fetchedSteps = (try? await source.steps(since: installDate, until: now)) ?? []
             samples = fetched
-            earnings = rules.earnings(for: fetched, since: installDate, calendar: calendar)
+            steps = fetchedSteps
+            earnings = rules.earnings(for: fetched, steps: fetchedSteps, since: installDate, calendar: calendar)
             lastRefreshed = now
             status = .ready
         } catch {

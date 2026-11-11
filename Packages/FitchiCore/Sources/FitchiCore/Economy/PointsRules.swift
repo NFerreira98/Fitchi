@@ -22,6 +22,9 @@ public struct Earning: Codable, Hashable, Sendable, Identifiable {
 ///
 /// pep = minutes × basePerMinute × activity multiplier × effort bonus,
 /// at full rate up to `dailySoftCap` per day and `overCapRate` beyond it.
+///
+/// From v2, everyday steps (outside workouts and exercise minutes) also earn a little:
+/// one Pep per `stepsPerPep`, up to `stepPepDailyCap` a day, separate from the soft cap.
 public struct PointsRules: Hashable, Sendable {
     public var version: Int
     public var basePerMinute: Double
@@ -33,6 +36,12 @@ public struct PointsRules: Hashable, Sendable {
     public var maxMinutesPerSample: Double
     /// One-time Pep granted at install, so the first treat is affordable straight away.
     public var welcomeBonus: Int
+    /// Everyday steps per Pep; nil means steps earn nothing.
+    public var stepsPerPep: Double?
+    public var stepPepDailyCap: Double
+
+    /// The rules the apps use now.
+    public static let current = v2
 
     public static let v1 = PointsRules(
         version: 1,
@@ -45,8 +54,20 @@ public struct PointsRules: Hashable, Sendable {
         dailySoftCap: 180,
         overCapRate: 0.5,
         maxMinutesPerSample: 240,
-        welcomeBonus: 100
+        welcomeBonus: 100,
+        stepsPerPep: nil,
+        stepPepDailyCap: 0
     )
+
+    /// v1 plus a trickle of Pep for everyday walking: about 0.5 Pep per minute of walking,
+    /// up to 25 a day (5,000 steps), so moving around helps without replacing exercise.
+    public static let v2: PointsRules = {
+        var rules = v1
+        rules.version = 2
+        rules.stepsPerPep = 200
+        rules.stepPepDailyCap = 25
+        return rules
+    }()
 
     /// Raw Pep for a sample, before the daily cap.
     public func rawPep(for sample: ActivitySample) -> Double {
@@ -58,7 +79,46 @@ public struct PointsRules: Hashable, Sendable {
 
     /// Computes earnings for every eligible sample. Excludes hand-entered samples, samples from
     /// before `installDate`, and duplicate ids. Each day's soft cap is applied in start order.
+    /// Everyday steps add one earning per day (see `stepEarnings`).
     public func earnings(
+        for samples: [ActivitySample],
+        steps: [StepCount] = [],
+        since installDate: Date,
+        calendar: Calendar
+    ) -> [Earning] {
+        activityEarnings(for: samples, since: installDate, calendar: calendar)
+            + stepEarnings(for: steps, excluding: samples, since: installDate, calendar: calendar)
+    }
+
+    /// One earning per day for everyday steps, keyed by the day so recomputing replaces it.
+    public func stepEarnings(
+        for steps: [StepCount],
+        excluding samples: [ActivitySample],
+        since installDate: Date,
+        calendar: Calendar
+    ) -> [Earning] {
+        guard let stepsPerPep, stepsPerPep > 0 else { return [] }
+        var totals: [Date: Double] = [:]
+        for bucket in steps {
+            let day = calendar.startOfDay(for: bucket.start)
+            totals[day, default: 0] += bucket.everydaySteps(after: installDate, excluding: samples)
+        }
+        return totals.keys.sorted().compactMap { day in
+            let amount = Int(min(totals[day, default: 0] / stepsPerPep, stepPepDailyCap).rounded(.down))
+            guard amount > 0 else { return nil }
+            return Earning(
+                sourceID: Self.stepsSourceID(for: day, calendar: calendar), day: day, amount: amount,
+                rulesVersion: version)
+        }
+    }
+
+    /// "steps:2026-11-11"
+    public static func stepsSourceID(for day: Date, calendar: Calendar) -> String {
+        let parts = calendar.dateComponents([.year, .month, .day], from: day)
+        return String(format: "steps:%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
+    private func activityEarnings(
         for samples: [ActivitySample],
         since installDate: Date,
         calendar: Calendar

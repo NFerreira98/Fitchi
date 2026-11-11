@@ -51,7 +51,7 @@ struct EggView: View {
     var body: some View {
         // Re-check every minute so the overnight fallback flips to "ready" on its own.
         TimelineView(.periodic(from: .now, by: 60)) { _ in
-            if let progress = pets.hatchProgress(samples: activity.samples) {
+            if let progress = pets.hatchProgress(samples: activity.samples, steps: activity.steps) {
                 content(progress)
             }
         }
@@ -88,11 +88,11 @@ struct EggView: View {
                         .font(FitchiTheme.Fonts.display(.headline))
                         .tint(FitchiTheme.Colors.accent)
                 } else {
-                    Text("Move \(progress.minutesRemaining) more min to hatch")
+                    Text("About \(progress.stepsRemaining) more steps to hatch")
                         .font(FitchiTheme.Fonts.display(.headline))
                         .multilineTextAlignment(.center)
                     let fallback = progress.fallbackDate.formatted(.dateTime.weekday(.abbreviated).hour().minute())
-                    Text("A brisk walk counts. Otherwise it hatches by \(fallback).")
+                    Text("Any walking counts, a workout counts faster. Otherwise it hatches by \(fallback).")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -107,7 +107,7 @@ struct EggView: View {
     }
 
     private func hatch(force: Bool) {
-        if let pet = try? pets.hatchStarter(samples: activity.samples, force: force) {
+        if let pet = try? pets.hatchStarter(samples: activity.samples, steps: activity.steps, force: force) {
             onHatch(pet)
         }
     }
