@@ -2,6 +2,14 @@ import FitchiCore
 import SwiftUI
 
 public extension PetPose {
+    /// Eyes squeezed shut in a grin.
+    static let happy: PetPose = {
+        var pose = PetPose()
+        pose.eyesOpen = 0
+        pose.mouthOpen = 0.8
+        return pose
+    }()
+
     /// A calm idle loop: breathing, blinking, a lazy tail and the odd glance around.
     /// `seed` offsets the rhythm so two pets never breathe in sync.
     static func idle(at time: TimeInterval, seed: Double = 0, excited: Bool = false) -> PetPose {
@@ -29,6 +37,7 @@ public extension PetPose {
 /// A pet that is always a little bit alive. Drawn species animate; the rest show their emoji.
 public struct LivingPetView: View {
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let species: Species?
     private let speciesID: String
     private let variant: PetVariant?
@@ -46,10 +55,16 @@ public struct LivingPetView: View {
     public var body: some View {
         if let species, PetFigure.hasArt(for: speciesID) {
             let palette = PetPalette(species: species, variant: variant)
-            // 20 fps is plenty for a gentle idle; it stops when the wrist is down.
-            TimelineView(.animation(minimumInterval: 1.0 / 20, paused: isLuminanceReduced)) { timeline in
-                let time = timeline.date.timeIntervalSinceReferenceDate
-                PetFigure(speciesID: speciesID, palette: palette, pose: .idle(at: time, seed: seed, excited: excited))
+            if reduceMotion {
+                // Reduce Motion: a still pet that only changes expression.
+                PetFigure(speciesID: speciesID, palette: palette, pose: excited ? .happy : .standing)
+            } else {
+                // 20 fps is plenty for a gentle idle; it stops when the wrist is down.
+                TimelineView(.animation(minimumInterval: 1.0 / 20, paused: isLuminanceReduced)) { timeline in
+                    let time = timeline.date.timeIntervalSinceReferenceDate
+                    PetFigure(
+                        speciesID: speciesID, palette: palette, pose: .idle(at: time, seed: seed, excited: excited))
+                }
             }
         } else {
             Text(species?.emoji ?? "🐾")

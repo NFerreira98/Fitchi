@@ -22,7 +22,6 @@ struct PetHomeView: View {
             case .ready:
                 if let pet = pets.activePet {
                     PetView(pet: pet)
-                        .navigationTitle(pet.name)
                 } else {
                     EggView { newborn = $0 }
                         .navigationTitle("Your egg")
@@ -246,6 +245,7 @@ struct PetDetailView: View {
     @Environment(PetStore.self) private var pets
     let petID: UUID
     @State private var name = ""
+    @AppStorage(PetLayoutStyle.storageKey) private var style = PetLayoutStyle.island
 
     var body: some View {
         if let pet = pets.roster[petID] {
@@ -253,6 +253,17 @@ struct PetDetailView: View {
                 Section("Name") {
                     TextField("Name", text: $name)
                         .onSubmit { pets.rename(pet.id, to: name) }
+                }
+                Section {
+                    Picker("Pet screen", selection: $style) {
+                        ForEach(PetLayoutStyle.allCases) { option in
+                            Text(option.title).tag(option)
+                        }
+                    }
+                } header: {
+                    Text("Display")
+                } footer: {
+                    Text(style.summary)
                 }
                 Section("Personality") {
                     VStack(alignment: .leading, spacing: 2) {
