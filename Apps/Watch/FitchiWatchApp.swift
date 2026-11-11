@@ -1,5 +1,6 @@
 import FitchiData
 import FitchiHealth
+import FitchiUI
 import SwiftUI
 
 @main
@@ -9,6 +10,7 @@ struct FitchiWatchApp: App {
     @State private var pets = PetStore.makeDefault()
 
     init() {
+        FitchiTheme.Fonts.register()
         let store = ActivityStore.makeDefault(installDate: AppInstall.date())
         _activity = State(initialValue: store)
         // Started here rather than in a view, so a background wake-up from HealthKit (which may
@@ -19,6 +21,7 @@ struct FitchiWatchApp: App {
     var body: some Scene {
         WindowGroup {
             WatchHomeView()
+                .fontDesign(.rounded)
                 .environment(activity)
                 .environment(pets)
         }

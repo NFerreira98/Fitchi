@@ -21,7 +21,7 @@ struct PetView: View {
             ScrollView {
                 VStack(spacing: FitchiTheme.Spacing.s) {
                     Label("\(balance) Pep", systemImage: "sparkles")
-                        .font(.caption.weight(.semibold).monospacedDigit())
+                        .font(FitchiTheme.Fonts.display(.headline).monospacedDigit())
                         .foregroundStyle(FitchiTheme.Colors.points)
                         .contentTransition(.numericText(value: Double(balance)))
                         .animation(.snappy, value: balance)
@@ -76,7 +76,7 @@ struct PetView: View {
         } label: {
             VStack(spacing: 0) {
                 Text(action.emoji).font(.title3)
-                Text(action.title).font(.caption2.weight(.semibold))
+                Text(action.title).font(FitchiTheme.Fonts.display(.footnote))
                 if let item {
                     Text(owned ? "Owned" : "\(item.price) Pep")
                         .font(.system(size: 10).monospacedDigit())
@@ -91,7 +91,9 @@ struct PetView: View {
     private func care(_ action: CareAction) {
         do {
             let outcome = try pets.care(action, for: pet.id, earnings: activity.earnings)
-            event = CareEvent(action: action, outcome: outcome, petName: pet.name, itemName: pets.catalog.item(id: outcome.itemID)?.name)
+            event = CareEvent(
+                action: action, outcome: outcome, petName: pet.name,
+                itemName: pets.catalog.item(id: outcome.itemID)?.name)
         } catch {
             event = CareEvent(action: action, failure: error, petName: pet.name)
         }
@@ -147,7 +149,7 @@ private struct FloatingText: View {
 
     var body: some View {
         Text(text)
-            .font(.caption.weight(.bold).monospacedDigit())
+            .font(FitchiTheme.Fonts.display(.headline, weight: .heavy).monospacedDigit())
             .offset(x: 30, y: risen ? -34 : -4)
             .opacity(risen ? 0 : 1)
             .onAppear {

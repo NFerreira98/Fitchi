@@ -83,12 +83,13 @@ struct EggView: View {
 
                 if progress.isReady {
                     Text("Something's moving!")
-                        .font(.headline)
+                        .font(FitchiTheme.Fonts.display(.headline))
                     Button("Hatch!") { hatch(force: false) }
+                        .font(FitchiTheme.Fonts.display(.headline))
                         .tint(FitchiTheme.Colors.accent)
                 } else {
                     Text("Move \(progress.minutesRemaining) more min to hatch")
-                        .font(.headline)
+                        .font(FitchiTheme.Fonts.display(.headline))
                         .multilineTextAlignment(.center)
                     let fallback = progress.fallbackDate.formatted(.dateTime.weekday(.abbreviated).hour().minute())
                     Text("A brisk walk counts. Otherwise it hatches by \(fallback).")
@@ -134,7 +135,7 @@ struct HatchRevealView: View {
                         .font(.system(size: 60))
                         .transition(.scale(scale: 0.2).combined(with: .opacity))
                     Text("It's a \(species?.name ?? "pet")!")
-                        .font(.headline)
+                        .font(FitchiTheme.Fonts.display(size: 22))
                     TextField("Name", text: $name)
                         .multilineTextAlignment(.center)
                     Button {
@@ -146,6 +147,7 @@ struct HatchRevealView: View {
                         pets.rename(pet.id, to: name)
                         dismiss()
                     }
+                    .font(FitchiTheme.Fonts.display(.headline))
                     .tint(FitchiTheme.Colors.accent)
                 } else {
                     Text("🥚")
@@ -156,7 +158,7 @@ struct HatchRevealView: View {
                             .easeInOut(duration: 0.08)
                         }
                     Text("Hatching…")
-                        .font(.headline)
+                        .font(FitchiTheme.Fonts.display(.title3))
                 }
             }
             .frame(maxWidth: .infinity)
@@ -184,7 +186,7 @@ struct PetDetailView: View {
                 }
                 Section("Personality") {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(pet.personality.title).font(.headline)
+                        Text(pet.personality.title).font(FitchiTheme.Fonts.display(.headline))
                         Text(pet.personality.blurb).font(.caption2).foregroundStyle(.secondary)
                     }
                 }

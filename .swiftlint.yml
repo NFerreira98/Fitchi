@@ -19,6 +19,6 @@ function_parameter_count:
   warning: 7
   error: 8
 identifier_name:
-  excluded: [id, x, y, s, m, l, xs, v1, v2, v3]
+  excluded: [id, x, y, s, m, l, xs, v1, v2, v3, rx, ry] # rx/ry: ellipse radii, as in SVG
 analyzer_rules:
   - unused_import

@@ -13,6 +13,12 @@ let package = Package(
         .package(path: "../FitchiCore"),
     ],
     targets: [
-        .target(name: "FitchiUI", dependencies: ["FitchiCore"]),
+        .target(
+            name: "FitchiUI",
+            dependencies: ["FitchiCore"],
+            resources: [.copy("Resources/Fonts")]  // Baloo 2 (SIL Open Font License, see Baloo2-OFL.txt)
+        ),
+        // `swift run fitchi-art-preview OUT.png` renders a contact sheet of pets and backdrops (macOS).
+        .executableTarget(name: "fitchi-art-preview", dependencies: ["FitchiUI"], path: "Tools/FitchiArtPreview"),
     ]
 )

@@ -20,7 +20,7 @@ public struct TodaySummaryView: View {
                 Text("Pep")
             } currentValueLabel: {
                 Text("\(summary.pepEarned)")
-                    .font(.headline.monospacedDigit())
+                    .font(FitchiTheme.Fonts.display(.headline).monospacedDigit())
             }
             .gaugeStyle(.accessoryCircularCapacity)
             .tint(FitchiTheme.Colors.points)
@@ -36,7 +36,7 @@ public struct TodaySummaryView: View {
             }
 
             Label("\(balance) Pep", systemImage: "sparkles")
-                .font(.footnote.weight(.semibold).monospacedDigit())
+                .font(FitchiTheme.Fonts.display(.headline).monospacedDigit())
                 .foregroundStyle(FitchiTheme.Colors.points)
                 .accessibilityLabel("Balance: \(balance) Pep")
         }
@@ -45,7 +45,7 @@ public struct TodaySummaryView: View {
     private func stat(_ value: String, label: String, systemImage: String) -> some View {
         VStack(spacing: 2) {
             Label(value, systemImage: systemImage)
-                .font(.headline.monospacedDigit())
+                .font(FitchiTheme.Fonts.display(.headline).monospacedDigit())
             Text(label)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
