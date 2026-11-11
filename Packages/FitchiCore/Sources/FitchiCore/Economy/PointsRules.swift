@@ -64,7 +64,8 @@ public struct PointsRules: Hashable, Sendable {
         calendar: Calendar
     ) -> [Earning] {
         var seen = Set<String>()
-        let eligible = samples
+        let eligible =
+            samples
             .filter { !$0.isUserEntered && $0.start >= installDate && $0.minutes > 0 }
             .sorted { ($0.start, $0.id) < ($1.start, $1.id) }
             .filter { seen.insert($0.id).inserted }

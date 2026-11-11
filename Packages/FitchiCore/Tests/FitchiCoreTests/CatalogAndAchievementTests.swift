@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import FitchiCore
 
 @Suite("Catalog content")
@@ -42,7 +43,8 @@ struct AchievementTests {
 
     func walks(days: [Int], minutes: Double = 30) -> [ActivitySample] {
         days.map { day in
-            TestSupport.sample("walk-\(day)", .walk, start: install.addingTimeInterval(Double(day) * .day + .hour), minutes: minutes)
+            TestSupport.sample(
+                "walk-\(day)", .walk, start: install.addingTimeInterval(Double(day) * .day + .hour), minutes: minutes)
         }
     }
 

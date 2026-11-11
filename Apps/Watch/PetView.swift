@@ -26,7 +26,7 @@ struct PetView: View {
                         .contentTransition(.numericText(value: Double(balance)))
                         .animation(.snappy, value: balance)
 
-                    PetAvatar(emoji: pets.species(of: pet)?.emoji ?? "🐾", event: event)
+                    PetAvatar(pet: pet, species: pets.species(of: pet), event: event)
 
                     Text(event?.message ?? pet.condition(at: timeline.date, in: pets.decay).title)
                         .font(.footnote)
@@ -100,40 +100,54 @@ struct PetView: View {
     }
 }
 
-/// The pet's emoji, which hops on each successful care tap while the action's emoji and the
-/// stat gain float up from it.
+/// The pet in its scene. It idles on its own (breathing, blinking, glancing around), hops on
+/// each successful care tap, and the action's emoji and stat gain float up from it.
 private struct PetAvatar: View {
-    let emoji: String
+    let pet: Pet
+    let species: Species?
     let event: CareEvent?
+    @State private var excited = false
 
     var body: some View {
-        ZStack {
-            Text(emoji)
-                .font(.system(size: 52))
-                .keyframeAnimator(initialValue: Hop(), trigger: event?.hopTrigger) { content, hop in
-                    content
-                        .scaleEffect(x: hop.squash, y: 2 - hop.squash, anchor: .bottom)
-                        .offset(y: hop.lift)
-                } keyframes: { _ in
-                    KeyframeTrack(\.lift) {
-                        CubicKeyframe(0, duration: 0.08)
-                        SpringKeyframe(-16, duration: 0.2)
-                        SpringKeyframe(0, duration: 0.35, spring: .bouncy)
-                    }
-                    KeyframeTrack(\.squash) {
-                        CubicKeyframe(1.15, duration: 0.08)
-                        CubicKeyframe(0.92, duration: 0.2)
-                        SpringKeyframe(1, duration: 0.35, spring: .bouncy)
-                    }
+        ZStack(alignment: .bottom) {
+            SceneBackdrop(.meadow)
+            LivingPetView(
+                species: species, speciesID: pet.speciesID, variant: pet.variant, excited: excited, seed: pet.id
+            )
+            .padding(.horizontal, 28)
+            .keyframeAnimator(initialValue: Hop(), trigger: event?.hopTrigger) { content, hop in
+                content
+                    .scaleEffect(x: hop.squash, y: 2 - hop.squash, anchor: .bottom)
+                    .offset(y: hop.lift)
+            } keyframes: { _ in
+                KeyframeTrack(\.lift) {
+                    CubicKeyframe(0, duration: 0.08)
+                    SpringKeyframe(-16, duration: 0.2)
+                    SpringKeyframe(0, duration: 0.35, spring: .bouncy)
                 }
-                .accessibilityHidden(true)
+                KeyframeTrack(\.squash) {
+                    CubicKeyframe(1.15, duration: 0.08)
+                    CubicKeyframe(0.92, duration: 0.2)
+                    SpringKeyframe(1, duration: 0.35, spring: .bouncy)
+                }
+            }
+            .accessibilityHidden(true)
 
             if let event, let floater = event.floater {
                 FloatingText(text: floater)
                     .id(event.id)
+                    .padding(.bottom, 70)
             }
         }
-        .frame(height: 64)
+        .frame(height: 130)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .task(id: event?.hopTrigger) {
+            // Happy wiggle for a moment after a successful care tap.
+            guard event?.hopTrigger != nil, event?.floater != nil else { return }
+            excited = true
+            try? await Task.sleep(for: .seconds(1.6))
+            excited = false
+        }
     }
 
     struct Hop {

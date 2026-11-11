@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import FitchiCore
 
 @Suite("Overlaps, effort and daily summary")
@@ -62,7 +63,8 @@ struct ActivityTests {
             TestSupport.sample("yesterday", .run, start: morning.addingTimeInterval(-.day), minutes: 30),
         ]
         let earnings = PointsRules.v1.earnings(for: samples, since: install, calendar: TestSupport.calendar)
-        let summary = DailySummary(containing: at(300), samples: samples, earnings: earnings, calendar: TestSupport.calendar)
+        let summary = DailySummary(
+            containing: at(300), samples: samples, earnings: earnings, calendar: TestSupport.calendar)
         #expect(summary.activeMinutes == 25)
         #expect(summary.workoutCount == 1)
         #expect(summary.pepEarned == 24 + 3)  // 20×1.2, 5×1.2×0.5

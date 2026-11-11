@@ -19,6 +19,8 @@ public struct Pet: Identifiable, Codable, Hashable, Sendable {
     public let traits: PetTraits
     public let personality: Personality
     public let hatchedAt: Date
+    /// The colouring rolled at hatch; nil for pets hatched before variants existed.
+    public let variant: PetVariant?
     /// The active pet lives on the watch and decays at full speed; others rest at home.
     public private(set) var isActive: Bool
     public private(set) var stats: [Stat: StatAnchor]
@@ -31,6 +33,7 @@ public struct Pet: Identifiable, Codable, Hashable, Sendable {
         traits: PetTraits,
         personality: Personality,
         hatchedAt: Date,
+        variant: PetVariant? = nil,
         isActive: Bool = false,
         initialValue: Double = 80
     ) {
@@ -40,12 +43,16 @@ public struct Pet: Identifiable, Codable, Hashable, Sendable {
         self.traits = traits
         self.personality = personality
         self.hatchedAt = hatchedAt
+        self.variant = variant
         self.isActive = isActive
-        self.stats = Dictionary(uniqueKeysWithValues: Stat.allCases.map { ($0, StatAnchor(value: initialValue, date: hatchedAt)) })
+        self.stats = Dictionary(
+            uniqueKeysWithValues: Stat.allCases.map { ($0, StatAnchor(value: initialValue, date: hatchedAt)) })
         self.equipped = [:]
     }
 
     // MARK: - Computed state
+
+    public var isShiny: Bool { variant?.isShiny ?? false }
 
     public func anchor(for stat: Stat) -> StatAnchor {
         stats[stat] ?? StatAnchor(value: Stat.range.upperBound, date: hatchedAt)

@@ -28,7 +28,8 @@ public enum Care {
         guard condition.acceptsCare else { throw .petRanAway }
         guard inventory.consume(item.id) else { throw .noneLeft }
 
-        let multiplier = effectMultiplier(of: item, for: pet, species: species, condition: condition, config: context.config)
+        let multiplier = effectMultiplier(
+            of: item, for: pet, species: species, condition: condition, config: context.config)
         var changes: [Stat: Double] = [:]
         for (stat, delta) in item.effects {
             let scaled = delta > 0 ? delta * multiplier : delta

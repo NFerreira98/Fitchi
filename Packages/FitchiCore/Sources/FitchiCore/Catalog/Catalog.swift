@@ -72,6 +72,15 @@ public struct Catalog: Codable, Hashable, Sendable {
             if spec.traitRanges.all.contains(where: { $0.lowerBound < 0 || $0.upperBound > 1 }) {
                 problems.append("Species '\(spec.id)' has trait ranges outside 0...1")
             }
+            let colorings = spec.variants + (spec.shiny.map { [$0] } ?? [])
+            problems += colorings.flatMap { $0.problems(in: spec.id) }
+            let variantIDs = colorings.map(\.id)
+            if Set(variantIDs).count != variantIDs.count {
+                problems.append("Species '\(spec.id)' has duplicate variant ids")
+            }
+            if spec.shiny != nil && spec.variants.isEmpty {
+                problems.append("Species '\(spec.id)' has a shiny but no regular variants")
+            }
             problems += spec.favoriteItemIDs.filter { !itemIDs.contains($0) }
                 .map { "Species '\(spec.id)' favorite '\($0)' is not an item" }
         }

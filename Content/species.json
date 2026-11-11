@@ -1,49 +1,70 @@
 [
   {
     "id": "dog", "name": "Dog", "rarity": "common", "emoji": "🐶",
-    "traitRanges": { "appetite": [0.6, 0.9], "playfulness": [0.7, 1.0], "stamina": [0.6, 0.9], "tidiness": [0.2, 0.5] },
+    "traitRanges": {"appetite": [0.6, 0.9], "playfulness": [0.7, 1.0], "stamina": [0.6, 0.9], "tidiness": [0.2, 0.5]},
     "favoriteItemIDs": ["bone-biscuit", "tennis-ball"],
-    "defaultNames": ["Biscuit", "Scout", "Pepper", "Waffles", "Maple"]
+    "defaultNames": ["Biscuit", "Scout", "Pepper", "Waffles", "Maple"],
+    "variants": [
+      {"id": "honey", "name": "Honey", "weight": 3, "colors": {"body": "#E9B577", "belly": "#FFF1DC", "accent": "#9B6236"}},
+      {"id": "cocoa", "name": "Cocoa", "weight": 3, "colors": {"body": "#8A5A3C", "belly": "#D9B08C", "accent": "#5E3A26"}},
+      {"id": "patch", "name": "Patch", "weight": 2, "colors": {"body": "#F6F1EA", "belly": "#FFFFFF", "accent": "#5A4436", "marking": "#5A4436"}, "pattern": "patches"},
+      {"id": "frost", "name": "Frost", "weight": 2, "colors": {"body": "#8E98AA", "belly": "#F5F5F7", "accent": "#5D6678"}}
+    ],
+    "shiny": {"id": "shiny-starlight", "name": "Shiny Starlight", "colors": {"body": "#6A7FE0", "belly": "#D6E4FF", "accent": "#FFC94D", "cheek": "#FF9ACD"}}
   },
   {
     "id": "cat", "name": "Cat", "rarity": "common", "emoji": "🐱",
-    "traitRanges": { "appetite": [0.3, 0.6], "playfulness": [0.2, 0.5], "stamina": [0.3, 0.6], "tidiness": [0.7, 1.0] },
+    "traitRanges": {"appetite": [0.3, 0.6], "playfulness": [0.2, 0.5], "stamina": [0.3, 0.6], "tidiness": [0.7, 1.0]},
     "favoriteItemIDs": ["tuna-bites", "yarn-ball"],
-    "defaultNames": ["Miso", "Luna", "Tofu", "Pixel", "Noodle"]
+    "defaultNames": ["Miso", "Luna", "Tofu", "Pixel", "Noodle"],
+    "variants": [
+      {"id": "grey-tabby", "name": "Grey Tabby", "weight": 3, "colors": {"body": "#A9B4C8", "belly": "#F4F1EE", "accent": "#FFB0C0", "marking": "#7C879E"}, "pattern": "stripes"},
+      {"id": "ginger", "name": "Ginger", "weight": 3, "colors": {"body": "#FFAA5C", "belly": "#FFF1DE", "accent": "#FFB0B8", "marking": "#E07F35"}, "pattern": "stripes"},
+      {"id": "tuxedo", "name": "Tuxedo", "weight": 2, "colors": {"body": "#3B3A48", "belly": "#F7F5F2", "accent": "#FF9DB2"}},
+      {"id": "calico", "name": "Calico", "weight": 1, "colors": {"body": "#F7F1EA", "belly": "#FFFFFF", "accent": "#FFB0C0", "marking": "#E89A52"}, "pattern": "patches"}
+    ],
+    "shiny": {"id": "shiny-sugar", "name": "Shiny Sugar", "colors": {"body": "#FFFFFF", "belly": "#FFF3F7", "accent": "#FF8FB8", "cheek": "#FF8FB8", "bow": "#F2436E"}}
   },
   {
     "id": "axolotl", "name": "Axolotl", "rarity": "common", "emoji": "🦎",
-    "traitRanges": { "appetite": [0.4, 0.7], "playfulness": [0.4, 0.7], "stamina": [0.2, 0.5], "tidiness": [0.5, 0.8] },
+    "traitRanges": {"appetite": [0.4, 0.7], "playfulness": [0.4, 0.7], "stamina": [0.2, 0.5], "tidiness": [0.5, 0.8]},
     "favoriteItemIDs": ["bloodworm-snack", "bubble-wand"],
-    "defaultNames": ["Bubbles", "Wasabi", "Gilly", "Pip", "Coral"]
+    "defaultNames": ["Bubbles", "Wasabi", "Gilly", "Pip", "Coral"],
+    "variants": [
+      {"id": "leucistic", "name": "Blush", "weight": 4, "colors": {"body": "#FFC2D4", "belly": "#FFE4EC", "accent": "#E8508A"}},
+      {"id": "wild", "name": "Wild", "weight": 3, "colors": {"body": "#8C8A5A", "belly": "#B9B585", "accent": "#6E5A3A", "marking": "#5C5A36"}, "pattern": "spots"},
+      {"id": "golden", "name": "Golden", "weight": 2, "colors": {"body": "#FFD66B", "belly": "#FFF0B8", "accent": "#FF9A4D"}},
+      {"id": "melanoid", "name": "Midnight", "weight": 1, "colors": {"body": "#4A4E6B", "belly": "#6E7392", "accent": "#7C5CA8", "cheek": "#B07CC8"}}
+    ],
+    "shiny": {"id": "shiny-amethyst", "name": "Shiny Amethyst", "colors": {"body": "#B58AF0", "belly": "#E2CCFF", "accent": "#FF9A3C", "marking": "#8D62D6", "cheek": "#FF9A3C"}, "pattern": "spots"}
   },
   {
     "id": "bunny", "name": "Bunny", "rarity": "uncommon", "emoji": "🐰",
-    "traitRanges": { "appetite": [0.5, 0.8], "playfulness": [0.5, 0.8], "stamina": [0.4, 0.7], "tidiness": [0.6, 0.9] },
+    "traitRanges": {"appetite": [0.5, 0.8], "playfulness": [0.5, 0.8], "stamina": [0.4, 0.7], "tidiness": [0.6, 0.9]},
     "favoriteItemIDs": ["fresh-salad"],
     "defaultNames": ["Clover", "Mochi", "Hopper", "Daisy"]
   },
   {
     "id": "red-panda", "name": "Red Panda", "rarity": "rare", "emoji": "🦊",
-    "traitRanges": { "appetite": [0.4, 0.7], "playfulness": [0.5, 0.8], "stamina": [0.3, 0.6], "tidiness": [0.6, 0.9] },
+    "traitRanges": {"appetite": [0.4, 0.7], "playfulness": [0.5, 0.8], "stamina": [0.3, 0.6], "tidiness": [0.6, 0.9]},
     "favoriteItemIDs": ["fresh-salad", "nap-mat"],
     "defaultNames": ["Ember", "Rusty", "Ginger", "Sora"]
   },
   {
     "id": "penguin", "name": "Penguin", "rarity": "rare", "emoji": "🐧",
-    "traitRanges": { "appetite": [0.6, 0.9], "playfulness": [0.4, 0.7], "stamina": [0.6, 0.9], "tidiness": [0.4, 0.7] },
+    "traitRanges": {"appetite": [0.6, 0.9], "playfulness": [0.4, 0.7], "stamina": [0.6, 0.9], "tidiness": [0.4, 0.7]},
     "favoriteItemIDs": ["tuna-bites", "bubble-bath"],
     "defaultNames": ["Waddles", "Pebble", "Tux", "Skipper"]
   },
   {
     "id": "platypus", "name": "Platypus", "rarity": "epic", "emoji": "🦫",
-    "traitRanges": { "appetite": [0.5, 0.9], "playfulness": [0.6, 1.0], "stamina": [0.4, 0.8], "tidiness": [0.2, 0.6] },
+    "traitRanges": {"appetite": [0.5, 0.9], "playfulness": [0.6, 1.0], "stamina": [0.4, 0.8], "tidiness": [0.2, 0.6]},
     "favoriteItemIDs": ["bloodworm-snack", "squeaky-toy"],
     "defaultNames": ["Perry", "Duckie", "Bill", "Paddle"]
   },
   {
     "id": "golden-axolotl", "name": "Golden Axolotl", "rarity": "legendary", "emoji": "🐉",
-    "traitRanges": { "appetite": [0.3, 0.6], "playfulness": [0.5, 0.8], "stamina": [0.6, 0.9], "tidiness": [0.7, 1.0] },
+    "traitRanges": {"appetite": [0.3, 0.6], "playfulness": [0.5, 0.8], "stamina": [0.6, 0.9], "tidiness": [0.7, 1.0]},
     "favoriteItemIDs": ["bloodworm-snack", "bubble-wand"],
     "defaultNames": ["Aurum", "Goldie", "Sunny", "Midas"]
   }

@@ -1,4 +1,5 @@
 import Foundation
+
 @testable import FitchiCore
 
 enum TestSupport {
@@ -12,7 +13,8 @@ enum TestSupport {
     static func date(
         _ year: Int = 2026, _ month: Int = 1, _ day: Int = 5, hour: Int = 12, minute: Int = 0
     ) -> Date {
-        calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute)) ?? .distantPast
+        calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute))
+            ?? .distantPast
     }
 
     /// No night slowdown, so decay is linear and easy to reason about.

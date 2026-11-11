@@ -37,12 +37,19 @@ public struct PetFigure: View {
         context.fill(shadow, with: .color(.black.opacity(0.18)))
     }
 
+    /// Whether a drawing exists for this species; others still show their emoji.
+    public static func hasArt(for speciesID: String) -> Bool {
+        painters[speciesID] != nil
+    }
+
+    private static let painters: [String: (Ink, PetPalette, PetPose) -> Void] = [
+        "axolotl": AxolotlArt.draw,
+        "cat": CatArt.draw,
+        "dog": DogArt.draw,
+    ]
+
     static func painter(for speciesID: String) -> (Ink, PetPalette, PetPose) -> Void {
-        switch speciesID {
-        case "axolotl": AxolotlArt.draw
-        case "cat": CatArt.draw
-        default: DogArt.draw
-        }
+        painters[speciesID] ?? DogArt.draw
     }
 }
 

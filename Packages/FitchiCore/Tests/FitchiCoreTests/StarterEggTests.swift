@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import FitchiCore
 
 @Suite("Starter egg")
@@ -30,9 +31,11 @@ struct StarterEggTests {
         #expect(early.minutesRemaining == 3)
         #expect(!early.isReady)
 
-        let later = rules.progress(for: egg, samples: samples + [
-            TestSupport.sample("p2", .passive, start: granted + 1200, minutes: 1),
-        ], at: granted + 3600, calendar: calendar)
+        let later = rules.progress(
+            for: egg,
+            samples: samples + [
+                TestSupport.sample("p2", .passive, start: granted + 1200, minutes: 1)
+            ], at: granted + 3600, calendar: calendar)
         #expect(later.activeMinutes == 5)
         #expect(later.isReady)
     }

@@ -1,3 +1,4 @@
+import FitchiCore
 import Foundation
 
 /// The colours one pet is painted with. Every species uses the same slots:
@@ -43,57 +44,38 @@ public struct PetPalette: Hashable, Sendable, Identifiable {
     }
 }
 
-// Look-check palettes. These move into Content/species.json once variant rolls exist in FitchiCore.
 public extension PetPalette {
-    static let axolotl: [PetPalette] = [
-        PetPalette(id: "leucistic", name: "Blush", body: 0xFFC2D4, belly: 0xFFE4EC, accent: 0xE8508A),
-        PetPalette(
-            id: "wild", name: "Wild", body: 0x8C8A5A, belly: 0xB9B585, accent: 0x6E5A3A, marking: 0x5C5A36,
-            pattern: .spots),
-        PetPalette(id: "golden", name: "Golden", body: 0xFFD66B, belly: 0xFFF0B8, accent: 0xFF9A4D),
-        PetPalette(
-            id: "melanoid", name: "Midnight", body: 0x4A4E6B, belly: 0x6E7392, accent: 0x7C5CA8, cheek: 0xB07CC8),
-        PetPalette(
-            id: "shiny", name: "Shiny Amethyst", body: 0xB58AF0, belly: 0xE2CCFF, accent: 0xFF9A3C,
-            marking: 0x8D62D6, pattern: .spots, cheek: 0xFF9A3C, isShiny: true
-        ),
-    ]
-
-    static let cat: [PetPalette] = [
-        PetPalette(
-            id: "grey-tabby", name: "Grey Tabby", body: 0xA9B4C8, belly: 0xF4F1EE, accent: 0xFFB0C0, marking: 0x7C879E,
-            pattern: .stripes),
-        PetPalette(
-            id: "ginger", name: "Ginger", body: 0xFFAA5C, belly: 0xFFF1DE, accent: 0xFFB0B8, marking: 0xE07F35,
-            pattern: .stripes),
-        PetPalette(id: "tuxedo", name: "Tuxedo", body: 0x3B3A48, belly: 0xF7F5F2, accent: 0xFF9DB2),
-        PetPalette(
-            id: "calico", name: "Calico", body: 0xF7F1EA, belly: 0xFFFFFF, accent: 0xFFB0C0, marking: 0xE89A52,
-            pattern: .patches),
-        PetPalette(
-            id: "shiny", name: "Shiny Sugar", body: 0xFFFFFF, belly: 0xFFF3F7, accent: 0xFF8FB8,
-            cheek: 0xFF8FB8, bow: 0xF2436E, isShiny: true
-        ),
-    ]
-
-    static let dog: [PetPalette] = [
-        PetPalette(id: "tan", name: "Honey", body: 0xE9B577, belly: 0xFFF1DC, accent: 0x9B6236),
-        PetPalette(id: "chocolate", name: "Cocoa", body: 0x8A5A3C, belly: 0xD9B08C, accent: 0x5E3A26),
-        PetPalette(
-            id: "spotty", name: "Patch", body: 0xF6F1EA, belly: 0xFFFFFF, accent: 0x5A4436, marking: 0x5A4436,
-            pattern: .patches),
-        PetPalette(id: "husky", name: "Frost", body: 0x8E98AA, belly: 0xF5F5F7, accent: 0x5D6678),
-        PetPalette(
-            id: "shiny", name: "Shiny Starlight", body: 0x6A7FE0, belly: 0xD6E4FF, accent: 0xFFC94D,
-            cheek: 0xFF9ACD, isShiny: true
-        ),
-    ]
-
-    static func all(for speciesID: String) -> [PetPalette] {
-        switch speciesID {
-        case "axolotl": axolotl
-        case "cat": cat
-        default: dog
+    /// Builds a palette from catalog data. Unknown or malformed colours fall back to neutral tones.
+    init(_ variant: ColorVariant, isShiny: Bool = false) {
+        func hex(_ slot: String) -> UInt32? {
+            guard let value = variant.colors[slot], value.hasPrefix("#") else { return nil }
+            return UInt32(value.dropFirst(), radix: 16)
         }
+        self.init(
+            id: variant.id,
+            name: variant.name,
+            body: hex("body") ?? 0xD8D2CC,
+            belly: hex("belly") ?? 0xFFFFFF,
+            accent: hex("accent") ?? 0xFFB0C0,
+            marking: hex("marking"),
+            pattern: variant.pattern.flatMap(Pattern.init(rawValue:)) ?? .none,
+            cheek: hex("cheek") ?? 0xFF8FA8,
+            bow: hex("bow"),
+            isShiny: isShiny
+        )
+    }
+
+    /// The palette a pet of `species` with `variant` is drawn in.
+    init(species: Species, variant: PetVariant?) {
+        if let colouring = species.colorVariant(for: variant) {
+            self.init(colouring, isShiny: variant?.isShiny == true && colouring.id == species.shiny?.id)
+        } else {
+            self.init(id: "default", name: species.name, body: 0xD8D2CC, belly: 0xFFFFFF, accent: 0xFFB0C0)
+        }
+    }
+
+    /// Every colouring of a species, regular variants first and the shiny last.
+    static func all(for species: Species) -> [PetPalette] {
+        species.variants.map { PetPalette($0) } + (species.shiny.map { [PetPalette($0, isShiny: true)] } ?? [])
     }
 }

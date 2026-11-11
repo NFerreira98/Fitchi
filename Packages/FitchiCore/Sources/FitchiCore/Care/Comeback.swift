@@ -18,7 +18,8 @@ public struct ComebackQuest: Hashable, Sendable {
     public func progress(for pet: Pet, samples: [ActivitySample], at date: Date, in context: DecayContext) -> Double? {
         guard let leftAt = pet.ranAwayDate(at: date, in: context) else { return nil }
         var seen = Set<String>()
-        return samples
+        return
+            samples
             .filter { !$0.isUserEntered && $0.start >= leftAt && $0.start <= date && seen.insert($0.id).inserted }
             .reduce(0) { $0 + $1.minutes }
     }

@@ -69,8 +69,9 @@ struct EggView: View {
                         .stroke(FitchiTheme.Colors.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .animation(.easeOut, value: progress.fraction)
-                    Text("🥚")
-                        .font(.system(size: 52))
+                    // The crack creeps across the egg as you move.
+                    EggFigure(crack: progress.isReady ? 1 : progress.fraction * 0.7)
+                        .frame(width: 70, height: 70)
                         .phaseAnimator([-7.0, 7.0]) { egg, angle in
                             egg.rotationEffect(.degrees(angle), anchor: .bottom)
                         } animation: { _ in
@@ -113,13 +114,21 @@ struct EggView: View {
     }
 }
 
-/// The loot-box moment: the egg shakes, cracks, and the pet appears. Then pick a name.
+/// The mystery-egg moment: the egg rocks, cracks three times, bursts in a flash and the pet
+/// pops out. Shinies get a sparkle burst and their own fanfare. Then pick a name.
 struct HatchRevealView: View {
     @Environment(PetStore.self) private var pets
     @Environment(\.dismiss) private var dismiss
     let pet: Pet
-    @State private var revealed = false
+    @State private var stage = Stage.rocking
+    @State private var flash = false
     @State private var name: String
+
+    enum Stage: Comparable {
+        case rocking
+        case cracking(Int)
+        case revealed
+    }
 
     init(pet: Pet) {
         self.pet = pet
@@ -129,45 +138,106 @@ struct HatchRevealView: View {
     var body: some View {
         let species = pets.species(of: pet)
         ScrollView {
-            VStack(spacing: FitchiTheme.Spacing.m) {
-                if revealed {
-                    Text(species?.emoji ?? "🐾")
-                        .font(.system(size: 60))
-                        .transition(.scale(scale: 0.2).combined(with: .opacity))
-                    Text("It's a \(species?.name ?? "pet")!")
-                        .font(FitchiTheme.Fonts.display(size: 22))
-                    TextField("Name", text: $name)
-                        .multilineTextAlignment(.center)
-                    Button {
-                        name = pets.suggestedName(for: pet, excluding: name)
-                    } label: {
-                        Label("Another name", systemImage: "shuffle")
+            VStack(spacing: FitchiTheme.Spacing.s) {
+                ZStack {
+                    if stage == .revealed {
+                        if pet.isShiny { ShinyBurst() }
+                        LivingPetView(species: species, speciesID: pet.speciesID, variant: pet.variant, seed: pet.id)
+                            .frame(width: 110, height: 110)
+                            .transition(.scale(scale: 0.2, anchor: .bottom).combined(with: .opacity))
+                    } else {
+                        EggFigure(crack: crackAmount)
+                            .frame(width: 90, height: 90)
+                            .phaseAnimator([-1.0, 1.0]) { egg, side in
+                                egg.rotationEffect(.degrees(side * rockAngle), anchor: .bottom)
+                            } animation: { _ in
+                                .easeInOut(duration: rockSpeed)
+                            }
                     }
-                    Button("Done") {
-                        pets.rename(pet.id, to: name)
-                        dismiss()
-                    }
-                    .font(FitchiTheme.Fonts.display(.headline))
-                    .tint(FitchiTheme.Colors.accent)
+                    Circle()
+                        .fill(.white)
+                        .frame(width: 60, height: 60)
+                        .scaleEffect(flash ? 4 : 0.1)
+                        .opacity(flash ? 0 : (stage == .revealed ? 0 : 0.0001))
+                        .allowsHitTesting(false)
+                }
+                .frame(height: 115)
+
+                if stage == .revealed {
+                    revealedDetails(species: species)
                 } else {
-                    Text("🥚")
-                        .font(.system(size: 60))
-                        .phaseAnimator([-14.0, 14.0]) { egg, angle in
-                            egg.rotationEffect(.degrees(angle), anchor: .bottom)
-                        } animation: { _ in
-                            .easeInOut(duration: 0.08)
-                        }
                     Text("Hatching…")
                         .font(FitchiTheme.Fonts.display(.title3))
                 }
             }
             .frame(maxWidth: .infinity)
         }
-        .sensoryFeedback(.success, trigger: revealed)
-        .task {
-            try? await Task.sleep(for: .seconds(1.8))
-            withAnimation(.spring(duration: 0.6, bounce: 0.55)) { revealed = true }
+        .sensoryFeedback(trigger: stage) { _, new in
+            switch new {
+            case .rocking: nil
+            case .cracking: .impact(weight: .medium)
+            case .revealed: pet.isShiny ? .levelChange : .success
+            }
         }
+        .task { await play() }
+    }
+
+    @ViewBuilder
+    private func revealedDetails(species: Species?) -> some View {
+        let colouring = species?.colorVariant(for: pet.variant)
+        if pet.isShiny {
+            Text("✨ A shiny! ✨")
+                .font(FitchiTheme.Fonts.display(size: 22))
+                .foregroundStyle(FitchiTheme.Colors.points)
+        }
+        Text("It's a \(species?.name ?? "pet")!")
+            .font(FitchiTheme.Fonts.display(size: pet.isShiny ? 18 : 22))
+        if let colouring {
+            Text(colouring.name)
+                .font(FitchiTheme.Fonts.text(.footnote, weight: .semibold))
+                .foregroundStyle(pet.isShiny ? FitchiTheme.Colors.points : .secondary)
+        }
+        TextField("Name", text: $name)
+            .multilineTextAlignment(.center)
+        Button {
+            name = pets.suggestedName(for: pet, excluding: name)
+        } label: {
+            Label("Another name", systemImage: "shuffle")
+        }
+        Button("Done") {
+            pets.rename(pet.id, to: name)
+            dismiss()
+        }
+        .font(FitchiTheme.Fonts.display(.headline))
+        .tint(FitchiTheme.Colors.accent)
+    }
+
+    private var crackAmount: Double {
+        if case .cracking(let count) = stage { return Double(count) / 3 }
+        return 0
+    }
+
+    /// The egg rocks harder and faster with every crack.
+    private var rockAngle: Double {
+        if case .cracking(let count) = stage { return 6 + Double(count) * 4 }
+        return 5
+    }
+
+    private var rockSpeed: Double {
+        if case .cracking(let count) = stage { return 0.22 - Double(count) * 0.05 }
+        return 0.45
+    }
+
+    private func play() async {
+        guard stage == .rocking else { return }
+        try? await Task.sleep(for: .seconds(1.2))
+        for count in 1...3 {
+            stage = .cracking(count)
+            try? await Task.sleep(for: .seconds(0.75))
+        }
+        withAnimation(.easeOut(duration: 0.5)) { flash = true }
+        try? await Task.sleep(for: .seconds(0.12))
+        withAnimation(.spring(duration: 0.6, bounce: 0.55)) { stage = .revealed }
     }
 }
 
@@ -198,6 +268,9 @@ struct PetDetailView: View {
                 }
                 Section {
                     LabeledContent("Species", value: pets.species(of: pet)?.name ?? pet.speciesID)
+                    if let colouring = pets.species(of: pet)?.colorVariant(for: pet.variant) {
+                        LabeledContent("Colour", value: pet.isShiny ? "✨ \(colouring.name)" : colouring.name)
+                    }
                     LabeledContent("Hatched", value: pet.hatchedAt.formatted(date: .abbreviated, time: .omitted))
                 }
             }

@@ -37,7 +37,8 @@ public struct HatchRules: Hashable, Sendable {
     /// Newborn pets start with every stat full.
     public var newbornStatValue: Double
 
-    public static let v1 = HatchRules(requiredMinutes: 5, fallbackHour: 7, minimumWait: 6 * .hour, newbornStatValue: 100)
+    public static let v1 = HatchRules(
+        requiredMinutes: 5, fallbackHour: 7, minimumWait: 6 * .hour, newbornStatValue: 100)
 
     public func fallbackDate(for egg: StarterEgg, calendar: Calendar) -> Date {
         let earliest = egg.grantedAt.addingTimeInterval(minimumWait)

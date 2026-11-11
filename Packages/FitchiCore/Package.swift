@@ -7,7 +7,7 @@ let package = Package(
     name: "FitchiCore",
     platforms: [.iOS(.v26), .watchOS(.v26), .macOS(.v26)],
     products: [
-        .library(name: "FitchiCore", targets: ["FitchiCore"]),
+        .library(name: "FitchiCore", targets: ["FitchiCore"])
     ],
     targets: [
         .target(name: "FitchiCore"),

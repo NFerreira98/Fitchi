@@ -7,10 +7,10 @@ let package = Package(
     name: "FitchiUI",
     platforms: [.iOS(.v26), .watchOS(.v26), .macOS(.v26)],
     products: [
-        .library(name: "FitchiUI", targets: ["FitchiUI"]),
+        .library(name: "FitchiUI", targets: ["FitchiUI"])
     ],
     dependencies: [
-        .package(path: "../FitchiCore"),
+        .package(path: "../FitchiCore")
     ],
     targets: [
         .target(
@@ -18,7 +18,8 @@ let package = Package(
             dependencies: ["FitchiCore"],
             resources: [.copy("Resources/Fonts")]  // Baloo 2 (SIL Open Font License, see Baloo2-OFL.txt)
         ),
-        // `swift run fitchi-art-preview OUT.png` renders a contact sheet of pets and backdrops (macOS).
-        .executableTarget(name: "fitchi-art-preview", dependencies: ["FitchiUI"], path: "Tools/FitchiArtPreview"),
+        // `swift run fitchi-art-preview OUT.png [CONTENT_DIR]` renders a contact sheet of pets and backdrops (macOS).
+        .executableTarget(
+            name: "fitchi-art-preview", dependencies: ["FitchiUI", "FitchiCore"], path: "Tools/FitchiArtPreview"),
     ]
 )

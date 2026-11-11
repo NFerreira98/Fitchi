@@ -72,7 +72,8 @@ public enum QuickCare {
             throw .alreadySatisfied(action.stat)
         }
         guard let species = catalog.species(id: pet.speciesID),
-            let item = item(for: action, species: species, catalog: catalog, inventory: inventory, balance: wallet.balance)
+            let item = item(
+                for: action, species: species, catalog: catalog, inventory: inventory, balance: wallet.balance)
         else { throw .noItem }
 
         // Work on copies so a failed step leaves nothing half-done.

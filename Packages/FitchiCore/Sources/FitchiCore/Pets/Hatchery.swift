@@ -39,14 +39,19 @@ public enum Hatchery {
         name: String? = nil,
         at date: Date,
         initialValue: Double = 80,
+        variants: VariantRules = .v1,
         using rng: inout some RandomNumberGenerator
     ) -> Pet {
-        Pet(
-            name: name ?? species.defaultNames.randomElement(using: &rng) ?? species.name,
+        let name = name ?? species.defaultNames.randomElement(using: &rng) ?? species.name
+        let traits = species.traitRanges.roll(using: &rng)
+        let personality = Personality.allCases.randomElement(using: &rng) ?? .easygoing
+        return Pet(
+            name: name,
             speciesID: species.id,
-            traits: species.traitRanges.roll(using: &rng),
-            personality: Personality.allCases.randomElement(using: &rng) ?? .easygoing,
+            traits: traits,
+            personality: personality,
             hatchedAt: date,
+            variant: variants.roll(for: species, using: &rng),
             initialValue: initialValue
         )
     }

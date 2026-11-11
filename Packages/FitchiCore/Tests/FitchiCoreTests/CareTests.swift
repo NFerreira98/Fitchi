@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+
 @testable import FitchiCore
 
 @Suite("Care, wardrobe & comeback")
@@ -14,7 +15,8 @@ struct CareTests {
     @Test func feedingRaisesHungerAndConsumesItem() throws {
         var pet = TestSupport.pet(personality: .easygoing, at: start, initialValue: 40)
         var inventory = Inventory(consumables: ["kibble": 2])
-        try Care.use(try item("kibble"), on: &pet, species: try species("cat"), inventory: &inventory, at: start, in: context)
+        try Care.use(
+            try item("kibble"), on: &pet, species: try species("cat"), inventory: &inventory, at: start, in: context)
         #expect(pet.value(of: .hunger, at: start, in: context) == 75)
         #expect(inventory.count(of: "kibble") == 1)
     }
@@ -22,14 +24,17 @@ struct CareTests {
     @Test func statsCapAt100() throws {
         var pet = TestSupport.pet(personality: .easygoing, at: start, initialValue: 90)
         var inventory = Inventory(consumables: ["kibble": 1])
-        try Care.use(try item("kibble"), on: &pet, species: try species("cat"), inventory: &inventory, at: start, in: context)
+        try Care.use(
+            try item("kibble"), on: &pet, species: try species("cat"), inventory: &inventory, at: start, in: context)
         #expect(pet.value(of: .hunger, at: start, in: context) == 100)
     }
 
     @Test func favoritesRestoreMoreAndNegativeEffectsAreNotScaled() throws {
         var pet = TestSupport.pet(personality: .easygoing, at: start, initialValue: 40)
         var inventory = Inventory(consumables: ["tennis-ball": 1])
-        try Care.use(try item("tennis-ball"), on: &pet, species: try species("dog"), inventory: &inventory, at: start, in: context)
+        try Care.use(
+            try item("tennis-ball"), on: &pet, species: try species("dog"), inventory: &inventory, at: start,
+            in: context)
         #expect(pet.value(of: .happiness, at: start, in: context) == 40 + 35 * 1.25)
         #expect(pet.value(of: .energy, at: start, in: context) == 35)
     }
@@ -37,7 +42,8 @@ struct CareTests {
     @Test func pickyEatersDislikeNonFavorites() throws {
         var pet = TestSupport.pet(personality: .pickyEater, at: start, initialValue: 40)
         var inventory = Inventory(consumables: ["kibble": 1])
-        try Care.use(try item("kibble"), on: &pet, species: try species("dog"), inventory: &inventory, at: start, in: context)
+        try Care.use(
+            try item("kibble"), on: &pet, species: try species("dog"), inventory: &inventory, at: start, in: context)
         #expect(pet.value(of: .hunger, at: start, in: context) == 40 + 35 * 0.75)
     }
 
@@ -45,7 +51,9 @@ struct CareTests {
         var pet = TestSupport.pet(at: start)
         var inventory = Inventory()
         #expect(throws: CareError.noneLeft) {
-            try Care.use(try item("kibble"), on: &pet, species: try species("dog"), inventory: &inventory, at: start, in: context)
+            try Care.use(
+                try item("kibble"), on: &pet, species: try species("dog"), inventory: &inventory, at: start, in: context
+            )
         }
     }
 
@@ -55,7 +63,8 @@ struct CareTests {
         var inventory = Inventory(consumables: ["kibble": 1])
         #expect(pet.condition(at: gone, in: context) == .ranAway)
         #expect(throws: CareError.petRanAway) {
-            try Care.use(try item("kibble"), on: &pet, species: try species("dog"), inventory: &inventory, at: gone, in: context)
+            try Care.use(
+                try item("kibble"), on: &pet, species: try species("dog"), inventory: &inventory, at: gone, in: context)
         }
         #expect(inventory.count(of: "kibble") == 1)
 
