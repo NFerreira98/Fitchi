@@ -31,6 +31,30 @@ struct ShopStoreTests {
         #expect(store.inventory.activeBackdropID == pond.id)
     }
 
+    @Test func accessoriesAreWornOnlyOnceOwnedAndSurviveARestore() throws {
+        let store = try makeStore()
+        let pet = try #require(store.activePet)
+        let hat = try #require(store.catalog.item(id: "party-hat"))
+        let crown = try #require(store.catalog.item(id: "flower-crown"))
+        #expect(!store.wear(hat.id, on: pet.id), "not owned yet")
+        #expect(!store.wear("kibble", on: pet.id), "not an accessory")
+
+        try store.buy(hat, earnings: rich)
+        try store.buy(crown, earnings: rich)
+        #expect(store.wear(hat.id, on: pet.id))
+        #expect(store.wear(crown.id, on: pet.id))
+        #expect(store.roster[pet.id]?.equipped == [.head: crown.id], "one item per slot")
+
+        // A reinstalled watch gets the outfit back from the phone's backup.
+        let snapshot = try #require(store.snapshot(installDate: suite.start))
+        let fresh = suite.makeStore(try FitchiStore.makeContainer(inMemory: true), at: suite.start + 60)
+        #expect(fresh.restore(from: snapshot))
+        #expect(fresh.roster[pet.id]?.equipped == [.head: crown.id])
+
+        store.takeOff(.head, from: pet.id)
+        #expect(store.roster[pet.id]?.equipped.isEmpty == true)
+    }
+
     @Test func eggsHatchARestingPetThatFillsTheCollection() throws {
         let store = try makeStore()
         let starter = try #require(store.activePet)

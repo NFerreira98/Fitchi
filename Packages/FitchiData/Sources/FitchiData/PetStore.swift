@@ -355,6 +355,30 @@ extension PetStore {
         return true
     }
 
+    /// Puts an owned accessory on a pet, replacing whatever was in that slot. Returns false if
+    /// the item isn't an owned accessory.
+    @discardableResult
+    public func wear(_ itemID: String, on petID: UUID) -> Bool {
+        guard let item = catalog.item(id: itemID), var pet = roster[petID],
+            (try? Wardrobe.equip(item, on: &pet, inventory: inventory)) != nil
+        else { return false }
+        saveDressed(pet)
+        return true
+    }
+
+    /// Takes off whatever the pet wears in `slot`.
+    public func takeOff(_ slot: AccessorySlot, from petID: UUID) {
+        guard var pet = roster[petID], pet.equipped[slot] != nil else { return }
+        Wardrobe.unequip(slot, on: &pet)
+        saveDressed(pet)
+    }
+
+    private func saveDressed(_ pet: Pet) {
+        try? roster.update(pet)
+        try? repository?.save(pet, at: clock.now)
+        didChange()
+    }
+
     private func save(wallet: Wallet, inventory: Inventory) throws(PurchaseError) {
         let newTransactions = wallet.transactions.filter { new in !transactions.contains { $0.id == new.id } }
         do {
@@ -365,17 +389,5 @@ extension PetStore {
         }
         transactions.append(contentsOf: newTransactions)
         self.inventory = inventory
-    }
-}
-
-extension PetStore {
-    /// The on-disk store with the catalog bundled in the app's `Content` folder.
-    public static func makeDefault(bundle: Bundle = .main, grantsStarterEgg: Bool = true) -> PetStore {
-        let empty = Catalog(species: [], items: [], eggs: [], achievements: [])
-        let catalog = (try? bundle.url(forResource: "Content", withExtension: nil).map(Catalog.load(from:))) ?? empty
-        let repository = (try? FitchiStore.makeContainer()).map(GameRepository.init(container:))
-        let store = PetStore(repository: repository, catalog: catalog)
-        store.load(grantsStarterEgg: grantsStarterEgg)
-        return store
     }
 }

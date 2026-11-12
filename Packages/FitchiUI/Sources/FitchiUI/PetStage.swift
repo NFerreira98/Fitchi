@@ -120,7 +120,7 @@ public struct PetStage: View {
             // (the watch clips anything drawn outside a moving view's frame).
             PetFigure(
                 speciesID: pet.speciesID, palette: PetPalette(species: species, variant: pet.variant), pose: frame.pose,
-                effects: frame.effects, laysOutMargin: true
+                effects: frame.effects, accessories: pet.equipped, laysOutMargin: true
             )
             .frame(width: size * PetFigure.marginScale, height: size * PetFigure.marginScale)
         } else {

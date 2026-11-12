@@ -78,7 +78,7 @@ struct PetMoodView: View {
         if let pet = entry.pet, let species = entry.glance.species, PetFigure.hasArt(for: pet.speciesID) {
             PetFigure(
                 speciesID: pet.speciesID, palette: PetPalette(species: species, variant: pet.variant),
-                pose: entry.frame.pose, effects: entry.frame.effects)
+                pose: entry.frame.pose, effects: entry.frame.effects, accessories: pet.equipped)
         } else if let species = entry.glance.species {
             Text(species.emoji ?? "🐾").font(.system(size: 22))
         } else {

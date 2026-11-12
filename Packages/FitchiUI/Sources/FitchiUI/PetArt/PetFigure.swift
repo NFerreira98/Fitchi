@@ -1,3 +1,4 @@
+import FitchiCore
 import SwiftUI
 
 /// A pet drawn as smooth vector art at any size. The same drawing serves every colour variant;
@@ -8,14 +9,16 @@ public struct PetFigure: View {
     private let pose: PetPose
     private let effects: PetEffects
     private let laysOutMargin: Bool
+    private let accessories: [AccessorySlot: String]
 
     /// `laysOutMargin` makes the view's own frame include the `overdraw` margin (the art square
     /// is the middle 100/160 of it), so nothing is ever drawn outside the frame. Use it wherever
     /// the pet moves; otherwise the view lays out as the art square and the margin spills over.
     public init(
         speciesID: String, palette: PetPalette, pose: PetPose = .standing, effects: PetEffects = .none,
-        laysOutMargin: Bool = false
+        accessories: [AccessorySlot: String] = [:], laysOutMargin: Bool = false
     ) {
+        self.accessories = accessories
         self.speciesID = speciesID
         self.palette = palette
         self.pose = pose
@@ -75,7 +78,10 @@ public struct PetFigure: View {
             posed.rotate(by: .degrees(drawn.tilt))
             posed.scaleBy(x: (1 + drawn.squash * 0.6) * (drawn.flipped ? -1 : 1), y: 1 - drawn.squash)
             posed.translateBy(x: -50, y: -ground)
+            let fit = PetFit.fit(for: speciesID)
+            AccessoryArt.drawBehind(accessories, Ink(context: posed), fit: fit)
             Self.painter(for: speciesID)(Ink(context: posed), palette, drawn)
+            AccessoryArt.drawInFront(accessories, Ink(context: posed), fit: fit, headBob: drawn.headBob)
             EffectArt.drawOnBody(effects, posed)
             if palette.isShiny { Sparkles.draw(context) }
             EffectArt.drawAround(effects, context, flipped: drawn.flipped)

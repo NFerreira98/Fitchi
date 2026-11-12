@@ -5,7 +5,7 @@ import FitchiUI
 import SwiftUI
 
 /// Spend Pep on eggs and backdrops. Food and toys are bought with a tap on the watch, where
-/// they're used; art styles and accessories show as coming soon until they're drawn.
+/// they're used; art styles show as coming soon until they're drawn.
 struct ShopView: View {
     @Environment(PetStore.self) private var pets
     @Environment(ActivityStore.self) private var activity
@@ -26,6 +26,7 @@ struct ShopView: View {
                 }
                 eggs
                 backdrops
+                accessories
                 comingSoon
             }
             .navigationTitle("Shop")
@@ -137,11 +138,57 @@ struct ShopView: View {
         }
     }
 
+    // MARK: - Accessories
+
+    private var accessories: some View {
+        Section {
+            ForEach(pets.catalog.items.filter { $0.category == .accessory }) { item in
+                accessoryRow(item)
+            }
+        } header: {
+            Text("Accessories")
+        } footer: {
+            if let pet = pets.activePet {
+                Text("Shown on \(pet.name). Buy once, wear on any pet; change outfits on your watch too.")
+            }
+        }
+    }
+
+    private func accessoryRow(_ item: ShopItem) -> some View {
+        let pet = pets.activePet
+        let wearing = pet.map { $0.equipped[item.slot ?? .head] == item.id } ?? false
+        return HStack(spacing: FitchiTheme.Spacing.m) {
+            AccessoryPreview(item: item)
+                .frame(width: 56, height: 56)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name).font(FitchiTheme.Fonts.display(.headline))
+                Text(item.description).font(FitchiTheme.Fonts.text(.caption)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if !pets.inventory.owns(item.id) {
+                PriceButton(price: item.price, affordable: balance >= item.price) {
+                    do throws(PetStore.PurchaseError) {
+                        try pets.buy(item, earnings: activity.earnings)
+                        if let pet { pets.wear(item.id, on: pet.id) }
+                    } catch {
+                        problem = message(for: error)
+                    }
+                }
+            } else if let pet, let slot = item.slot {
+                Button(wearing ? "Take off" : "Wear") {
+                    if wearing { pets.takeOff(slot, from: pet.id) } else { pets.wear(item.id, on: pet.id) }
+                }
+                .buttonStyle(.bordered)
+                .tint(wearing ? .secondary : FitchiTheme.Colors.accent)
+            }
+        }
+    }
+
     // MARK: - Coming soon
 
     private var comingSoon: some View {
         Section {
-            ForEach(pets.catalog.items.filter { $0.category == .artStyle || $0.category == .accessory }) { item in
+            ForEach(pets.catalog.items.filter { $0.category == .artStyle }) { item in
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.name).font(FitchiTheme.Fonts.display(.subheadline))
@@ -156,7 +203,7 @@ struct ShopView: View {
         } header: {
             Text("Coming soon")
         } footer: {
-            Text("Art styles and accessories go on sale once they're drawn.")
+            Text("Art styles go on sale once they're drawn.")
         }
     }
 
@@ -192,5 +239,22 @@ struct PriceButton: View {
         .tint(affordable ? FitchiTheme.Colors.accent : .gray)
         .accessibilityLabel("Buy for \(price) Pep")
         .accessibilityHint(affordable ? "" : "Not enough Pep yet")
+    }
+}
+
+/// The active pet wearing one accessory (on top of its current outfit), or the item's name if
+/// there's no pet to dress.
+private struct AccessoryPreview: View {
+    @Environment(PetStore.self) private var pets
+    let item: ShopItem
+
+    var body: some View {
+        if let pet = pets.activePet, let species = pets.species(of: pet), let slot = item.slot {
+            PetFigure(
+                speciesID: pet.speciesID, palette: PetPalette(species: species, variant: pet.variant),
+                accessories: pet.equipped.merging([slot: item.id]) { _, new in new })
+        } else {
+            Image(systemName: "tshirt.fill").font(.title2).foregroundStyle(.secondary)
+        }
     }
 }

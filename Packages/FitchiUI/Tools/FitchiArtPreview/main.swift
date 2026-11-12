@@ -9,11 +9,17 @@ import UniformTypeIdentifiers
 @MainActor
 enum ArtPreview {
     static func run() throws {
-        let arguments = Array(CommandLine.arguments.dropFirst())
+        var arguments = Array(CommandLine.arguments.dropFirst())
+        // `--accessories` renders every species wearing every accessory instead.
+        let accessories = arguments.first == "--accessories"
+        if accessories { arguments.removeFirst() }
         let output = arguments.first ?? "pets.png"
         let content = URL(fileURLWithPath: arguments.count > 1 ? arguments[1] : "../../Content")
         let catalog = try Catalog.load(from: content)
-        let renderer = ImageRenderer(content: ContactSheet(catalog: catalog))
+        let renderer = ImageRenderer(
+            content: Group {
+                if accessories { AccessorySheet(catalog: catalog) } else { ContactSheet(catalog: catalog) }
+            })
         renderer.scale = 2
         guard let image = renderer.cgImage else { throw PreviewError.renderFailed }
         let url = URL(fileURLWithPath: output) as CFURL
@@ -94,19 +100,61 @@ struct ContactSheet: View {
     }
 }
 
+/// One row per species: bare, then wearing each accessory, then a full outfit.
+struct AccessorySheet: View {
+    let catalog: Catalog
+
+    var body: some View {
+        let items = catalog.items.compactMap { item in item.slot.map { (item, $0) } }
+        VStack(alignment: .leading, spacing: 18) {
+            ForEach(catalog.species.map(\.id).filter(PetFigure.hasArt(for:)), id: \.self) { species in
+                let palette =
+                    catalog.species(id: species).map { PetPalette.all(for: $0)[0] }
+                    ?? PetPalette.all(for: catalog.species[0])[0]
+                HStack(spacing: 10) {
+                    Tile(species: species, palette: palette, backdrop: .meadow, caption: species)
+                    ForEach(items, id: \.0.id) { item, slot in
+                        Tile(
+                            species: species, palette: palette, backdrop: .meadow,
+                            accessories: [slot: item.id], caption: item.name)
+                    }
+                    Tile(
+                        species: species, palette: palette, backdrop: .bedroom, pose: walking,
+                        accessories: [
+                            .head: "party-hat", .face: "sunglasses", .neck: "red-bandana", .back: "hero-cape",
+                        ],
+                        caption: "Outfit, walking")
+                }
+            }
+        }
+        .padding(20)
+        .background(Color(white: 0.12))
+    }
+
+    private var walking: PetPose {
+        var pose = PetPose()
+        pose.tilt = 6
+        pose.flipped = true
+        pose.lift = 3
+        pose.headBob = 1.5
+        return pose
+    }
+}
+
 struct Tile: View {
     let species: String
     let palette: PetPalette
     let backdrop: SceneBackdrop.Kind
     var pose = PetPose()
     var effects = PetEffects.none
+    var accessories: [AccessorySlot: String] = [:]
     var caption: String?
 
     var body: some View {
         VStack(spacing: 6) {
             ZStack(alignment: .bottom) {
                 SceneBackdrop(backdrop)
-                PetFigure(speciesID: species, palette: palette, pose: pose, effects: effects)
+                PetFigure(speciesID: species, palette: palette, pose: pose, effects: effects, accessories: accessories)
                     .padding(.horizontal, 22)
                     .padding(.bottom, 6)
             }

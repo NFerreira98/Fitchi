@@ -275,6 +275,7 @@ struct PetDetailView: View {
                 } footer: {
                     Text("Buy more backdrops in the Fitchi app on your iPhone.")
                 }
+                wardrobe(pet)
                 Section {
                     Toggle("Care reminders", isOn: $remindersOn)
                         .onChange(of: remindersOn) { PetCompanions.refresh(pets) }
@@ -317,6 +318,40 @@ struct PetDetailView: View {
         return "\(version) (\(build))"
     }
 
+    /// One picker per slot the player owns something for. Buy accessories on the iPhone.
+    @ViewBuilder
+    private func wardrobe(_ pet: Pet) -> some View {
+        let owned = pets.catalog.items.filter { $0.category == .accessory && pets.inventory.owns($0.id) }
+        Section {
+            if owned.isEmpty {
+                Text("Buy hats, glasses and more in the Fitchi app on your iPhone.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(AccessorySlot.allCases, id: \.self) { slot in
+                let choices = owned.filter { $0.slot == slot }
+                if !choices.isEmpty {
+                    Picker(slot.title, selection: outfit(slot, of: pet)) {
+                        Text("None").tag(String?.none)
+                        ForEach(choices) { item in
+                            Text(item.name).tag(String?.some(item.id))
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("Wardrobe")
+        }
+    }
+
+    private func outfit(_ slot: AccessorySlot, of pet: Pet) -> Binding<String?> {
+        Binding(
+            get: { pets.roster[pet.id]?.equipped[slot] },
+            set: { itemID in
+                if let itemID { pets.wear(itemID, on: pet.id) } else { pets.takeOff(slot, from: pet.id) }
+            })
+    }
+
     private var backdrop: Binding<String> {
         Binding(get: { pets.inventory.activeBackdropID }, set: { pets.selectBackdrop($0) })
     }
@@ -333,6 +368,17 @@ struct PetDetailView: View {
             Text(title).font(.caption2)
             ProgressView(value: value)
                 .tint(FitchiTheme.Colors.accent)
+        }
+    }
+}
+
+extension AccessorySlot {
+    var title: String {
+        switch self {
+        case .head: "Head"
+        case .face: "Face"
+        case .neck: "Neck"
+        case .back: "Back"
         }
     }
 }
