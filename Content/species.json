@@ -42,30 +42,63 @@
     "id": "bunny", "name": "Bunny", "rarity": "uncommon", "emoji": "🐰",
     "traitRanges": {"appetite": [0.5, 0.8], "playfulness": [0.5, 0.8], "stamina": [0.4, 0.7], "tidiness": [0.6, 0.9]},
     "favoriteItemIDs": ["fresh-salad"],
-    "defaultNames": ["Clover", "Mochi", "Hopper", "Daisy"]
+    "defaultNames": ["Clover", "Mochi", "Hopper", "Daisy"],
+    "variants": [
+      {"id": "snowball", "name": "Snowball", "weight": 3, "colors": {"body": "#F6F2EE", "belly": "#FFFFFF", "accent": "#FFB3C6"}},
+      {"id": "cocoa-bun", "name": "Cocoa", "weight": 3, "colors": {"body": "#A27A5C", "belly": "#F2E3D3", "accent": "#F2B3A6"}},
+      {"id": "dusk", "name": "Dusk", "weight": 2, "colors": {"body": "#9FA0B3", "belly": "#ECEAF2", "accent": "#F2B6C9"}},
+      {"id": "dutch", "name": "Dutch", "weight": 1, "colors": {"body": "#FBF8F4", "belly": "#FFFFFF", "accent": "#F7B8C6", "marking": "#4B3F3C"}, "pattern": "patches"}
+    ],
+    "shiny": {"id": "shiny-moonbeam", "name": "Shiny Moonbeam", "colors": {"body": "#C7B6FF", "belly": "#F1ECFF", "accent": "#FFD36B", "cheek": "#FF9FC9"}}
   },
   {
     "id": "red-panda", "name": "Red Panda", "rarity": "rare", "emoji": "🦊",
     "traitRanges": {"appetite": [0.4, 0.7], "playfulness": [0.5, 0.8], "stamina": [0.3, 0.6], "tidiness": [0.6, 0.9]},
     "favoriteItemIDs": ["fresh-salad", "nap-mat"],
-    "defaultNames": ["Ember", "Rusty", "Ginger", "Sora"]
+    "defaultNames": ["Ember", "Rusty", "Ginger", "Sora"],
+    "variants": [
+      {"id": "classic-panda", "name": "Classic", "weight": 4, "colors": {"body": "#D8653B", "belly": "#4A2C26", "accent": "#FFF6EC", "marking": "#A2462A"}},
+      {"id": "sunset", "name": "Sunset", "weight": 3, "colors": {"body": "#F08E4E", "belly": "#5A342B", "accent": "#FFF4E4", "marking": "#C2643A"}},
+      {"id": "chestnut", "name": "Chestnut", "weight": 2, "colors": {"body": "#9C4A2E", "belly": "#3A2320", "accent": "#F8EBDD", "marking": "#6F321F"}},
+      {"id": "snowy", "name": "Snowy", "weight": 1, "colors": {"body": "#EBDCCB", "belly": "#6B5850", "accent": "#FFFFFF", "marking": "#C9A98C"}}
+    ],
+    "shiny": {"id": "shiny-glacier", "name": "Shiny Glacier", "colors": {"body": "#8FC6F2", "belly": "#2F3E5C", "accent": "#FFFFFF", "marking": "#5C92C8", "cheek": "#B9A6FF"}}
   },
   {
     "id": "penguin", "name": "Penguin", "rarity": "rare", "emoji": "🐧",
     "traitRanges": {"appetite": [0.6, 0.9], "playfulness": [0.4, 0.7], "stamina": [0.6, 0.9], "tidiness": [0.4, 0.7]},
     "favoriteItemIDs": ["tuna-bites", "bubble-bath"],
-    "defaultNames": ["Waddles", "Pebble", "Tux", "Skipper"]
+    "defaultNames": ["Waddles", "Pebble", "Tux", "Skipper"],
+    "variants": [
+      {"id": "classic-penguin", "name": "Classic", "weight": 4, "colors": {"body": "#2F3547", "belly": "#FFFFFF", "accent": "#FF9F3D"}},
+      {"id": "emperor", "name": "Emperor", "weight": 2, "colors": {"body": "#2B3142", "belly": "#FFFFFF", "accent": "#FF8A3D", "marking": "#FFC24D"}, "pattern": "patches"},
+      {"id": "rockhopper", "name": "Rockhopper", "weight": 2, "colors": {"body": "#30333D", "belly": "#FFFFFF", "accent": "#FF6B4A", "marking": "#FFD23F"}, "pattern": "stripes"},
+      {"id": "little-blue", "name": "Little Blue", "weight": 1, "colors": {"body": "#5684C4", "belly": "#EEF4FA", "accent": "#4A4F63"}}
+    ],
+    "shiny": {"id": "shiny-strawberry", "name": "Shiny Strawberry", "colors": {"body": "#E65C8E", "belly": "#FFF0F5", "accent": "#FFD166", "cheek": "#FF9FB8"}}
   },
   {
     "id": "platypus", "name": "Platypus", "rarity": "epic", "emoji": "🦫",
     "traitRanges": {"appetite": [0.5, 0.9], "playfulness": [0.6, 1.0], "stamina": [0.4, 0.8], "tidiness": [0.2, 0.6]},
     "favoriteItemIDs": ["bloodworm-snack", "squeaky-toy"],
-    "defaultNames": ["Perry", "Duckie", "Bill", "Paddle"]
+    "defaultNames": ["Perry", "Duckie", "Bill", "Paddle"],
+    "variants": [
+      {"id": "river", "name": "River", "weight": 4, "colors": {"body": "#8A5A3C", "belly": "#D8B48F", "accent": "#465266"}},
+      {"id": "sandy", "name": "Sandy", "weight": 3, "colors": {"body": "#B98A5E", "belly": "#EBD3B5", "accent": "#5A6274"}},
+      {"id": "deep-water", "name": "Deep Water", "weight": 2, "colors": {"body": "#5A3D2E", "belly": "#B99272", "accent": "#33394A"}}
+    ],
+    "shiny": {"id": "shiny-biofluorescent", "name": "Shiny Glow", "colors": {"body": "#2CC8B5", "belly": "#B9FFF1", "accent": "#1F6F8B", "marking": "#1FA698", "cheek": "#7DF0FF"}}
   },
   {
     "id": "golden-axolotl", "name": "Golden Axolotl", "rarity": "legendary", "emoji": "🐉",
     "traitRanges": {"appetite": [0.3, 0.6], "playfulness": [0.5, 0.8], "stamina": [0.6, 0.9], "tidiness": [0.7, 1.0]},
     "favoriteItemIDs": ["bloodworm-snack", "bubble-wand"],
-    "defaultNames": ["Aurum", "Goldie", "Sunny", "Midas"]
+    "defaultNames": ["Aurum", "Goldie", "Sunny", "Midas"],
+    "variants": [
+      {"id": "sunlit", "name": "Sunlit Gold", "weight": 4, "colors": {"body": "#FFD45C", "belly": "#FFF1BA", "accent": "#FF9E3D", "cheek": "#FF9E7A", "bow": "#4FC3F7"}},
+      {"id": "rose-gold", "name": "Rose Gold", "weight": 2, "colors": {"body": "#F6B9A3", "belly": "#FFE6DC", "accent": "#E07A8F", "bow": "#FFFFFF"}},
+      {"id": "moonlit", "name": "Moonlit Gold", "weight": 1, "colors": {"body": "#F4EEDC", "belly": "#FFFFFF", "accent": "#BCD5FF", "bow": "#8EA6FF"}}
+    ],
+    "shiny": {"id": "shiny-obsidian", "name": "Shiny Obsidian", "colors": {"body": "#2C2635", "belly": "#4A3F58", "accent": "#FFC93C", "cheek": "#FF7AA2", "bow": "#FF5E8A"}}
   }
 ]

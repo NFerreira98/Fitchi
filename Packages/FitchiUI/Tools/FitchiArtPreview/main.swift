@@ -33,7 +33,7 @@ struct ContactSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            ForEach(["axolotl", "cat", "dog"], id: \.self) { species in
+            ForEach(catalog.species.map(\.id).filter(PetFigure.hasArt(for:)), id: \.self) { species in
                 HStack(spacing: 10) {
                     ForEach(palettes(species)) { palette in
                         Tile(species: species, palette: palette, backdrop: .meadow)
@@ -132,6 +132,18 @@ struct LifeRows: View {
                 tile("cat", care(.play, at: 1.0), "Play")
                 tile("axolotl", care(.wash, at: 1.2), "Wash")
                 tile("axolotl", care(.rest, at: 2), "Nap")
+            }
+            HStack(spacing: 10) {
+                // Faces differ per species (beaks, bills, teeth), so check moods on the newer ones.
+                tile("penguin", frame(PetMood(isHungry: true), at: 1), "Hungry penguin")
+                tile("platypus", care(.feed, at: 1.2), "Platypus eats")
+                tile("red-panda", frame(PetMood(condition: .sad), at: 1), "Sad red panda")
+                tile("bunny", frame(PetMood(isAsleep: true), at: 1.2), "Bunny asleep")
+                tile(
+                    "golden-axolotl",
+                    search(.init(condition: .thriving)) { $0.effects.hearts.map { $0 > 0.3 } ?? false },
+                    "Legendary, happy")
+                tile("penguin", care(.wash, at: 1.4), "Penguin bath")
             }
             HStack(spacing: 10) {
                 // Full lean both ways: tails and gills must not be cut off at the art square.

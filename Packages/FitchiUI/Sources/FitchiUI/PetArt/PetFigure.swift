@@ -76,6 +76,11 @@ public struct PetFigure: View {
         "axolotl": AxolotlArt.draw,
         "cat": CatArt.draw,
         "dog": DogArt.draw,
+        "bunny": BunnyArt.draw,
+        "red-panda": RedPandaArt.draw,
+        "penguin": PenguinArt.draw,
+        "platypus": PlatypusArt.draw,
+        "golden-axolotl": AxolotlArt.drawLegendary,
     ]
 
     static func painter(for speciesID: String) -> (Ink, PetPalette, PetPose) -> Void {

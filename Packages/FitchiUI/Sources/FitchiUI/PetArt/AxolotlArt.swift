@@ -3,10 +3,21 @@ import SwiftUI
 /// Wide smiley head, feathery gill fronds, a curled fin tail.
 enum AxolotlArt {
     static func draw(_ ink: Ink, palette: PetPalette, pose: PetPose) {
+        draw(ink, palette: palette, pose: pose, regal: false)
+    }
+
+    /// The legendary Golden Axolotl: a glowing aura, a fin crest over the head, longer flowing
+    /// gills (four per side) and a gem on the brow (`bow` colour).
+    static func drawLegendary(_ ink: Ink, palette: PetPalette, pose: PetPose) {
+        draw(ink, palette: palette, pose: pose, regal: true)
+    }
+
+    private static func draw(_ ink: Ink, palette: PetPalette, pose: PetPose, regal: Bool) {
         let skin = Tone(palette.body)
         let belly = Tone(palette.belly)
         let gills = Tone(palette.accent)
 
+        if regal { aura(ink, color: palette.accent) }
         let tailPivot = CGPoint(x: 64, y: 76)
         ink.part(tail.rotated(degrees: pose.tailAngle, around: tailPivot), skin)
         ink.part(Path(ellipse: CGPoint(x: 37, y: 89), rx: 7, ry: 4.5), skin, shaded: false)
@@ -22,9 +33,11 @@ enum AxolotlArt {
         var head = ink
         head.context.translateBy(x: 0, y: pose.headBob)
         let flutter = pose.earAngle
-        head.part(gillFronds(flutter: flutter), gills, gloss: true)
-        head.part(gillFronds(flutter: flutter).mirrored, gills, gloss: true)
+        if regal { head.part(crest(flutter: flutter), gills, gloss: true) }
+        head.part(gillFronds(flutter: flutter, regal: regal), gills, gloss: true)
+        head.part(gillFronds(flutter: flutter, regal: regal).mirrored, gills, gloss: true)
         head.part(Path(ellipse: CGPoint(x: 50, y: 46), rx: 33, ry: 24), skin, gloss: true)
+        if regal, let gem = palette.bow { self.gem(head, color: gem) }
         if let marking = palette.marking {
             spots(
                 head, marking,
@@ -35,6 +48,44 @@ enum AxolotlArt {
         head.eye(at: CGPoint(x: 36, y: 46), pose: pose, color: palette.eye)
         head.eye(at: CGPoint(x: 64, y: 46), pose: pose, color: palette.eye)
         head.mouth(at: CGPoint(x: 50, y: 55), pose: pose, tone: skin, width: 12)
+        if let bow = palette.bow, !regal {
+            BowArt.draw(head, color: bow, at: CGPoint(x: 70, y: 26))
+        }
+    }
+
+    /// A soft glow behind a legendary pet.
+    private static func aura(_ ink: Ink, color: PetColor) {
+        let glow = Gradient(colors: [
+            color.mixed(with: .white, amount: 0.4).color.opacity(0.55), color.color.opacity(0),
+        ])
+        ink.context.fill(
+            Path(ellipse: CGPoint(x: 50, y: 58), rx: 46, ry: 42),
+            with: .radialGradient(glow, center: CGPoint(x: 50, y: 58), startRadius: 8, endRadius: 46))
+    }
+
+    /// A scalloped fin running over the top of the head.
+    private static func crest(flutter: Double) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: 34, y: 30))
+        let peaks: [(CGFloat, CGFloat)] = [(39, 12), (46, 9), (54, 9), (61, 12)]
+        var x: CGFloat = 34
+        for (peakX, peakY) in peaks {
+            let next = peakX + 3.5
+            path.addQuadCurve(to: CGPoint(x: next, y: 26), control: CGPoint(x: peakX + flutter * 0.2, y: peakY))
+            x = next
+        }
+        path.addLine(to: CGPoint(x: max(x, 66), y: 30))
+        path.closeSubpath()
+        return path
+    }
+
+    private static func gem(_ ink: Ink, color: PetColor) {
+        let diamond = Path(
+            roundedPolygon: [
+                CGPoint(x: 50, y: 25.5), CGPoint(x: 54.5, y: 30.5), CGPoint(x: 50, y: 35.5), CGPoint(x: 45.5, y: 30.5),
+            ],
+            radius: 1)
+        ink.part(diamond, Tone(color), shaded: false, gloss: true)
     }
 
     private static var tail: Path {
@@ -46,12 +97,14 @@ enum AxolotlArt {
         return path
     }
 
-    /// Three fronds on the left side, each a capsule with little feathery bumps.
-    private static func gillFronds(flutter: Double) -> Path {
+    /// Fronds on the left side, each a capsule with little feathery bumps: three, or four
+    /// longer flowing ones for the legendary.
+    private static func gillFronds(flutter: Double, regal: Bool = false) -> Path {
         let anchor = CGPoint(x: 24, y: 39)
         var path = Path()
-        for (index, angle) in [-142.0, 178, 138].enumerated() {
-            let length = index == 1 ? 21.0 : 19.0
+        let angles: [Double] = regal ? [-150, -172, 165, 140] : [-142, 178, 138]
+        for (index, angle) in angles.enumerated() {
+            let length = (index == 1 ? 21.0 : 19.0) * (regal ? 1.2 : 1)
             var frond = Path(roundedRect: CGRect(x: 0, y: -2.7, width: length, height: 5.4), cornerRadius: 2.7)
             // Feathery filaments along the top edge.
             for step in 0..<3 {

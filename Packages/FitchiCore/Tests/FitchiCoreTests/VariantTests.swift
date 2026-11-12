@@ -50,8 +50,11 @@ struct VariantTests {
 
     @Test func speciesWithoutVariantsRollNothing() throws {
         var rng = SeededRandom(seed: 3)
-        let bunny = try #require(TestSupport.catalog.species(id: "bunny"))
-        #expect(VariantRules.v1.roll(for: bunny, using: &rng) == nil)
+        // Every shipped species has variants now; data added later might not.
+        var plain = try #require(TestSupport.catalog.species(id: "bunny"))
+        plain.variants = []
+        plain.shiny = nil
+        #expect(VariantRules.v1.roll(for: plain, using: &rng) == nil)
     }
 
     @Test func hatchedPetsGetAVariant() throws {

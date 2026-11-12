@@ -5,7 +5,15 @@ import Testing
 
 @Suite("Collection book")
 struct CollectionTests {
-    let catalog = TestSupport.catalog
+    /// The real catalog, except the bunny has no colour variants (so both kinds are covered).
+    let catalog: Catalog = {
+        var catalog = TestSupport.catalog
+        if let index = catalog.species.firstIndex(where: { $0.id == "bunny" }) {
+            catalog.species[index].variants = []
+            catalog.species[index].shiny = nil
+        }
+        return catalog
+    }()
     let start = TestSupport.date()
 
     func pet(_ speciesID: String, variant: PetVariant?, at date: Date) -> Pet {
