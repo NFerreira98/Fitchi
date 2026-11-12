@@ -300,10 +300,21 @@ struct PetDetailView: View {
                     }
                     LabeledContent("Hatched", value: pet.hatchedAt.formatted(date: .abbreviated, time: .omitted))
                 }
+                Section {
+                    LabeledContent("Version", value: Self.appVersion)
+                }
             }
             .navigationTitle(pet.name)
             .onAppear { name = pet.name }
         }
+    }
+
+    /// "1.0 (2611112123)": marketing version and the build number the deploy script stamps.
+    static var appVersion: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(version) (\(build))"
     }
 
     private var backdrop: Binding<String> {
