@@ -36,7 +36,7 @@ Open Xcode only for signing/capabilities, SwiftUI previews, Instruments and arch
 ./scripts/deploy.sh --no-launch   # any of the above, without opening the app afterwards
 ```
 
-Or use the VS Code tasks *Fitchi: Deploy …*. Keep the iPhone unlocked and the watch unlocked and awake. If the watch doesn't update after a phone deploy, open the Watch app on iPhone → Fitchi and toggle "Show App on Apple Watch" off and on. On a free Apple account, installs expire after 7 days, so just deploy again.
+Or use the VS Code tasks *Fitchi: Deploy …*. Keep the iPhone unlocked and the watch unlocked and awake. Each deploy stamps a new build number, which is what makes the iPhone forward the watch app; give it a few minutes with the watch on its charger or awake. Don't toggle "Show App on Apple Watch" to force it: that deletes the watch app and its data. On a free Apple account, installs expire after 7 days, so just deploy again.
 
 ## Layout
 

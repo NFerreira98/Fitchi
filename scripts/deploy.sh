@@ -7,8 +7,11 @@
 #         add --no-launch to install without opening the app
 #
 # The iPhone app carries the watch app inside it, so a phone install also updates the watch
-# (usually within a minute or two). If it doesn't, Watch app on iPhone → Fitchi → toggle
-# "Show App on Apple Watch" off and on.
+# (usually within a minute or two). The iPhone only forwards a watch app whose build number
+# changed, so every deploy gets a fresh one (yyMMddHHmm).
+#
+# Never toggle "Show App on Apple Watch" to force an update: that deletes the watch app and
+# its data. (BackupLink restores it from the phone, but don't rely on that.)
 #
 # Requirements: Configs/Local.xcconfig with your DEVELOPMENT_TEAM, devices paired with this Mac,
 # Developer Mode on, iPhone unlocked, watch unlocked and awake.
@@ -25,6 +28,8 @@ for arg in "$@"; do
   esac
 done
 derived=".build/DerivedData"
+# Increases with every deploy; applies to the phone, watch and widget targets alike.
+build_number="$(date +%y%m%d%H%M)"
 
 [ -f Configs/Local.xcconfig ] || { echo "✗ Configs/Local.xcconfig missing (see Configs/Local.xcconfig.example)"; exit 1; }
 
@@ -49,7 +54,7 @@ deploy() {
   echo "▶ Building ${scheme} for ${label}…"
   xcodebuild -project Fitchi.xcodeproj -scheme "$scheme" -destination "id=$udid" \
     -derivedDataPath "$derived" -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
-    build -quiet > ".build/deploy-$scheme.log" 2>&1 \
+    CURRENT_PROJECT_VERSION="$build_number" build -quiet > ".build/deploy-$scheme.log" 2>&1 \
     || { echo "✗ Build failed — see .build/deploy-$scheme.log"; grep -m5 "error" ".build/deploy-$scheme.log"; return 1; }
 
   echo "▶ Installing on ${label}…"
@@ -57,7 +62,7 @@ deploy() {
   if [ "$launch" = 1 ]; then
     xcrun devicectl device process launch --device "$udid" "$bundle_id" >/dev/null 2>&1 || true
   fi
-  echo "✓ $label updated"
+  echo "✓ $label updated (build $build_number)"
 }
 
 mkdir -p .build
