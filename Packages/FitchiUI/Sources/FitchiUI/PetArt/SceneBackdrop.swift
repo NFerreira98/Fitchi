@@ -3,8 +3,15 @@ import SwiftUI
 /// A background the pet stands in front of. Backdrops are unlockable on their own and work with
 /// any pet; Core only knows the id.
 public struct SceneBackdrop: View {
+    /// Raw values are the shop item ids (`Catalog.defaultBackdropID` for the meadow).
     public enum Kind: String, CaseIterable, Sendable {
-        case meadow, pond
+        case meadow = "backdrop-meadow"
+        case pond = "backdrop-pond"
+
+        /// Accepts shop ids ("backdrop-pond") and short names ("pond").
+        public init(id: String) {
+            self = Kind(rawValue: id) ?? Kind(rawValue: "backdrop-\(id)") ?? .meadow
+        }
     }
 
     private let kind: Kind
@@ -14,7 +21,7 @@ public struct SceneBackdrop: View {
     }
 
     public init(id: String) {
-        kind = Kind(rawValue: id) ?? .meadow
+        kind = Kind(id: id)
     }
 
     public var body: some View {

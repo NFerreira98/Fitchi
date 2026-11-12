@@ -9,7 +9,7 @@ import Foundation
 /// - pets: the most recently saved copy of each pet wins;
 /// - starter egg: a hatched egg beats an unhatched one, then the earliest grant;
 /// - Pep ledger: the union (it's append-only);
-/// - inventory: the most recently saved copy;
+/// - inventory: the most recently saved copy, plus anything owned in either copy;
 /// - install date: the earliest, so activity since the first install keeps earning.
 public struct GameSnapshot: Codable, Hashable, Sendable {
     public struct SavedPet: Codable, Hashable, Sendable {
@@ -69,6 +69,11 @@ public struct GameSnapshot: Codable, Hashable, Sendable {
             transactionsByID[transaction.id] = transaction
         }
         let inventories = [inventory, other.inventory].compactMap { $0 }
+        // The newest copy wins for counts and choices, but ownership only ever grows.
+        var newestInventory = inventories.max {
+            ($0.updatedAt, Self.key($0.inventory)) < ($1.updatedAt, Self.key($1.inventory))
+        }
+        newestInventory?.inventory.grantOwnership(of: inventories.flatMap(\.inventory.ownedItemIDs))
         return GameSnapshot(
             pets: Array(byID.values),
             starterEgg: Self.preferredEgg(starterEgg, other.starterEgg),

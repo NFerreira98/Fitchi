@@ -4,17 +4,25 @@ import FitchiHealth
 import FitchiUI
 import SwiftUI
 
-/// Phone tab shell: hub, shop, wardrobe, achievements. Screens are filled in Milestone 6.
+/// Phone tab shell: your pet, the shop, the collection book and achievements.
 struct PhoneRootView: View {
+    /// In the simulator, `-startTab shop` (etc.) at launch opens that tab, for screenshots.
+    @State private var tab =
+        ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] == nil
+        ? "home" : (UserDefaults.standard.string(forKey: "startTab") ?? "home")
+
     var body: some View {
-        TabView {
-            Tab("Home", systemImage: "house.fill") {
+        TabView(selection: $tab) {
+            Tab("Home", systemImage: "house.fill", value: "home") {
                 PhoneHomeView()
             }
-            Tab("Shop", systemImage: "bag.fill") {
-                Text("Shop")
+            Tab("Shop", systemImage: "bag.fill", value: "shop") {
+                ShopView()
             }
-            Tab("Achievements", systemImage: "trophy.fill") {
+            Tab("Collection", systemImage: "square.grid.3x3.fill", value: "collection") {
+                CollectionView()
+            }
+            Tab("Achievements", systemImage: "trophy.fill", value: "achievements") {
                 Text("Achievements")
             }
         }
@@ -32,6 +40,7 @@ struct PhoneHomeView: View {
             VStack(spacing: FitchiTheme.Spacing.l * 2) {
                 if let pet = pets.activePet {
                     BackedUpPetView(pet: pet, lastBackup: backup.lastExchange)
+                    if pets.roster.pets.count > 1 { PetRosterView() }
                 } else {
                     VStack(spacing: FitchiTheme.Spacing.s) {
                         Text("⌚️").font(.system(size: 56))
@@ -90,10 +99,13 @@ struct BackedUpPetView: View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             let mood = pet.mood(at: timeline.date, in: pets.decay)
             VStack(spacing: FitchiTheme.Spacing.s) {
-                PetStage(pet: pet, species: pets.species(of: pet), mood: mood, style: .fullScene, petScale: 0.45)
-                    // Square-ish like the watch, so the pet stands on the meadow.
-                    .aspectRatio(1.1, contentMode: .fit)
-                    .clipShape(.rect(cornerRadius: 28))
+                PetStage(
+                    pet: pet, species: pets.species(of: pet), mood: mood,
+                    backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene, petScale: 0.45
+                )
+                // Square-ish like the watch, so the pet stands on the meadow.
+                .aspectRatio(1.1, contentMode: .fit)
+                .clipShape(.rect(cornerRadius: 28))
                 Text(pet.name)
                     .font(FitchiTheme.Fonts.display(.title))
                 Text(mood.headline)
@@ -111,6 +123,45 @@ struct BackedUpPetView: View {
         let ago = lastBackup.formatted(.relative(presentation: .named, unitsStyle: .wide))
         return now.timeIntervalSince(lastBackup) < 60
             ? "Backed up from your watch just now" : "Backed up from your watch \(ago)"
+    }
+}
+
+/// Every pet you own. One lives on your watch; the rest rest (and get hungry more slowly).
+struct PetRosterView: View {
+    @Environment(PetStore.self) private var pets
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: FitchiTheme.Spacing.s) {
+            Text("Your pets").font(FitchiTheme.Fonts.display(.headline))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: FitchiTheme.Spacing.m) {
+                    ForEach(pets.roster.pets) { pet in
+                        card(pet)
+                    }
+                }
+            }
+        }
+    }
+
+    private func card(_ pet: Pet) -> some View {
+        VStack(spacing: 4) {
+            LivingPetView(species: pets.species(of: pet), speciesID: pet.speciesID, variant: pet.variant, seed: pet.id)
+                .frame(width: 72, height: 72)
+            Text(pet.name).font(FitchiTheme.Fonts.display(.subheadline)).lineLimit(1)
+            if pet.isActive {
+                Label("On watch", systemImage: "applewatch")
+                    .font(FitchiTheme.Fonts.text(.caption2, weight: .semibold))
+                    .foregroundStyle(.green)
+            } else {
+                Button("Send to watch") { pets.setActive(pet.id) }
+                    .font(FitchiTheme.Fonts.text(.caption2, weight: .semibold))
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+            }
+        }
+        .frame(width: 104)
+        .padding(.vertical, FitchiTheme.Spacing.s)
+        .background(.fill.tertiary, in: .rect(cornerRadius: 16))
     }
 }
 

@@ -23,5 +23,6 @@
   { "id": "hero-cape", "name": "Hero Cape", "description": "For pets with big ambitions.", "category": "accessory", "price": 400, "slot": "back" },
 
   { "id": "style-retro", "name": "Retro Pixel Style", "description": "Chunky, classic pixel art for every pet and scene.", "category": "artStyle", "price": 1500 },
-  { "id": "style-painted", "name": "Painterly Style", "description": "Soft, glowing hand-painted art for every pet and scene.", "category": "artStyle", "price": 2500 }
+  { "id": "style-painted", "name": "Painterly Style", "description": "Soft, glowing hand-painted art for every pet and scene.", "category": "artStyle", "price": 2500 },
+  { "id": "backdrop-pond", "name": "Lily Pond", "description": "A calm pond with lily pads and reeds, for any pet.", "category": "backdrop", "price": 300 }
 ]

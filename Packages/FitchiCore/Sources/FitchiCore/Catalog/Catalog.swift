@@ -12,6 +12,8 @@ public struct Catalog: Codable, Hashable, Sendable {
 
     /// The art style every player owns for free.
     public static let defaultArtStyleID = "classic"
+    /// The free backdrop every player starts with (not sold, so not in `items.json`).
+    public static let defaultBackdropID = "backdrop-meadow"
 
     public init(species: [Species], items: [ShopItem], eggs: [EggType], achievements: [Achievement]) {
         self.species = species

@@ -7,12 +7,14 @@ public enum ItemCategory: String, Codable, CaseIterable, Sendable {
     case rest
     case accessory
     case artStyle
+    /// A scene the pet lives in. Any pet can use any backdrop the player owns.
+    case backdrop
 
     /// Consumables are used up when given to a pet; everything else is owned permanently.
     public var isConsumable: Bool {
         switch self {
         case .food, .treat, .toy, .hygiene, .rest: true
-        case .accessory, .artStyle: false
+        case .accessory, .artStyle, .backdrop: false
         }
     }
 }

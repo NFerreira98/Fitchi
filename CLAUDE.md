@@ -30,4 +30,7 @@ Gamified fitness Tamagotchi: Apple Watch app + iPhone companion. See README.md f
 - Pets are vector art drawn in FitchiUI `PetArt` (one drawing per species, recoloured by palette; `PetPose` drives animation). Preview: `cd Packages/FitchiUI && swift run fitchi-art-preview OUT.png`. Backdrops are independent of pets. Behaviour (wandering, catnaps, night sleep, mood faces/effects, care animations) is `PetLife.frame(at:seed:mood:reaction:)`: a pure function of time like the stats, no stored state; `PetMood` (Core) says what the pet visibly needs.
 - Fonts: Baloo 2 (`FitchiTheme.Fonts.display`) for names, numbers, buttons; SF Pro Rounded (`.text`) for running text.
 - Art styles are purchasable items (`category: artStyle`). Core only knows style ids; rendering picks the art.
+- Backdrops are shop items (`category: backdrop`, ids `backdrop-*`; the meadow is the free default, `Catalog.defaultBackdropID`). The selection lives in `Inventory.activeBackdropID` and syncs with the backup. Permanent ownership only grows: merges union `ownedItemIDs`, and ledger purchases of non-consumables always count as owned.
+- The phone shop sells eggs and backdrops; consumables are bought by tapping care on the watch. Don't sell art styles or accessories until they render ("Coming soon").
+- `CollectionBook` (Core) is the Pokédex: every species × colouring + shiny, found from the roster (pets never leave it). Undiscovered entries render as solid silhouettes.
 - Bundle IDs: `com.nicholasferreira.fitchi` (phone), `.watchkitapp` (watch), `.watchkitapp.widgets` (complications).

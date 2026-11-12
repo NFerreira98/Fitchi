@@ -23,7 +23,8 @@ struct PetView: View {
             let balance = pets.wallet(earnings: activity.earnings).balance
             ZStack {
                 PetStage(
-                    pet: pet, species: pets.species(of: pet), mood: mood, style: style,
+                    pet: pet, species: pets.species(of: pet), mood: mood,
+                    backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: style,
                     reaction: event?.reaction, petScale: style == .island ? 0.48 : (style == .horizon ? 0.38 : 0.42)
                 )
                 .ignoresSafeArea()

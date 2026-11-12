@@ -267,6 +267,15 @@ struct PetDetailView: View {
                     Text(style.summary)
                 }
                 Section {
+                    Picker("Backdrop", selection: backdrop) {
+                        ForEach(ownedBackdrops, id: \.id) { option in
+                            Text(option.name).tag(option.id)
+                        }
+                    }
+                } footer: {
+                    Text("Buy more backdrops in the Fitchi app on your iPhone.")
+                }
+                Section {
                     Toggle("Care reminders", isOn: $remindersOn)
                         .onChange(of: remindersOn) { PetCompanions.refresh(pets) }
                 } footer: {
@@ -295,6 +304,17 @@ struct PetDetailView: View {
             .navigationTitle(pet.name)
             .onAppear { name = pet.name }
         }
+    }
+
+    private var backdrop: Binding<String> {
+        Binding(get: { pets.inventory.activeBackdropID }, set: { pets.selectBackdrop($0) })
+    }
+
+    private var ownedBackdrops: [(id: String, name: String)] {
+        [(Catalog.defaultBackdropID, "Meadow")]
+            + pets.catalog.items.filter { $0.category == .backdrop && pets.inventory.owns($0.id) }.map {
+                ($0.id, $0.name)
+            }
     }
 
     private func trait(_ title: String, _ value: Double) -> some View {
