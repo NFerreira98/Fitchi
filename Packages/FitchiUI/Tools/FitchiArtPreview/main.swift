@@ -133,7 +133,24 @@ struct LifeRows: View {
                 tile("axolotl", care(.wash, at: 1.2), "Wash")
                 tile("axolotl", care(.rest, at: 2), "Nap")
             }
+            HStack(spacing: 10) {
+                // Full lean both ways: tails and gills must not be cut off at the art square.
+                tile("axolotl", leaning(6, flipped: false), "Lean left")
+                tile("axolotl", leaning(-6, flipped: true), "Lean right")
+                tile("cat", leaning(-6, flipped: true), "Cat lean")
+                tile("dog", leaning(6, flipped: false), "Dog lean")
+            }
         }
+    }
+
+    private func leaning(_ degrees: Double, flipped: Bool) -> PetFrame {
+        var frame = PetFrame()
+        frame.pose.tilt = degrees
+        frame.pose.flipped = flipped
+        frame.pose.lift = 2.4
+        frame.pose.tailAngle = 10
+        frame.pose.earAngle = 6
+        return frame
     }
 
     private func frame(_ mood: PetMood, at time: Double) -> PetFrame {

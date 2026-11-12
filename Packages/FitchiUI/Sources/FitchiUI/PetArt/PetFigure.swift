@@ -15,10 +15,32 @@ public struct PetFigure: View {
         self.effects = effects
     }
 
+    /// Extra drawing room around the 100×100 art, in art units. Leaning, hopping and stretching
+    /// carry tails, gills and props past the art square; without this margin the canvas would
+    /// slice them off in a straight line.
+    static let overdraw: CGFloat = 30
+
     public var body: some View {
+        // Lays out as the art square, but draws into a canvas `overdraw` larger on every side.
+        Color.clear
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                GeometryReader { geometry in
+                    let side = min(geometry.size.width, geometry.size.height)
+                    let margin = side * Self.overdraw / 100
+                    canvas
+                        .frame(width: side + margin * 2, height: side + margin * 2)
+                        .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                }
+            }
+            .accessibilityHidden(true)
+    }
+
+    private var canvas: some View {
         Canvas { context, size in
-            let scale = min(size.width, size.height) / 100
-            context.translateBy(x: (size.width - 100 * scale) / 2, y: (size.height - 100 * scale) / 2)
+            let scale = min(size.width, size.height) / (100 + Self.overdraw * 2)
+            context.translateBy(
+                x: (size.width - 100 * scale) / 2, y: (size.height - 100 * scale) / 2)
             context.scaleBy(x: scale, y: scale)
             drawShadow(context)
             // Asleep: lower and flatter, head resting down.
@@ -36,8 +58,7 @@ public struct PetFigure: View {
             if palette.isShiny { Sparkles.draw(context) }
             EffectArt.drawAround(effects, context, flipped: drawn.flipped)
         }
-        .aspectRatio(1, contentMode: .fit)
-        .accessibilityHidden(true)
+        .allowsHitTesting(false)
     }
 
     private func drawShadow(_ context: GraphicsContext) {
