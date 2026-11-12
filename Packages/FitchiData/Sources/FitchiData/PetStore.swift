@@ -33,6 +33,10 @@ public final class PetStore {
     private let repository: GameRepository?
     private let clock: any GameClock
 
+    /// Called after anything is saved (hatching, care, renaming, a restore), so the app can
+    /// back the game up to the other device.
+    public var onChange: (@MainActor () -> Void)?
+
     public init(
         repository: GameRepository?,
         catalog: Catalog,
@@ -58,8 +62,9 @@ public final class PetStore {
 
     public func species(of pet: Pet) -> Species? { catalog.species(id: pet.speciesID) }
 
-    /// Loads saved state. A brand-new player gets their starter egg here.
-    public func load() {
+    /// Loads saved state. A brand-new player gets their starter egg here, unless
+    /// `grantsStarterEgg` is false (the iPhone, which only keeps a backup of the watch's game).
+    public func load(grantsStarterEgg: Bool = true) {
         guard !catalog.species.isEmpty else {
             status = .failed("Couldn't load the pet catalog.")
             return
@@ -69,25 +74,62 @@ public final class PetStore {
             return
         }
         do {
-            let pets = try repository.loadPets()
-            roster = PetRoster(pets: pets)
-            starterEgg = try repository.loadStarterEgg()
-            if starterEgg == nil, pets.isEmpty {
+            try reloadSavedState(from: repository)
+            if grantsStarterEgg, starterEgg == nil, roster.pets.isEmpty {
                 let egg = StarterEgg(grantedAt: clock.now)
                 try repository.save(egg, at: clock.now)
                 starterEgg = egg
             }
-            transactions = try repository.loadTransactions()
             if !transactions.contains(where: { $0.kind == .welcomeBonus }) {
                 let bonus = PepTransaction.welcomeBonus(pointsRules.welcomeBonus, at: clock.now)
                 try repository.append([bonus])
                 transactions.append(bonus)
             }
-            inventory = try repository.loadInventory() ?? Inventory()
             status = .ready
         } catch {
             status = .failed("Couldn't open your saved pets.")
         }
+    }
+
+    private func reloadSavedState(from repository: GameRepository) throws {
+        roster = PetRoster(pets: try repository.loadPets())
+        starterEgg = try repository.loadStarterEgg()
+        transactions = try repository.loadTransactions()
+        inventory = try repository.loadInventory() ?? Inventory()
+    }
+
+    // MARK: - Backup
+
+    /// Everything saved, for backing up to the other device.
+    public func snapshot(installDate: Date?) -> GameSnapshot? {
+        try? repository?.snapshot(installDate: installDate)
+    }
+
+    /// Merges a backup from the other device into this one. Returns true if anything changed.
+    /// If both devices hatched a pet (e.g. the app was reinstalled before the backup arrived),
+    /// both are kept and the longest-owned pet stays active.
+    @discardableResult
+    public func restore(from backup: GameSnapshot) -> Bool {
+        guard let repository, let current = snapshot(installDate: backup.installDate) else { return false }
+        let merged = current.merged(with: backup)
+        guard merged != current else { return false }
+        do {
+            try repository.apply(merged)
+            try reloadSavedState(from: repository)
+        } catch {
+            return false
+        }
+        let active = roster.pets.filter(\.isActive)
+        if active.count > 1, let keep = active.min(by: { $0.hatchedAt < $1.hatchedAt }) {
+            let now = clock.now
+            try? roster.setActive(keep.id, at: now, in: decay)
+            for pet in active where pet.id != keep.id {
+                if let rested = roster[pet.id] { try? repository.save(rested, at: now) }
+            }
+        }
+        if status != .ready, !catalog.species.isEmpty { status = .ready }
+        onChange?()
+        return true
     }
 
     /// The Pep balance: activity earnings (from Health) plus this ledger.
@@ -113,6 +155,7 @@ public final class PetStore {
         try? repository?.append(newTransactions)
         try? repository?.save(inventory, at: now)
         try? repository?.save(pet, at: now)
+        onChange?()
         return outcome
     }
 
@@ -153,6 +196,7 @@ public final class PetStore {
         let saved = roster[pet.id] ?? pet
         try? repository?.save(saved, at: now)
         try? repository?.save(egg, at: now)
+        onChange?()
         return saved
     }
 
@@ -162,6 +206,7 @@ public final class PetStore {
         pet.name = name
         try? roster.update(pet)
         try? repository?.save(pet, at: clock.now)
+        onChange?()
     }
 
     /// Another suggestion from the species' name list, different from `current` when possible.
@@ -173,12 +218,12 @@ public final class PetStore {
 
 extension PetStore {
     /// The on-disk store with the catalog bundled in the app's `Content` folder.
-    public static func makeDefault(bundle: Bundle = .main) -> PetStore {
+    public static func makeDefault(bundle: Bundle = .main, grantsStarterEgg: Bool = true) -> PetStore {
         let empty = Catalog(species: [], items: [], eggs: [], achievements: [])
         let catalog = (try? bundle.url(forResource: "Content", withExtension: nil).map(Catalog.load(from:))) ?? empty
         let repository = (try? FitchiStore.makeContainer()).map(GameRepository.init(container:))
         let store = PetStore(repository: repository, catalog: catalog)
-        store.load()
+        store.load(grantsStarterEgg: grantsStarterEgg)
         return store
     }
 }

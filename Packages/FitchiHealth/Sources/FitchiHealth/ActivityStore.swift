@@ -25,7 +25,7 @@ public final class ActivityStore {
     public private(set) var earnings: [Earning] = []
     public private(set) var lastRefreshed: Date?
 
-    public let installDate: Date
+    public private(set) var installDate: Date
     public let rules: PointsRules
     private let source: any HealthDataSource
     private let clock: any GameClock
@@ -78,6 +78,13 @@ public final class ActivityStore {
             await refresh()
             change.acknowledge()
         }
+    }
+
+    /// Counts activity from an earlier install date (restored from a backup).
+    public func adoptInstallDate(_ date: Date) {
+        guard date < installDate else { return }
+        installDate = date
+        Task { await refresh() }
     }
 
     public func refresh() async {

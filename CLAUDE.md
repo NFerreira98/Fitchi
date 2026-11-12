@@ -14,6 +14,7 @@ Gamified fitness Tamagotchi: Apple Watch app + iPhone companion. See README.md f
 - **Points balance = Σ earned − Σ spent.** Earnings are derived from HealthKit samples, keyed by sample UUID (idempotent across watch and phone), and computed through a versioned `PointsRules`. Spending is an append-only ledger. Skip samples flagged `HKMetadataKeyWasUserEntered`.
 - **Content is data:** shop items, pets and achievements come from JSON in `Content/`, not hard-coded Swift.
 - **HealthKit** is imported only in `FitchiHealth`. **SwiftData** only in `FitchiData` and app targets.
+- **Backup:** the watch is where the game is played; `BackupLink` (WatchConnectivity, in FitchiData) mirrors a `GameSnapshot` to the iPhone after every change and restores it if the watch app is reinstalled. Merges must stay idempotent/commutative (newest pet save, hatched egg wins, ledger union, earliest install date). The phone never grants its own egg (`load(grantsStarterEgg: false)`). WatchConnectivity callbacks run off the main actor: never pass a closure written in a `@MainActor` method as a WC handler.
 - **SwiftData models must be CloudKit-compatible:** every property optional or defaulted, no `@Attribute(.unique)`, optional relationships. Dedupe in repositories.
 - Swift 6 strict concurrency; `@Observable` view models; Swift Testing (`import Testing`) for tests.
 - Randomness (hatching, trait rolls) takes `inout some RandomNumberGenerator`; tests use `SeededRandom`.

@@ -40,7 +40,11 @@ targets:
   FitchiPhone:
     type: application
     platform: iOS
-    sources: [Apps/Phone]
+    sources:
+      - Apps/Phone
+      - path: Content # bundled catalog JSON: the phone shows the backed-up pet
+        type: folder
+        buildPhase: resources
     entitlements:
       path: Apps/Phone/Fitchi.entitlements
       properties:
