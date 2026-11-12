@@ -7,20 +7,42 @@ public struct PetFigure: View {
     private let palette: PetPalette
     private let pose: PetPose
     private let effects: PetEffects
+    private let laysOutMargin: Bool
 
-    public init(speciesID: String, palette: PetPalette, pose: PetPose = .standing, effects: PetEffects = .none) {
+    /// `laysOutMargin` makes the view's own frame include the `overdraw` margin (the art square
+    /// is the middle 100/160 of it), so nothing is ever drawn outside the frame. Use it wherever
+    /// the pet moves; otherwise the view lays out as the art square and the margin spills over.
+    public init(
+        speciesID: String, palette: PetPalette, pose: PetPose = .standing, effects: PetEffects = .none,
+        laysOutMargin: Bool = false
+    ) {
         self.speciesID = speciesID
         self.palette = palette
         self.pose = pose
         self.effects = effects
+        self.laysOutMargin = laysOutMargin
     }
+
+    /// How much bigger than the art square the frame is when `laysOutMargin` is set.
+    public static let marginScale: CGFloat = 1 + overdraw * 2 / 100
 
     /// Extra drawing room around the 100×100 art, in art units. Leaning, hopping and stretching
     /// carry tails, gills and props past the art square; without this margin the canvas would
     /// slice them off in a straight line.
     static let overdraw: CGFloat = 30
 
+    @ViewBuilder
     public var body: some View {
+        if laysOutMargin {
+            canvas
+                .aspectRatio(1, contentMode: .fit)
+                .accessibilityHidden(true)
+        } else {
+            spillingBody
+        }
+    }
+
+    private var spillingBody: some View {
         // Lays out as the art square, but draws into a canvas `overdraw` larger on every side.
         Color.clear
             .aspectRatio(1, contentMode: .fit)

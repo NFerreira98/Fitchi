@@ -92,8 +92,7 @@ public struct PetStage: View {
                     let center = CGPoint(
                         x: size.width / 2 + frame.x * wanderRange(in: size, petSize: petSize),
                         y: groundY(in: size) - petSize / 2)
-                    pet(frame)
-                        .frame(width: petSize, height: petSize)
+                    pet(frame, size: petSize)
                         .position(center)
                     if let reaction {
                         FloatingReward(text: reaction.floater)
@@ -115,15 +114,20 @@ public struct PetStage: View {
     }
 
     @ViewBuilder
-    private func pet(_ frame: PetFrame) -> some View {
+    private func pet(_ frame: PetFrame, size: CGFloat) -> some View {
         if let species, PetFigure.hasArt(for: pet.speciesID) {
+            // The frame includes the drawing margin, so leaning and walking never reach past it
+            // (the watch clips anything drawn outside a moving view's frame).
             PetFigure(
                 speciesID: pet.speciesID, palette: PetPalette(species: species, variant: pet.variant), pose: frame.pose,
-                effects: frame.effects)
+                effects: frame.effects, laysOutMargin: true
+            )
+            .frame(width: size * PetFigure.marginScale, height: size * PetFigure.marginScale)
         } else {
             Text(species?.emoji ?? "🐾")
                 .font(.system(size: 52))
                 .offset(y: -frame.pose.lift)
+                .frame(width: size, height: size)
                 .accessibilityHidden(true)
         }
     }
