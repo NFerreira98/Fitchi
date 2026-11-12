@@ -50,6 +50,7 @@ struct PhoneHomeView: View {
     @Environment(ActivityStore.self) private var activity
     @Environment(PetStore.self) private var pets
     @Environment(BackupLink.self) private var backup
+    @State private var showsDeveloper = false
 
     var body: some View {
         ScrollView {
@@ -73,10 +74,18 @@ struct PhoneHomeView: View {
                     .frame(maxWidth: .infinity)
                     .padding(FitchiTheme.Spacing.l)
                     .background(.fill.tertiary, in: .rect(cornerRadius: 20))
+                #if DEBUG
+                    Button("Developer tools", systemImage: "hammer.fill") { showsDeveloper = true }
+                        .font(FitchiTheme.Fonts.text(.footnote, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                #endif
             }
             .padding(FitchiTheme.Spacing.l)
         }
         .refreshable { await activity.refresh() }
+        #if DEBUG
+            .sheet(isPresented: $showsDeveloper) { DeveloperView() }
+        #endif
     }
 
     @ViewBuilder private var today: some View {

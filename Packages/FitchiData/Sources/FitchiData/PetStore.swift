@@ -23,7 +23,7 @@ public final class PetStore {
     public private(set) var roster = PetRoster()
     public private(set) var starterEgg: StarterEgg?
     /// Pep spent and granted outside of activity (welcome bonus, purchases). Append-only.
-    public private(set) var transactions: [PepTransaction] = []
+    public internal(set) var transactions: [PepTransaction] = []
     public private(set) var inventory = Inventory()
     /// Achievements unlocked on this device that haven't been celebrated on screen yet.
     public private(set) var celebrations: [Achievement] = []
@@ -32,8 +32,8 @@ public final class PetStore {
     public let decay: DecayContext
     public let hatchRules: HatchRules
     public let pointsRules: PointsRules
-    private let repository: GameRepository?
-    private let clock: any GameClock
+    let repository: GameRepository?
+    let clock: any GameClock
 
     /// Called after anything is saved (hatching, care, renaming, a restore): the backup, the
     /// complication and care reminders all follow along.
@@ -43,7 +43,7 @@ public final class PetStore {
         changeHandlers.append(handler)
     }
 
-    private func didChange() {
+    func didChange() {
         for handler in changeHandlers { handler() }
     }
 

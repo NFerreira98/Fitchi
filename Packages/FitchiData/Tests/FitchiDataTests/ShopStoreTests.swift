@@ -55,6 +55,17 @@ struct ShopStoreTests {
         #expect(store.roster[pet.id]?.equipped.isEmpty == true)
     }
 
+    @Test func testPepCanBeGrantedAndTakenBackButNotPastWhatWasSpent() throws {
+        let store = try makeStore()
+        store.grantTestPep(1_000)
+        #expect(store.wallet(earnings: []).balance == 1_100)
+        #expect(store.testPep == 1_000)
+        try store.buy(try #require(store.catalog.item(id: "party-hat")), earnings: [])
+        store.removeTestPep(earnings: [])
+        #expect(store.wallet(earnings: []).balance == 0, "the hat stays bought; only what's left is removed")
+        #expect(store.testPep == 1_000 - 980)
+    }
+
     @Test func eggsHatchARestingPetThatFillsTheCollection() throws {
         let store = try makeStore()
         let starter = try #require(store.activePet)
