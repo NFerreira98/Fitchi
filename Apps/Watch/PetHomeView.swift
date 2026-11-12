@@ -246,6 +246,7 @@ struct PetDetailView: View {
     let petID: UUID
     @State private var name = ""
     @AppStorage(PetLayoutStyle.storageKey) private var style = PetLayoutStyle.island
+    @AppStorage(CareReminders.enabledKey) private var remindersOn = true
 
     var body: some View {
         if let pet = pets.roster[petID] {
@@ -264,6 +265,12 @@ struct PetDetailView: View {
                     Text("Display")
                 } footer: {
                     Text(style.summary)
+                }
+                Section {
+                    Toggle("Care reminders", isOn: $remindersOn)
+                        .onChange(of: remindersOn) { PetCompanions.refresh(pets) }
+                } footer: {
+                    Text("A nudge when \(pet.name) gets hungry, bored, sleepy or grubby. Never at night.")
                 }
                 Section("Personality") {
                     VStack(alignment: .leading, spacing: 2) {

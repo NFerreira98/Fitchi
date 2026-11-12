@@ -44,7 +44,7 @@
 
         public func start() {
             guard WCSession.isSupported() else { return }
-            pets.onChange = { [weak self] in self?.publish() }
+            pets.onChange { [weak self] in self?.publish() }
             let session = WCSession.default
             session.delegate = self
             session.activate()

@@ -33,9 +33,17 @@ public final class PetStore {
     private let repository: GameRepository?
     private let clock: any GameClock
 
-    /// Called after anything is saved (hatching, care, renaming, a restore), so the app can
-    /// back the game up to the other device.
-    public var onChange: (@MainActor () -> Void)?
+    /// Called after anything is saved (hatching, care, renaming, a restore): the backup, the
+    /// complication and care reminders all follow along.
+    @ObservationIgnored private var changeHandlers: [@MainActor () -> Void] = []
+
+    public func onChange(_ handler: @escaping @MainActor () -> Void) {
+        changeHandlers.append(handler)
+    }
+
+    private func didChange() {
+        for handler in changeHandlers { handler() }
+    }
 
     public init(
         repository: GameRepository?,
@@ -128,7 +136,7 @@ public final class PetStore {
             }
         }
         if status != .ready, !catalog.species.isEmpty { status = .ready }
-        onChange?()
+        didChange()
         return true
     }
 
@@ -155,7 +163,7 @@ public final class PetStore {
         try? repository?.append(newTransactions)
         try? repository?.save(inventory, at: now)
         try? repository?.save(pet, at: now)
-        onChange?()
+        didChange()
         return outcome
     }
 
@@ -196,7 +204,7 @@ public final class PetStore {
         let saved = roster[pet.id] ?? pet
         try? repository?.save(saved, at: now)
         try? repository?.save(egg, at: now)
-        onChange?()
+        didChange()
         return saved
     }
 
@@ -206,7 +214,7 @@ public final class PetStore {
         pet.name = name
         try? roster.update(pet)
         try? repository?.save(pet, at: clock.now)
-        onChange?()
+        didChange()
     }
 
     /// Another suggestion from the species' name list, different from `current` when possible.

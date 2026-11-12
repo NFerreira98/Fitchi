@@ -86,6 +86,7 @@ targets:
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.access: []
         com.apple.developer.healthkit.background-delivery: true
+        com.apple.security.application-groups: [group.com.nicholasferreira.fitchi]
     settings:
       base:
         PRODUCT_NAME: Fitchi
@@ -112,6 +113,10 @@ targets:
     sources:
       - path: Apps/Widgets
         excludes: [Info.plist]
+    entitlements:
+      path: Apps/Widgets/FitchiWatchWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.nicholasferreira.fitchi]
     info:
       path: Apps/Widgets/Info.plist
       properties:
@@ -127,6 +132,7 @@ targets:
         SKIP_INSTALL: YES
     dependencies:
       - package: FitchiCore
+      - package: FitchiData
       - package: FitchiUI
 
 schemes:

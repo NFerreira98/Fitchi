@@ -24,6 +24,9 @@ struct FitchiWatchApp: App {
         _pets = State(initialValue: pets)
         _backup = State(initialValue: backup)
         backup.start()
+        // The complication and care reminders follow every change.
+        pets.onChange { PetCompanions.refresh(pets) }
+        PetCompanions.refresh(pets)
         // Started here rather than in a view, so a background wake-up from HealthKit (which may
         // not render any UI) still sets up the observer.
         Task { await store.start(backgroundDelivery: true) }
@@ -37,7 +40,10 @@ struct FitchiWatchApp: App {
                 .environment(pets)
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await activity.refresh() } }
+            if phase == .active {
+                Task { await activity.refresh() }
+                PetCompanions.refresh(pets)
+            }
         }
     }
 }

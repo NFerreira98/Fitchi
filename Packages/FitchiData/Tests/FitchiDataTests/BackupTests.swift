@@ -89,7 +89,7 @@ struct BackupTests {
         let reinstalled = suite.makeStore(try FitchiStore.makeContainer(inMemory: true), at: start + 86_400)
         let newcomer = try reinstalled.hatchStarter(samples: [], force: true)
         var changes = 0
-        reinstalled.onChange = { changes += 1 }
+        reinstalled.onChange { changes += 1 }
         #expect(reinstalled.restore(from: backup))
         #expect(changes == 1)
         #expect(reinstalled.roster.pets.count == 2)
