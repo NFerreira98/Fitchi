@@ -24,12 +24,20 @@ struct FitchiWatchApp: App {
         _pets = State(initialValue: pets)
         _backup = State(initialValue: backup)
         backup.start()
+        // Achievements pay out whenever the game changes (and after activity refreshes, below).
+        pets.onChange { Self.claimAchievements(pets, activity: store) }
         // The complication and care reminders follow every change.
         pets.onChange { PetCompanions.refresh(pets) }
         PetCompanions.refresh(pets)
         // Started here rather than in a view, so a background wake-up from HealthKit (which may
         // not render any UI) still sets up the observer.
         Task { await store.start(backgroundDelivery: true) }
+    }
+
+    static func claimAchievements(_ pets: PetStore, activity: ActivityStore) {
+        pets.claimAchievements(
+            samples: activity.samples, steps: activity.steps, earnings: activity.earnings,
+            installDate: activity.installDate)
     }
 
     var body: some Scene {
@@ -39,6 +47,7 @@ struct FitchiWatchApp: App {
                 .environment(activity)
                 .environment(pets)
         }
+        .onChange(of: activity.lastRefreshed) { Self.claimAchievements(pets, activity: activity) }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 Task { await activity.refresh() }

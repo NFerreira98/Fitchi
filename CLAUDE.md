@@ -32,5 +32,7 @@ Gamified fitness Tamagotchi: Apple Watch app + iPhone companion. See README.md f
 - Art styles are purchasable items (`category: artStyle`). Core only knows style ids; rendering picks the art.
 - Backdrops are shop items (`category: backdrop`, ids `backdrop-*`; the meadow is the free default, `Catalog.defaultBackdropID`). The selection lives in `Inventory.activeBackdropID` and syncs with the backup. Permanent ownership only grows: merges union `ownedItemIDs`, and ledger purchases of non-consumables always count as owned.
 - The phone shop sells eggs and backdrops; consumables are bought by tapping care on the watch. Don't sell art styles or accessories until they render ("Coming soon").
+- Achievements are data (`Content/achievements.json`: criterion + reward + SF Symbol `icon`). `PetStore.claimAchievements` pays rewards as ledger entries with a fixed id per achievement (so they sync and never pay twice) and queues `celebrations` for the UI. Both apps claim after activity refreshes and game changes.
+- Backdrops: 9 scenes in `SceneBackdrop` (outdoor in `OutdoorBackdrops.swift`, home scenes in `IndoorBackdrops.swift`); ground/floor sits at y ≈ 50–56 of the 100-wide art space so pets stand on it in every layout.
 - `CollectionBook` (Core) is the Pokédex: every species × colouring + shiny, found from the roster (pets never leave it). Undiscovered entries render as solid silhouettes.
 - Bundle IDs: `com.nicholasferreira.fitchi` (phone), `.watchkitapp` (watch), `.watchkitapp.widgets` (complications).

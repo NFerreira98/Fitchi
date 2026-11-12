@@ -6,6 +6,7 @@ import SwiftUI
 
 /// Phone tab shell: your pet, the shop, the collection book and achievements.
 struct PhoneRootView: View {
+    @Environment(PetStore.self) private var pets
     /// In the simulator, `-startTab shop` (etc.) at launch opens that tab, for screenshots.
     @State private var tab =
         ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] == nil
@@ -23,10 +24,25 @@ struct PhoneRootView: View {
                 CollectionView()
             }
             Tab("Achievements", systemImage: "trophy.fill", value: "achievements") {
-                Text("Achievements")
+                AchievementsView()
             }
         }
         .tint(FitchiTheme.Colors.accent)
+        .overlay(alignment: .top) {
+            if let next = pets.celebrations.first {
+                AchievementCelebration(next)
+                    .padding(.top, 8)
+                    .id(next.id)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .onTapGesture { pets.dismissCelebration() }
+                    .task(id: next.id) {
+                        try? await Task.sleep(for: .seconds(3.5))
+                        pets.dismissCelebration()
+                    }
+            }
+        }
+        .animation(.spring(duration: 0.5), value: pets.celebrations.first?.id)
+        .sensoryFeedback(.success, trigger: pets.celebrations.first?.id) { _, new in new != nil }
     }
 }
 

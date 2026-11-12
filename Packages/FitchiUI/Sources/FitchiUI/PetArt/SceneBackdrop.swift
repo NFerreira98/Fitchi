@@ -7,6 +7,13 @@ public struct SceneBackdrop: View {
     public enum Kind: String, CaseIterable, Sendable {
         case meadow = "backdrop-meadow"
         case pond = "backdrop-pond"
+        case snowyHill = "backdrop-snowy-hill"
+        case beach = "backdrop-beach"
+        case starryNight = "backdrop-starry-night"
+        case forest = "backdrop-forest"
+        case bedroom = "backdrop-bedroom"
+        case livingRoom = "backdrop-living-room"
+        case kitchen = "backdrop-kitchen"
 
         /// Accepts shop ids ("backdrop-pond") and short names ("pond").
         public init(id: String) {
@@ -33,13 +40,20 @@ public struct SceneBackdrop: View {
             switch kind {
             case .meadow: Meadow.draw(context, height: height)
             case .pond: Pond.draw(context, height: height)
+            case .snowyHill: SnowyHill.draw(context, height: height)
+            case .beach: Beach.draw(context, height: height)
+            case .starryNight: StarryNight.draw(context, height: height)
+            case .forest: Forest.draw(context, height: height)
+            case .bedroom: Bedroom.draw(context, height: height)
+            case .livingRoom: LivingRoom.draw(context, height: height)
+            case .kitchen: Kitchen.draw(context, height: height)
             }
         }
         .accessibilityHidden(true)
     }
 }
 
-private enum Sky {
+enum Sky {
     static func draw(_ context: GraphicsContext, top: Color, bottom: Color, horizon: CGFloat) {
         let sky = Path(CGRect(x: 0, y: 0, width: 100, height: horizon + 2))
         context.fill(
@@ -159,7 +173,7 @@ private enum Pond {
     }
 }
 
-private enum Flora {
+enum Flora {
     static func tufts(_ context: GraphicsContext, rows: [CGFloat], color: Color) {
         for (row, baseY) in rows.enumerated() {
             for column in 0..<6 {

@@ -25,6 +25,8 @@ public final class PetStore {
     /// Pep spent and granted outside of activity (welcome bonus, purchases). Append-only.
     public private(set) var transactions: [PepTransaction] = []
     public private(set) var inventory = Inventory()
+    /// Achievements unlocked on this device that haven't been celebrated on screen yet.
+    public private(set) var celebrations: [Achievement] = []
 
     public let catalog: Catalog
     public let decay: DecayContext
@@ -114,84 +116,6 @@ public final class PetStore {
             let item = catalog.item(id: itemID), !item.category.isConsumable
         else { return nil }
         return itemID
-    }
-
-    // MARK: - Shop and collection
-
-    public enum PurchaseError: Error, Equatable {
-        case shop(ShopError)
-        case hatch
-        case notSaved
-    }
-
-    /// Every species and colouring, with the ones this player has found.
-    public var collection: CollectionBook {
-        CollectionBook(catalog: catalog, pets: roster.pets)
-    }
-
-    /// Buys a permanent item (a backdrop, for now).
-    public func buy(_ item: ShopItem, earnings: [Earning]) throws(PurchaseError) {
-        var wallet = wallet(earnings: earnings)
-        var inventory = inventory
-        do {
-            try Shop.buy(item, wallet: &wallet, inventory: &inventory, at: clock.now)
-        } catch {
-            throw .shop(error)
-        }
-        try save(wallet: wallet, inventory: inventory)
-        didChange()
-    }
-
-    /// Buys and hatches an egg. The pet joins the roster (resting, unless it's the first).
-    public func buyEgg(_ egg: EggType, earnings: [Earning]) throws(PurchaseError) -> Pet {
-        var wallet = wallet(earnings: earnings)
-        var rng = SystemRandomNumberGenerator()
-        let now = clock.now
-        let pet: Pet
-        do {
-            pet = try Shop.buyEgg(egg, from: catalog, wallet: &wallet, at: now, using: &rng)
-        } catch let error as ShopError {
-            throw .shop(error)
-        } catch {
-            throw .hatch
-        }
-        roster.add(pet, at: now, in: decay)
-        let saved = roster[pet.id] ?? pet
-        try? repository?.save(saved, at: now)
-        try save(wallet: wallet, inventory: inventory)
-        didChange()
-        return saved
-    }
-
-    /// Makes a pet the one shown on the watch; the others rest (and decay slower).
-    public func setActive(_ petID: UUID) {
-        let now = clock.now
-        guard (try? roster.setActive(petID, at: now, in: decay)) != nil else { return }
-        for pet in roster.pets { try? repository?.save(pet, at: now) }
-        didChange()
-    }
-
-    /// Switches the scene behind every pet. Returns false if the backdrop isn't owned.
-    @discardableResult
-    public func selectBackdrop(_ id: String) -> Bool {
-        var inventory = inventory
-        guard inventory.selectBackdrop(id) else { return false }
-        self.inventory = inventory
-        try? repository?.save(inventory, at: clock.now)
-        didChange()
-        return true
-    }
-
-    private func save(wallet: Wallet, inventory: Inventory) throws(PurchaseError) {
-        let newTransactions = wallet.transactions.filter { new in !transactions.contains { $0.id == new.id } }
-        do {
-            try repository?.append(newTransactions)
-            try repository?.save(inventory, at: clock.now)
-        } catch {
-            throw .notSaved
-        }
-        transactions.append(contentsOf: newTransactions)
-        self.inventory = inventory
     }
 
     // MARK: - Backup
@@ -309,6 +233,138 @@ public final class PetStore {
     public func suggestedName(for pet: Pet, excluding current: String) -> String {
         let names = species(of: pet)?.defaultNames ?? []
         return names.filter { $0 != current }.randomElement() ?? current
+    }
+}
+
+// Achievements and the shop live in an extension to keep the class body readable; same file,
+// so they share the store's private state.
+extension PetStore {
+    // MARK: - Achievements
+
+    /// Unlocked achievements and when. Rewards live in the Pep ledger with a fixed id per
+    /// achievement, so this syncs with the backup and can never pay out twice.
+    public var unlockedAchievements: [String: Date] {
+        var unlocked: [String: Date] = [:]
+        for transaction in transactions {
+            if case .achievementReward(let id) = transaction.kind { unlocked[id] = transaction.date }
+        }
+        return unlocked
+    }
+
+    public func progress(
+        samples: [ActivitySample], steps: [StepCount], earnings: [Earning], installDate: Date
+    ) -> PlayerProgress {
+        let now = clock.now
+        return PlayerProgress.compute(
+            samples: samples, since: installDate, wallet: wallet(earnings: earnings), petsOwned: roster.pets.count,
+            steps: steps, at: now, calendar: decay.calendar
+        )
+        .including(
+            collection: collection, pets: roster.pets, inventory: inventory, catalog: catalog, at: now,
+            calendar: decay.calendar)
+    }
+
+    /// Pays out any newly met achievements and queues them to celebrate. Returns them.
+    @discardableResult
+    public func claimAchievements(
+        samples: [ActivitySample], steps: [StepCount], earnings: [Earning], installDate: Date
+    ) -> [Achievement] {
+        guard status == .ready, activePet != nil || !roster.pets.isEmpty else { return [] }
+        let progress = progress(samples: samples, steps: steps, earnings: earnings, installDate: installDate)
+        let unlocked = Achievement.newlyUnlocked(
+            catalog.achievements, progress: progress, alreadyUnlocked: Set(unlockedAchievements.keys))
+        guard !unlocked.isEmpty else { return [] }
+        let now = clock.now
+        let rewards = unlocked.map { PepTransaction.achievementReward($0, at: now) }
+        try? repository?.append(rewards)
+        transactions.append(contentsOf: rewards)
+        celebrations.append(contentsOf: unlocked)
+        didChange()
+        return unlocked
+    }
+
+    /// The celebration on screen has been seen.
+    public func dismissCelebration() {
+        guard !celebrations.isEmpty else { return }
+        celebrations.removeFirst()
+    }
+
+    // MARK: - Shop and collection
+
+    public enum PurchaseError: Error, Equatable {
+        case shop(ShopError)
+        case hatch
+        case notSaved
+    }
+
+    /// Every species and colouring, with the ones this player has found.
+    public var collection: CollectionBook {
+        CollectionBook(catalog: catalog, pets: roster.pets)
+    }
+
+    /// Buys a permanent item (a backdrop, for now).
+    public func buy(_ item: ShopItem, earnings: [Earning]) throws(PurchaseError) {
+        var wallet = wallet(earnings: earnings)
+        var inventory = inventory
+        do {
+            try Shop.buy(item, wallet: &wallet, inventory: &inventory, at: clock.now)
+        } catch {
+            throw .shop(error)
+        }
+        try save(wallet: wallet, inventory: inventory)
+        didChange()
+    }
+
+    /// Buys and hatches an egg. The pet joins the roster (resting, unless it's the first).
+    public func buyEgg(_ egg: EggType, earnings: [Earning]) throws(PurchaseError) -> Pet {
+        var wallet = wallet(earnings: earnings)
+        var rng = SystemRandomNumberGenerator()
+        let now = clock.now
+        let pet: Pet
+        do {
+            pet = try Shop.buyEgg(egg, from: catalog, wallet: &wallet, at: now, using: &rng)
+        } catch let error as ShopError {
+            throw .shop(error)
+        } catch {
+            throw .hatch
+        }
+        roster.add(pet, at: now, in: decay)
+        let saved = roster[pet.id] ?? pet
+        try? repository?.save(saved, at: now)
+        try save(wallet: wallet, inventory: inventory)
+        didChange()
+        return saved
+    }
+
+    /// Makes a pet the one shown on the watch; the others rest (and decay slower).
+    public func setActive(_ petID: UUID) {
+        let now = clock.now
+        guard (try? roster.setActive(petID, at: now, in: decay)) != nil else { return }
+        for pet in roster.pets { try? repository?.save(pet, at: now) }
+        didChange()
+    }
+
+    /// Switches the scene behind every pet. Returns false if the backdrop isn't owned.
+    @discardableResult
+    public func selectBackdrop(_ id: String) -> Bool {
+        var inventory = inventory
+        guard inventory.selectBackdrop(id) else { return false }
+        self.inventory = inventory
+        try? repository?.save(inventory, at: clock.now)
+        didChange()
+        return true
+    }
+
+    private func save(wallet: Wallet, inventory: Inventory) throws(PurchaseError) {
+        let newTransactions = wallet.transactions.filter { new in !transactions.contains { $0.id == new.id } }
+        do {
+            try repository?.append(newTransactions)
+            try repository?.save(inventory, at: clock.now)
+        } catch {
+            throw .notSaved
+        }
+        transactions.append(contentsOf: newTransactions)
+        self.inventory = inventory
     }
 }
 

@@ -24,5 +24,12 @@
 
   { "id": "style-retro", "name": "Retro Pixel Style", "description": "Chunky, classic pixel art for every pet and scene.", "category": "artStyle", "price": 1500 },
   { "id": "style-painted", "name": "Painterly Style", "description": "Soft, glowing hand-painted art for every pet and scene.", "category": "artStyle", "price": 2500 },
-  { "id": "backdrop-pond", "name": "Lily Pond", "description": "A calm pond with lily pads and reeds, for any pet.", "category": "backdrop", "price": 300 }
+  { "id": "backdrop-pond", "name": "Lily Pond", "description": "A calm pond with lily pads and reeds, for any pet.", "category": "backdrop", "price": 300 },
+  { "id": "backdrop-forest", "name": "Forest Clearing", "description": "Tall trees, soft moss and spotty mushrooms.", "category": "backdrop", "price": 350 },
+  { "id": "backdrop-snowy-hill", "name": "Snowy Hill", "description": "Fresh snow, pine trees and gently falling flakes.", "category": "backdrop", "price": 350 },
+  { "id": "backdrop-beach", "name": "Sunny Beach", "description": "Sand, waves and a palm tree swaying in the breeze.", "category": "backdrop", "price": 400 },
+  { "id": "backdrop-starry-night", "name": "Starry Night", "description": "A crescent moon, twinkling stars and fireflies.", "category": "backdrop", "price": 500 },
+  { "id": "backdrop-bedroom", "name": "Cozy Bedroom", "description": "A comfy bed, a warm lamp and a soft rug.", "category": "backdrop", "price": 450 },
+  { "id": "backdrop-living-room", "name": "Living Room", "description": "A big squishy sofa, pictures on the wall and a plant.", "category": "backdrop", "price": 450 },
+  { "id": "backdrop-kitchen", "name": "Kitchen", "description": "Checkered floor, counters and a fruit bowl.", "category": "backdrop", "price": 450 }
 ]

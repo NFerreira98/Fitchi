@@ -37,10 +37,23 @@ struct PetView: View {
                     careButtons(balance: balance)
                 }
                 .ignoresSafeArea(edges: .top)
+                if let next = pets.celebrations.first {
+                    AchievementCelebration(next, compact: true)
+                        .padding(.horizontal, 8)
+                        .id(next.id)
+                        .transition(.scale(scale: 0.6).combined(with: .opacity))
+                        .onTapGesture { pets.dismissCelebration() }
+                        .task(id: next.id) {
+                            try? await Task.sleep(for: .seconds(3))
+                            pets.dismissCelebration()
+                        }
+                }
             }
+            .animation(.spring(duration: 0.45), value: pets.celebrations.first?.id)
         }
         .toolbar(.hidden, for: .navigationBar)
         .sensoryFeedback(trigger: event) { _, new in new?.feedback }
+        .sensoryFeedback(.success, trigger: pets.celebrations.first?.id) { _, new in new != nil }
         .task(id: event) {
             guard event != nil else { return }
             // Long enough for the care animation (a nap is the longest) to finish.

@@ -9,6 +9,13 @@ public struct PlayerProgress: Hashable, Sendable {
     public var petsOwned: Int
     public var pepEarned: Int
     public var itemsPurchased: Int
+    public var stepsTaken: Int = 0
+    public var collectionFound: Int = 0
+    public var shiniesFound: Int = 0
+    public var speciesFound: Int = 0
+    public var rarestFound: Rarity?
+    public var daysTogether: Int = 0
+    public var backdropsOwned: Int = 0
 
     public init(
         activeMinutes: Double = 0,
@@ -33,6 +40,28 @@ public struct PlayerProgress: Hashable, Sendable {
         return workoutCounts[kind, default: 0]
     }
 
+    /// Adds what the player has collected: pets, colourings, shinies, backdrops and time together.
+    public func including(
+        collection: CollectionBook, pets: [Pet], inventory: Inventory, catalog: Catalog, at date: Date,
+        calendar: Calendar
+    ) -> PlayerProgress {
+        var progress = self
+        let discovered = collection.species.filter(\.isDiscovered)
+        progress.petsOwned = pets.count
+        progress.collectionFound = collection.foundCount
+        progress.shiniesFound = collection.shiniesFound
+        progress.speciesFound = discovered.count
+        progress.rarestFound = discovered.map(\.species.rarity).max()
+        if let firstHatch = pets.map(\.hatchedAt).min() {
+            let days = calendar.dateComponents(
+                [.day], from: calendar.startOfDay(for: firstHatch), to: calendar.startOfDay(for: date)
+            ).day
+            progress.daysTogether = max(0, days ?? 0)
+        }
+        progress.backdropsOwned = catalog.items.count { $0.category == .backdrop && inventory.owns($0.id) }
+        return progress
+    }
+
     /// Builds progress from raw history. A streak day is a day with at least
     /// `streakMinimumMinutes` of eligible activity.
     public static func compute(
@@ -40,6 +69,7 @@ public struct PlayerProgress: Hashable, Sendable {
         since installDate: Date,
         wallet: Wallet,
         petsOwned: Int,
+        steps: [StepCount] = [],
         at date: Date,
         calendar: Calendar,
         streakMinimumMinutes: Double = 20
@@ -61,7 +91,7 @@ public struct PlayerProgress: Hashable, Sendable {
             return false
         }
 
-        return PlayerProgress(
+        var progress = PlayerProgress(
             activeMinutes: eligible.reduce(0) { $0 + $1.minutes },
             workoutCounts: workoutCounts,
             longestStreakDays: longestRun(of: streakDays, calendar: calendar),
@@ -70,6 +100,9 @@ public struct PlayerProgress: Hashable, Sendable {
             pepEarned: wallet.totalEarned,
             itemsPurchased: purchases.count
         )
+        let stepTotal = steps.reduce(0) { $0 + $1.everydaySteps(after: installDate, excluding: []) }
+        progress.stepsTaken = Int(stepTotal.rounded())
+        return progress
     }
 
     private static func longestRun(of days: Set<Date>, calendar: Calendar) -> Int {

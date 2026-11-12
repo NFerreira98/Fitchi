@@ -24,6 +24,14 @@ struct FitchiPhoneApp: App {
         _pets = State(initialValue: pets)
         _backup = State(initialValue: backup)
         backup.start()
+        // Achievements pay out whenever the game changes (and after activity refreshes, below).
+        pets.onChange { Self.claimAchievements(pets, activity: store) }
+    }
+
+    static func claimAchievements(_ pets: PetStore, activity: ActivityStore) {
+        pets.claimAchievements(
+            samples: activity.samples, steps: activity.steps, earnings: activity.earnings,
+            installDate: activity.installDate)
     }
 
     var body: some Scene {
@@ -35,6 +43,7 @@ struct FitchiPhoneApp: App {
                 .environment(backup)
                 .task { await activity.start() }
         }
+        .onChange(of: activity.lastRefreshed) { Self.claimAchievements(pets, activity: activity) }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await activity.refresh() } }
         }

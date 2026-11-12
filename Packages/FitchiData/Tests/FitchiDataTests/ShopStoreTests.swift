@@ -67,3 +67,35 @@ struct ShopStoreTests {
         #expect(watch.inventory.owns("backdrop-pond"))
     }
 }
+
+@Suite("Achievements in the store")
+@MainActor
+struct AchievementStoreTests {
+    let suite = PetStoreTests()
+
+    @Test func rewardsArePaidOnceAndCelebrated() throws {
+        let store = suite.makeStore(try FitchiStore.makeContainer(inMemory: true), at: suite.start)
+        #expect(store.claimAchievements(samples: [], steps: [], earnings: [], installDate: suite.start).isEmpty)
+        _ = try store.hatchStarter(samples: [], force: true)
+        let before = store.wallet(earnings: []).balance
+
+        let unlocked = store.claimAchievements(samples: [], steps: [], earnings: [], installDate: suite.start)
+        let friend = try #require(unlocked.first { $0.id == "first-friend" })
+        #expect(store.wallet(earnings: []).balance == before + unlocked.reduce(0) { $0 + $1.reward })
+        #expect(store.unlockedAchievements[friend.id] == suite.start)
+        #expect(store.celebrations.map(\.id) == unlocked.map(\.id))
+        store.dismissCelebration()
+        #expect(store.celebrations.count == unlocked.count - 1)
+
+        // Claiming again pays nothing new, and a merged copy from another device doesn't double up.
+        #expect(store.claimAchievements(samples: [], steps: [], earnings: [], installDate: suite.start).isEmpty)
+        let other = PetStore(
+            repository: GameRepository(container: try FitchiStore.makeContainer(inMemory: true)),
+            catalog: suite.catalog,
+            clock: FixedClock(suite.start + 60))
+        other.load()
+        other.restore(from: try #require(store.snapshot(installDate: suite.start)))
+        #expect(other.claimAchievements(samples: [], steps: [], earnings: [], installDate: suite.start).isEmpty)
+        #expect(other.wallet(earnings: []).balance == store.wallet(earnings: []).balance)
+    }
+}

@@ -74,6 +74,50 @@ struct AchievementTests {
         let unlocked = Achievement.newlyUnlocked(
             TestSupport.catalog.achievements, progress: progress, alreadyUnlocked: ["first-steps"]
         )
-        #expect(unlocked.map(\.id) == ["streak-3"])
+        // Three active days, and owning a pet earns "New Friend".
+        #expect(unlocked.map(\.id) == ["streak-3", "first-friend"])
+    }
+
+    @Test func collectingAndTimeTogetherCount() throws {
+        let catalog = TestSupport.catalog
+        let hatched = TestSupport.date(2026, 1, 1)
+        let pets = [
+            Pet(
+                name: "A", speciesID: "cat", traits: TestSupport.averageTraits, personality: .easygoing,
+                hatchedAt: hatched,
+                variant: PetVariant(id: "shiny-sugar", isShiny: true)),
+            Pet(
+                name: "B", speciesID: "penguin", traits: TestSupport.averageTraits, personality: .easygoing,
+                hatchedAt: hatched + .day, variant: PetVariant(id: "emperor")),
+        ]
+        var inventory = Inventory()
+        inventory.grantOwnership(of: ["backdrop-pond", "backdrop-forest", "party-hat"])
+        let progress = PlayerProgress().including(
+            collection: CollectionBook(catalog: catalog, pets: pets), pets: pets, inventory: inventory,
+            catalog: catalog,
+            at: TestSupport.date(2026, 1, 8), calendar: calendar)
+        #expect(progress.petsOwned == 2)
+        #expect(progress.collectionFound == 2)
+        #expect(progress.shiniesFound == 1)
+        #expect(progress.speciesFound == 2)
+        #expect(progress.rarestFound == .rare)
+        #expect(progress.daysTogether == 7)
+        #expect(progress.backdropsOwned == 2)
+
+        let unlocked = Set(
+            Achievement.newlyUnlocked(catalog.achievements, progress: progress, alreadyUnlocked: []).map(\.id))
+        #expect(unlocked.isSuperset(of: ["first-shiny", "rare-find", "together-7", "decor-1"]))
+        #expect(!unlocked.contains("legend") && !unlocked.contains("decor-4"))
+        let decor = try #require(catalog.achievements.first { $0.id == "decor-4" })
+        #expect(decor.criterion.progress(in: progress) == (2, 4))
+    }
+
+    @Test func everyAchievementDecodesAndRoundTrips() throws {
+        let achievements = TestSupport.catalog.achievements
+        #expect(achievements.count >= 30)
+        #expect(Set(achievements.map(\.id)).count == achievements.count)
+        #expect(achievements.allSatisfy { $0.reward > 0 && $0.icon != nil })
+        let data = try JSONEncoder().encode(achievements)
+        #expect(try JSONDecoder().decode([Achievement].self, from: data) == achievements)
     }
 }

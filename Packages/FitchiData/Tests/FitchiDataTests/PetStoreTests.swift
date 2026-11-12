@@ -2,6 +2,7 @@ import FitchiCore
 import Foundation
 import SwiftData
 import Testing
+
 @testable import FitchiData
 
 @Suite("Pet store")
@@ -17,7 +18,8 @@ struct PetStoreTests {
     let start = Date(timeIntervalSince1970: 1_800_000_000)
 
     func makeStore(_ container: ModelContainer, at date: Date) -> PetStore {
-        let store = PetStore(repository: GameRepository(container: container), catalog: catalog, clock: FixedClock(date))
+        let store = PetStore(
+            repository: GameRepository(container: container), catalog: catalog, clock: FixedClock(date))
         store.load()
         return store
     }
@@ -39,7 +41,9 @@ struct PetStoreTests {
 
     @Test func eggWontHatchEarlyThenHatchesAfterAWalk() throws {
         let store = makeStore(try FitchiStore.makeContainer(inMemory: true), at: start)
-        #expect(throws: PetStore.HatchFailure.notReady) { try store.hatchStarter(samples: [walk(after: start, minutes: 2)]) }
+        #expect(throws: PetStore.HatchFailure.notReady) {
+            try store.hatchStarter(samples: [walk(after: start, minutes: 2)])
+        }
 
         let pet = try store.hatchStarter(samples: [walk(after: start, minutes: 6)])
         #expect(store.activePet?.id == pet.id)
@@ -64,7 +68,8 @@ struct PetStoreTests {
 
     @Test func missingCatalogFailsClearly() throws {
         let empty = Catalog(species: [], items: [], eggs: [], achievements: [])
-        let store = PetStore(repository: GameRepository(container: try FitchiStore.makeContainer(inMemory: true)), catalog: empty)
+        let store = PetStore(
+            repository: GameRepository(container: try FitchiStore.makeContainer(inMemory: true)), catalog: empty)
         store.load()
         #expect(store.status == .failed("Couldn't load the pet catalog."))
     }

@@ -48,6 +48,17 @@ struct ContactSheet: View {
                     species: "dog", palette: palettes("dog")[0], backdrop: .meadow, pose: munching, caption: "Munching")
                 Tile(species: "axolotl", palette: palettes("axolotl")[0], backdrop: .meadow, pose: hop, caption: "Hop")
             }
+            // Every backdrop, each with a different pet standing in it.
+            HStack(spacing: 10) {
+                ForEach(Array(SceneBackdrop.Kind.allCases.enumerated()), id: \.offset) { index, kind in
+                    let species = [
+                        "axolotl", "cat", "dog", "bunny", "red-panda", "penguin", "platypus", "golden-axolotl", "cat",
+                    ][index % 9]
+                    Tile(
+                        species: species, palette: palettes(species)[0], backdrop: kind,
+                        caption: kind.rawValue.replacingOccurrences(of: "backdrop-", with: ""))
+                }
+            }
             LifeRows(catalog: catalog)
         }
         .padding(20)
