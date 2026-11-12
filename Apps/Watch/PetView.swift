@@ -4,8 +4,8 @@ import FitchiHealth
 import FitchiUI
 import SwiftUI
 
-/// The pet's screen: the pet living in its scene, four stat rings and the care buttons, all on
-/// one page with no scrolling. The arrangement follows the player's layout preference
+/// The pet's screen: the pet living in its scene (wandering, napping, showing its mood), four
+/// stat rings and the care buttons, all on one page with no scrolling. The arrangement follows the player's layout preference
 /// (About → Display). Stats are computed from time, so the view re-reads them every minute.
 struct PetView: View {
     @Environment(PetStore.self) private var pets
@@ -19,17 +19,18 @@ struct PetView: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             let values = pet.values(at: timeline.date, in: pets.decay)
+            let mood = pet.mood(at: timeline.date, in: pets.decay)
             let balance = pets.wallet(earnings: activity.earnings).balance
             ZStack {
                 PetStage(
-                    pet: pet, species: pets.species(of: pet), style: style,
+                    pet: pet, species: pets.species(of: pet), mood: mood, style: style,
                     reaction: event?.reaction, petScale: style == .island ? 0.48 : (style == .horizon ? 0.38 : 0.42)
                 )
                 .ignoresSafeArea()
                 VStack(spacing: 0) {
                     header(
                         balance: balance,
-                        status: event?.message ?? pet.condition(at: timeline.date, in: pets.decay).title)
+                        status: event?.message ?? mood.headline)
                     Spacer(minLength: 0)
                     stats(values)
                     careButtons(balance: balance)
@@ -41,7 +42,8 @@ struct PetView: View {
         .sensoryFeedback(trigger: event) { _, new in new?.feedback }
         .task(id: event) {
             guard event != nil else { return }
-            try? await Task.sleep(for: .seconds(2.5))
+            // Long enough for the care animation (a nap is the longest) to finish.
+            try? await Task.sleep(for: .seconds(4.2))
             event = nil
         }
     }
@@ -166,7 +168,7 @@ private struct CareEvent: Equatable {
 
     init(action: CareAction, outcome: CareOutcome, petName: String, itemName: String?) {
         let gain = Int((outcome.changes[action.stat] ?? 0).rounded())
-        reaction = StageReaction(id: id, floater: "\(action.emoji) +\(gain)")
+        reaction = StageReaction(id: id, action: action, floater: "\(action.emoji) +\(gain)")
         let thing = itemName.map { "the \($0.lowercased())" } ?? "that"
         switch outcome.reaction {
         case .loved:

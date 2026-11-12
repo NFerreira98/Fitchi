@@ -44,7 +44,7 @@ enum DogArt {
         mouth.addLine(to: CGPoint(x: 50, y: 59))
         head.line(mouth, cream.line, width: 1.5)
         head.mouth(at: CGPoint(x: 50, y: 59.5), pose: pose, tone: cream, width: 8)
-        if pose.mouthOpen <= 0.1 {
+        if pose.mouthOpen <= 0.1, pose.smile > 0.5 {
             head.context.fill(
                 Path(ellipse: CGPoint(x: 50, y: 63), rx: 2.6, ry: 2.2),
                 with: .color(Color(red: 1, green: 0.5, blue: 0.6)))

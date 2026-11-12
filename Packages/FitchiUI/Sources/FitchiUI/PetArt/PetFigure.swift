@@ -6,11 +6,13 @@ public struct PetFigure: View {
     private let speciesID: String
     private let palette: PetPalette
     private let pose: PetPose
+    private let effects: PetEffects
 
-    public init(speciesID: String, palette: PetPalette, pose: PetPose = .standing) {
+    public init(speciesID: String, palette: PetPalette, pose: PetPose = .standing, effects: PetEffects = .none) {
         self.speciesID = speciesID
         self.palette = palette
         self.pose = pose
+        self.effects = effects
     }
 
     public var body: some View {
@@ -19,13 +21,20 @@ public struct PetFigure: View {
             context.translateBy(x: (size.width - 100 * scale) / 2, y: (size.height - 100 * scale) / 2)
             context.scaleBy(x: scale, y: scale)
             drawShadow(context)
+            // Asleep: lower and flatter, head resting down.
+            var drawn = pose
+            drawn.squash += 0.1 * pose.sleep
+            drawn.headBob += 3 * pose.sleep
             var posed = context
             let ground = Ink.ground
-            posed.translateBy(x: 50, y: ground - pose.lift)
-            posed.scaleBy(x: 1 + pose.squash * 0.6, y: 1 - pose.squash)
+            posed.translateBy(x: 50, y: ground - drawn.lift)
+            posed.rotate(by: .degrees(drawn.tilt))
+            posed.scaleBy(x: (1 + drawn.squash * 0.6) * (drawn.flipped ? -1 : 1), y: 1 - drawn.squash)
             posed.translateBy(x: -50, y: -ground)
-            Self.painter(for: speciesID)(Ink(context: posed), palette, pose)
+            Self.painter(for: speciesID)(Ink(context: posed), palette, drawn)
+            EffectArt.drawOnBody(effects, posed)
             if palette.isShiny { Sparkles.draw(context) }
+            EffectArt.drawAround(effects, context, flipped: drawn.flipped)
         }
         .aspectRatio(1, contentMode: .fit)
         .accessibilityHidden(true)

@@ -20,6 +20,16 @@ public struct PetPose: Hashable, Sendable {
     public var earAngle: Double = 0
     /// 0 = closed smile, 1 = open mouth (eating, laughing).
     public var mouthOpen: Double = 0
+    /// Mouth curve: 1 = smile, 0 = flat, −1 = frown.
+    public var smile: Double = 1
+    /// Worried eyebrows, 0…1 (sad, sick).
+    public var worry: Double = 0
+    /// Lean from side to side around the feet, in degrees (waddling, shaking off water).
+    public var tilt: Double = 0
+    /// Mirrored left to right, so the tail trails behind when walking right.
+    public var flipped = false
+    /// 0 = awake, 1 = curled up asleep: lower, flatter, eyes peacefully shut.
+    public var sleep: Double = 0
 
     public init() {}
 
@@ -88,11 +98,22 @@ struct Ink {
     func eye(at center: CGPoint, pose: PetPose, color: PetColor) {
         let width: CGFloat = 7.5
         let height = 9.0 * max(pose.eyesOpen, 0)
+        if pose.worry > 0 {
+            // Brows tilt up towards the middle of the face.
+            let inward: CGFloat = center.x < 50 ? 1 : -1
+            var brow = Path()
+            brow.move(to: CGPoint(x: center.x - inward * 3.5, y: center.y - 7))
+            brow.addLine(to: CGPoint(x: center.x + inward * 2.5, y: center.y - 7 - 2.6 * pose.worry))
+            line(brow, color.color.opacity(0.85), width: 1.6)
+        }
         if pose.eyesOpen < 0.25 {
+            // Happy "^" when grinning, a peaceful "‿" when asleep.
+            let curve: CGFloat = pose.sleep > 0.5 ? 3.5 : -3
             var arc = Path()
             arc.move(to: CGPoint(x: center.x - width / 2, y: center.y + 1))
             arc.addQuadCurve(
-                to: CGPoint(x: center.x + width / 2, y: center.y + 1), control: CGPoint(x: center.x, y: center.y - 3))
+                to: CGPoint(x: center.x + width / 2, y: center.y + 1),
+                control: CGPoint(x: center.x, y: center.y + curve))
             line(arc, color.color, width: 2)
             return
         }
@@ -107,7 +128,7 @@ struct Ink {
             with: .color(white))
     }
 
-    /// A small smile that opens into a round mouth.
+    /// A small smile (or frown, with `pose.smile`) that opens into a round mouth.
     func mouth(at center: CGPoint, pose: PetPose, tone: Tone, width: CGFloat = 6) {
         if pose.mouthOpen > 0.1 {
             let open = Path(
@@ -116,10 +137,13 @@ struct Ink {
             context.stroke(open, with: .color(tone.line), lineWidth: 1.4)
             return
         }
+        // A frown sits a little lower so it doesn't touch the nose.
+        let drop: CGFloat = pose.smile < 0 ? 2 : 0
         var smile = Path()
-        smile.move(to: CGPoint(x: center.x - width / 2, y: center.y))
+        smile.move(to: CGPoint(x: center.x - width / 2, y: center.y + drop))
         smile.addQuadCurve(
-            to: CGPoint(x: center.x + width / 2, y: center.y), control: CGPoint(x: center.x, y: center.y + 4))
+            to: CGPoint(x: center.x + width / 2, y: center.y + drop),
+            control: CGPoint(x: center.x, y: center.y + drop + 4 * pose.smile))
         line(smile, tone.line)
     }
 }

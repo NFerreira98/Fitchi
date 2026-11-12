@@ -21,5 +21,6 @@ let package = Package(
         // `swift run fitchi-art-preview OUT.png [CONTENT_DIR]` renders a contact sheet of pets and backdrops (macOS).
         .executableTarget(
             name: "fitchi-art-preview", dependencies: ["FitchiUI", "FitchiCore"], path: "Tools/FitchiArtPreview"),
+        .testTarget(name: "FitchiUITests", dependencies: ["FitchiUI", "FitchiCore"]),
     ]
 )

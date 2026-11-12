@@ -33,36 +33,44 @@ public enum PetLayoutStyle: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// A pet "moment" the stage acts out: a hop plus a reward floating up.
+/// A care moment the stage acts out (a bowl, a ball, bubbles or a nap) with a reward floating up.
 public struct StageReaction: Equatable, Sendable {
     public let id: UUID
+    /// nil for a generic happy wiggle.
+    public let action: CareAction?
     public let floater: String
+    public let startedAt: Date
 
-    public init(id: UUID = UUID(), floater: String) {
+    public init(id: UUID = UUID(), action: CareAction? = nil, floater: String, startedAt: Date = .now) {
         self.id = id
+        self.action = action
         self.floater = floater
+        self.startedAt = startedAt
     }
 }
 
-/// The pet living in its scene: backdrop, idling pet, hop and floating reward. Layouts decide
-/// how much of the scene shows (`style`) and where controls go; the stage itself is shared by
-/// the watch and the phone.
+/// The pet living in its scene: backdrop, a pet that wanders, naps and shows its mood, care
+/// animations and floating rewards. Layouts decide how much of the scene shows (`style`) and
+/// where controls go; the stage itself is shared by the watch and the phone.
 public struct PetStage: View {
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let pet: Pet
     private let species: Species?
+    private let mood: PetMood
     private let backdrop: SceneBackdrop.Kind
     private let style: PetLayoutStyle
     private let reaction: StageReaction?
     /// Pet width as a fraction of the stage width.
     private let petScale: CGFloat
-    @State private var excited = false
 
     public init(
-        pet: Pet, species: Species?, backdrop: SceneBackdrop.Kind = .meadow, style: PetLayoutStyle,
-        reaction: StageReaction? = nil, petScale: CGFloat = 0.5
+        pet: Pet, species: Species?, mood: PetMood = .content, backdrop: SceneBackdrop.Kind = .meadow,
+        style: PetLayoutStyle, reaction: StageReaction? = nil, petScale: CGFloat = 0.5
     ) {
         self.pet = pet
         self.species = species
+        self.mood = mood
         self.backdrop = backdrop
         self.style = style
         self.reaction = reaction
@@ -75,24 +83,56 @@ public struct PetStage: View {
             let petSize = size.width * petScale
             ZStack {
                 scene(size: size)
-                LivingPetView(
-                    species: species, speciesID: pet.speciesID, variant: pet.variant, excited: excited, seed: pet.id
-                )
-                .frame(width: petSize, height: petSize)
-                .hop(on: reaction?.id)
-                .position(x: size.width / 2, y: groundY(in: size) - petSize / 2)
-                if let reaction {
-                    FloatingReward(text: reaction.floater)
-                        .id(reaction.id)
-                        .position(x: size.width / 2 + petSize * 0.45, y: groundY(in: size) - petSize * 0.9)
+                // 20 fps is plenty for a gentle pet; it stops when the wrist is down. Reduce Motion
+                // ticks slowly, just enough to end care moments.
+                TimelineView(
+                    .animation(minimumInterval: reduceMotion ? 0.5 : 1.0 / 20, paused: isLuminanceReduced)
+                ) { timeline in
+                    let frame = frame(at: timeline.date)
+                    let center = CGPoint(
+                        x: size.width / 2 + frame.x * wanderRange(in: size, petSize: petSize),
+                        y: groundY(in: size) - petSize / 2)
+                    pet(frame)
+                        .frame(width: petSize, height: petSize)
+                        .position(center)
+                    if let reaction {
+                        FloatingReward(text: reaction.floater)
+                            .id(reaction.id)
+                            .position(x: center.x + petSize * 0.45, y: center.y - petSize * 0.4)
+                    }
                 }
             }
         }
-        .task(id: reaction?.id) {
-            guard reaction != nil else { return }
-            excited = true
-            try? await Task.sleep(for: .seconds(1.6))
-            excited = false
+    }
+
+    private func frame(at date: Date) -> PetFrame {
+        PetLife.frame(
+            at: date.timeIntervalSinceReferenceDate, seed: PetLife.seed(for: pet.id), mood: mood,
+            reaction: reaction.map {
+                PetLife.Reaction(action: $0.action, startedAt: $0.startedAt.timeIntervalSinceReferenceDate)
+            },
+            still: reduceMotion)
+    }
+
+    @ViewBuilder
+    private func pet(_ frame: PetFrame) -> some View {
+        if let species, PetFigure.hasArt(for: pet.speciesID) {
+            PetFigure(
+                speciesID: pet.speciesID, palette: PetPalette(species: species, variant: pet.variant), pose: frame.pose,
+                effects: frame.effects)
+        } else {
+            Text(species?.emoji ?? "🐾")
+                .font(.system(size: 52))
+                .offset(y: -frame.pose.lift)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// How far either side of centre the pet strolls.
+    private func wanderRange(in size: CGSize, petSize: CGFloat) -> CGFloat {
+        switch style {
+        case .island: max(0, min(size.width * 0.95, size.height * 0.8) * 0.42 - petSize / 2)
+        case .fullScene, .horizon: max(0, size.width * 0.42 - petSize / 2)
         }
     }
 
@@ -224,40 +264,4 @@ struct FloatingReward: View {
             }
             .accessibilityHidden(true)
     }
-}
-
-extension View {
-    /// A squash-and-stretch hop each time `trigger` changes (skipped with Reduce Motion).
-    func hop(on trigger: UUID?) -> some View {
-        modifier(HopModifier(trigger: trigger))
-    }
-}
-
-private struct HopModifier: ViewModifier {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    let trigger: UUID?
-
-    func body(content: Content) -> some View {
-        content.keyframeAnimator(initialValue: HopState(), trigger: reduceMotion ? nil : trigger) { content, hop in
-            content
-                .scaleEffect(x: hop.squash, y: 2 - hop.squash, anchor: .bottom)
-                .offset(y: hop.lift)
-        } keyframes: { _ in
-            KeyframeTrack(\.lift) {
-                CubicKeyframe(0, duration: 0.08)
-                SpringKeyframe(-16, duration: 0.2)
-                SpringKeyframe(0, duration: 0.35, spring: .bouncy)
-            }
-            KeyframeTrack(\.squash) {
-                CubicKeyframe(1.15, duration: 0.08)
-                CubicKeyframe(0.92, duration: 0.2)
-                SpringKeyframe(1, duration: 0.35, spring: .bouncy)
-            }
-        }
-    }
-}
-
-struct HopState {
-    var lift: Double = 0
-    var squash: Double = 1
 }

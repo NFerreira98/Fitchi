@@ -82,9 +82,9 @@ enum CatArt {
         ink.line(left.mirrored, color.opacity(0.6), width: 1.1)
     }
 
-    /// The little "w" under the nose, or an open mouth.
+    /// The little "w" under the nose, or an open mouth or frown.
     private static func catMouth(_ ink: Ink, pose: PetPose, tone: Tone) {
-        if pose.mouthOpen > 0.1 {
+        if pose.mouthOpen > 0.1 || pose.smile < 0.5 {
             ink.mouth(at: CGPoint(x: 50, y: 59), pose: pose, tone: tone)
             return
         }

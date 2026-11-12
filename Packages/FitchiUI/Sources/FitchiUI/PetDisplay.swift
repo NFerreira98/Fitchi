@@ -45,6 +45,22 @@ extension PetCondition {
     }
 }
 
+extension PetMood {
+    /// One short line for the pet screen: the most pressing thing about the pet right now.
+    public var headline: String {
+        switch condition {
+        case .ranAway, .packing, .sick: return condition.title
+        default: break
+        }
+        if isAsleep { return "Fast asleep 💤" }
+        if isHungry { return "Hungry" }
+        if isDirty { return "Needs a bath" }
+        if isBored { return "Bored" }
+        if isTired { return "Sleepy" }
+        return condition.title
+    }
+}
+
 extension Personality {
     public var title: String {
         switch self {
