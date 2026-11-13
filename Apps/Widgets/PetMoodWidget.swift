@@ -4,20 +4,32 @@ import FitchiUI
 import SwiftUI
 import WidgetKit
 
-/// The pet on the watch face: its face shows how it feels, a ring shows overall wellbeing.
+/// The pet on the watch face, the iPhone Lock Screen or Home Screen: its face shows how it
+/// feels, a ring or bars show its needs.
 ///
-/// The watch app writes a `PetGlance` after every change. Stats are computed from timestamps,
-/// so the timeline can look hours ahead without the app running.
+/// Each app writes a `PetGlance` after every change. Stats are computed from timestamps, so the
+/// timeline can look hours ahead without the app running. The same code builds the watch
+/// complications and the iPhone widgets.
 struct PetMoodWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "PetMood", provider: PetMoodProvider()) { entry in
             PetMoodView(entry: entry)
-                .containerBackground(.clear, for: .widget)
+                .containerBackground(for: .widget) { PetMoodBackground(entry: entry) }
         }
         .configurationDisplayName("Your Pet")
         .description("See how your pet is feeling, and when it needs you.")
-        .supportedFamilies([.accessoryCircular, .accessoryRectangular, .accessoryInline, .accessoryCorner])
+        .supportedFamilies(Self.families)
     }
+
+    #if os(watchOS)
+        static let families: [WidgetFamily] = [
+            .accessoryCircular, .accessoryRectangular, .accessoryInline, .accessoryCorner,
+        ]
+    #else
+        static let families: [WidgetFamily] = [
+            .systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline,
+        ]
+    #endif
 }
 
 struct PetMoodEntry: TimelineEntry {
@@ -74,12 +86,17 @@ struct PetMoodView: View {
         switch family {
         case .accessoryRectangular: rectangular
         case .accessoryInline: inline
-        case .accessoryCorner: corner
+        #if os(watchOS)
+            case .accessoryCorner: corner
+        #else
+            case .systemSmall: PetHomeWidgetView(entry: entry, wide: false)
+            case .systemMedium: PetHomeWidgetView(entry: entry, wide: true)
+        #endif
         default: circular
         }
     }
 
-    @ViewBuilder private var figure: some View {
+    @ViewBuilder var figure: some View {
         if let pet = entry.pet, let species = entry.glance.species, PetFigure.hasArt(for: pet.speciesID) {
             PetFigure(
                 speciesID: pet.speciesID, palette: PetPalette(species: species, variant: pet.variant),
@@ -145,6 +162,7 @@ struct PetMoodView: View {
         Text(summary)
     }
 
+    #if os(watchOS)
     private var corner: some View {
         Text(entry.glance.species?.emoji ?? "🥚")
             .font(.system(size: 20))
@@ -157,13 +175,14 @@ struct PetMoodView: View {
                 }
             }
     }
+    #endif
 
-    private var summary: String {
+    var summary: String {
         guard let pet = entry.pet else { return "Your egg is waiting" }
         return "\(pet.name) · \(entry.mood.headline)"
     }
 
-    private var ringColor: Color {
+    var ringColor: Color {
         switch entry.wellbeing {
         case ..<35: .red
         case ..<65: .orange
@@ -173,7 +192,7 @@ struct PetMoodView: View {
 }
 
 /// A tiny stat bar for the rectangular complication.
-private struct MiniBar: View {
+struct MiniBar: View {
     let value: Double
     let color: Color
 

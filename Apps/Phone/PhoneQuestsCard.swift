@@ -21,7 +21,7 @@ struct PhoneQuestsCard: View {
                 }
                 if pets.openMoment(at: timeline.date) != nil {
                     Label(
-                        "\(petName) found something! Open Fitchi on your watch to collect it.", systemImage: "gift.fill"
+                        "\(petName) found something! Tap the gift by your pet to collect it.", systemImage: "gift.fill"
                     )
                     .font(FitchiTheme.Fonts.text(.subheadline, weight: .semibold))
                     .foregroundStyle(FitchiTheme.Colors.points)

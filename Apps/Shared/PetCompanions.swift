@@ -4,17 +4,26 @@ import FitchiHealth
 import FitchiUI
 import Foundation
 import UserNotifications
-import WatchKit
 import WidgetKit
 
-/// Everything outside the app that follows the pet: the watch-face complication and care
-/// reminders. Refreshed after every change, at launch and whenever the app comes forward.
+#if os(watchOS)
+    import WatchKit
+#else
+    import UIKit
+#endif
+
+/// Everything outside the app that follows the pet: the watch-face complication or iPhone
+/// widget, and care reminders. Refreshed after every change, at launch and whenever the app
+/// comes forward. Shared by both apps (Apps/Shared).
 @MainActor
 enum PetCompanions {
-    static func refresh(_ pets: PetStore) {
+    /// - Parameter sendsReminders: whether this device is the pet's home and sends care
+    ///   reminders: always on the watch; on the iPhone only without a watch that has the app,
+    ///   so nobody gets them twice. When false, any reminders planned earlier are cleared.
+    static func refresh(_ pets: PetStore, sendsReminders: Bool = true) {
         GlanceStore.save(pets.glance)
         WidgetCenter.shared.reloadAllTimelines()
-        let pet = pets.activePet
+        let pet = sendsReminders ? pets.activePet : nil
         let decay = pets.decay
         let collected = pets.glance.collectedGifts ?? []
         let gifts = PetMoments.upcoming(after: .now, calendar: decay.calendar).filter { !collected.contains($0.id) }
@@ -24,16 +33,21 @@ enum PetCompanions {
 
 /// Local notifications for the moments the pet will start needing something (see
 /// `CareNudges`). Planned ahead from the decay model, so nothing has to run in the background;
-/// any care re-plans them. Only the watch schedules them, so the phone never doubles up.
+/// any care re-plans them. Only the pet's home device schedules them (see `PetCompanions`).
 enum CareReminders {
     /// `@AppStorage` key for the on/off switch in About.
     static let enabledKey = "fitchi.careReminders"
     static let idPrefix = "fitchi.nudge."
     static let giftPrefix = "fitchi.gift."
-    /// watchOS keeps a limited number of pending notifications; a few ahead is plenty.
+    /// watchOS keeps a limited number of pending notifications; a few ahead is plenty (and the
+    /// same on the iPhone, where every change re-plans them anyway).
     static let maxPending = 6
     /// Of those, how many announce gifts (the rest are care nudges).
     static let maxGifts = 3
+
+    /// While true (a hatch reveal is on screen), leave notifications alone so the permission
+    /// prompt doesn't cover the reveal: planning waits until it's dismissed.
+    @MainActor static var holdsPermissionPrompt = false
 
     static var isEnabled: Bool {
         UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true
@@ -41,6 +55,7 @@ enum CareReminders {
 
     @MainActor
     static func schedule(for pet: Pet?, gifts: [PetMoment], in decay: DecayContext) async {
+        guard !holdsPermissionPrompt else { return }
         let center = UNUserNotificationCenter.current()
         let pending = await center.pendingNotificationRequests().map(\.identifier)
             .filter { $0.hasPrefix(idPrefix) || $0.hasPrefix(giftPrefix) }
@@ -99,12 +114,20 @@ enum CareReminders {
 }
 
 extension CareReminders {
+    static var isInForeground: Bool {
+        #if os(watchOS)
+            WKApplication.shared().applicationState == .active
+        #else
+            UIApplication.shared.applicationState == .active
+        #endif
+    }
+
     /// A milestone reached while the app isn't on screen (HealthKit woke it in the background):
     /// a notification so the cheer isn't missed. The pet still celebrates when you next look.
     /// Shares the care-reminder switch, and never at night.
     @MainActor
     static func announceCheers(_ pets: PetStore, activity: ActivityStore) {
-        guard WKApplication.shared().applicationState != .active, isEnabled, let pet = pets.activePet else { return }
+        guard !isInForeground, isEnabled, let pet = pets.activePet else { return }
         let hour = Calendar.current.component(.hour, from: .now)
         guard (7..<22).contains(hour) else { return }
         let reached = Cheers.reached(

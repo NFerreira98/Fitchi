@@ -264,9 +264,10 @@ extension Set {
     }
 }
 
-/// Favourite and send-to-watch, from a long press on a pet.
+/// Favourite and send-to-watch (or make active), from a long press on a pet.
 struct PetMenu: View {
     @Environment(PetStore.self) private var pets
+    @Environment(\.petHome) private var home
     let pet: Pet
 
     var body: some View {
@@ -279,7 +280,7 @@ struct PetMenu: View {
             Button {
                 pets.setActive(pet.id)
             } label: {
-                Label("Send to watch", systemImage: "applewatch")
+                Label(home.makeActive, systemImage: home.symbol)
             }
         }
     }

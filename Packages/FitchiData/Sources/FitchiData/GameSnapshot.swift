@@ -6,7 +6,8 @@ import Foundation
 /// change; the phone keeps it as a backup and hands it back if the watch app is reinstalled.
 ///
 /// Merging is commutative and idempotent, so copies can bounce between devices in any order:
-/// - pets: the most recently saved copy of each pet wins;
+/// - pets: the most recently saved copy of each pet wins, except its needs: each one comes from
+///   whichever copy changed it last, so care given on the watch and the phone is all kept;
 /// - starter egg: a hatched egg beats an unhatched one, then the earliest grant;
 /// - Pep ledger: the union (it's append-only);
 /// - inventory: the most recently saved copy, plus anything owned in either copy;
@@ -61,11 +62,22 @@ public struct GameSnapshot: Codable, Hashable, Sendable {
     public func merged(with other: GameSnapshot) -> GameSnapshot {
         var byID: [UUID: SavedPet] = [:]
         for saved in pets + other.pets {
-            if let existing = byID[saved.pet.id], !Self.isNewer(saved, than: existing) { continue }
-            byID[saved.pet.id] = saved
+            guard let existing = byID[saved.pet.id] else {
+                byID[saved.pet.id] = saved
+                continue
+            }
+            let (newer, older) = Self.isNewer(saved, than: existing) ? (saved, existing) : (existing, saved)
+            byID[saved.pet.id] = SavedPet(pet: newer.pet.mergingNeeds(from: older.pet), updatedAt: newer.updatedAt)
         }
         var transactionsByID: [String: PepTransaction] = [:]
-        for transaction in transactions + other.transactions where transactionsByID[transaction.id] == nil {
+        for transaction in transactions + other.transactions {
+            // The same entry made on both devices (e.g. each one's welcome bonus): keep the
+            // earliest, ties broken on content, so the order of merging doesn't matter.
+            if let existing = transactionsByID[transaction.id],
+                (existing.date, Self.key(existing)) <= (transaction.date, Self.key(transaction))
+            {
+                continue
+            }
             transactionsByID[transaction.id] = transaction
         }
         let inventories = [inventory, other.inventory].compactMap { $0 }
@@ -78,9 +90,7 @@ public struct GameSnapshot: Codable, Hashable, Sendable {
             pets: Array(byID.values),
             starterEgg: Self.preferredEgg(starterEgg, other.starterEgg),
             transactions: Array(transactionsByID.values),
-            inventory: inventories.max {
-                ($0.updatedAt, Self.key($0.inventory)) < ($1.updatedAt, Self.key($1.inventory))
-            },
+            inventory: newestInventory,
             installDate: [installDate, other.installDate].compactMap { $0 }.min()
         )
     }

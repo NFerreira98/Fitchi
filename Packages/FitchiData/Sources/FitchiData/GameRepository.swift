@@ -82,6 +82,21 @@ public struct GameRepository {
         try context.save()
     }
 
+    /// Like `append`, but also records an earlier copy of an entry made on both devices (each
+    /// one's welcome bonus): loading keeps the earliest, matching `GameSnapshot`'s merge.
+    func adopt(_ transactions: [PepTransaction]) throws {
+        var earliest: [String: Date] = [:]
+        for record in try context.fetch(FetchDescriptor<LedgerRecord>()) {
+            earliest[record.entryID] = min(earliest[record.entryID] ?? .distantFuture, record.date)
+        }
+        for transaction in transactions where transaction.date < earliest[transaction.id] ?? .distantFuture {
+            context.insert(
+                LedgerRecord(entryID: transaction.id, payload: try encoder.encode(transaction), date: transaction.date)
+            )
+        }
+        try context.save()
+    }
+
     // MARK: - Inventory
 
     public func loadInventory() throws -> Inventory? {
@@ -127,22 +142,29 @@ public struct GameRepository {
             .reduce(local) { $0.merged(with: $1) }
     }
 
-    /// Writes a (merged) snapshot. Pets and inventory only overwrite older saves; the ledger
-    /// only gains entries; the egg follows `GameSnapshot`'s egg rule.
+    /// Writes a (merged) snapshot. Pets and inventory only overwrite older saves (or a save as
+    /// new whose needs the merge topped up from the other device); the ledger only gains
+    /// entries; the egg follows `GameSnapshot`'s egg rule.
     public func apply(_ snapshot: GameSnapshot) throws {
+        let saved = try loadPets()
+        let current = Dictionary(saved.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let petRecords = try context.fetch(FetchDescriptor<PetRecord>())
         let newestSave = Dictionary(petRecords.map { ($0.petID, $0.updatedAt) }, uniquingKeysWith: max)
-        for saved in snapshot.pets where saved.updatedAt > newestSave[saved.pet.id.uuidString] ?? .distantPast {
-            try save(saved.pet, at: saved.updatedAt)
+        for incoming in snapshot.pets {
+            let newest = newestSave[incoming.pet.id.uuidString] ?? .distantPast
+            let isNewer = incoming.updatedAt > newest
+            let isMerged = incoming.updatedAt == newest && current[incoming.pet.id] != incoming.pet
+            if isNewer || isMerged { try save(incoming.pet, at: incoming.updatedAt) }
         }
         let currentEgg = try loadStarterEgg()
         if let egg = GameSnapshot.preferredEgg(currentEgg, snapshot.starterEgg), egg != currentEgg {
             try save(egg, at: Date())
         }
-        try append(snapshot.transactions)
+        try adopt(snapshot.transactions)
         if let saved = snapshot.inventory {
             let newest = try context.fetch(FetchDescriptor<InventoryRecord>()).map(\.updatedAt).max() ?? .distantPast
-            if saved.updatedAt > newest { try save(saved.inventory, at: saved.updatedAt) }
+            let isMerged = try saved.updatedAt == newest && loadInventory() != saved.inventory
+            if saved.updatedAt > newest || isMerged { try save(saved.inventory, at: saved.updatedAt) }
         }
     }
 }

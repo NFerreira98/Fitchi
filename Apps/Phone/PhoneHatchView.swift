@@ -8,6 +8,7 @@ import SwiftUI
 /// to your watch.
 struct PhoneHatchView: View {
     @Environment(PetStore.self) private var pets
+    @Environment(\.petHome) private var home
     @Environment(\.dismiss) private var dismiss
     let pet: Pet
     /// First time this species-and-colour has been found: it's new in the collection.
@@ -151,18 +152,28 @@ struct PhoneHatchView: View {
 
     private var actions: some View {
         VStack(spacing: FitchiTheme.Spacing.s) {
-            Button {
-                finish(sendToWatch: true)
-            } label: {
-                Text("Send to my watch").frame(maxWidth: .infinity)
+            if pet.isActive {
+                // The starter pet: it's already the one you look after.
+                Button {
+                    finish(sendToWatch: false)
+                } label: {
+                    Text("Say hello").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+            } else {
+                Button {
+                    finish(sendToWatch: true)
+                } label: {
+                    Text(home == .watch ? "Send to my watch" : "Make it my active pet").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                Button {
+                    finish(sendToWatch: false)
+                } label: {
+                    Text("Keep it resting for now").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
             }
-            .buttonStyle(.borderedProminent)
-            Button {
-                finish(sendToWatch: false)
-            } label: {
-                Text("Keep it resting for now").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
         }
         .font(FitchiTheme.Fonts.display(.headline))
         .tint(FitchiTheme.Colors.accent)

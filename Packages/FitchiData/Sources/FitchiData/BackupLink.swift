@@ -1,3 +1,15 @@
+/// Whether this iPhone's player has an Apple Watch (paired) with Fitchi on it. Without one, the
+/// iPhone is the pet's home: it grants the starter egg and sends the care reminders.
+public struct WatchPresence: Equatable, Sendable {
+    public var isPaired: Bool
+    public var hasApp: Bool
+
+    public init(isPaired: Bool, hasApp: Bool) {
+        self.isPaired = isPaired
+        self.hasApp = hasApp
+    }
+}
+
 #if canImport(WatchConnectivity)
     import FitchiCore
     import Foundation
@@ -19,6 +31,10 @@
 
         /// When a backup last arrived from the other device.
         public private(set) var lastExchange: Date?
+
+        /// On the iPhone: whether an Apple Watch is paired and has the app, once
+        /// WatchConnectivity has said (nil until then, and always nil on the watch).
+        public private(set) var watch: WatchPresence?
 
         private let pets: PetStore
         private let installDate: @MainActor () -> Date?
@@ -43,7 +59,12 @@
         }
 
         public func start() {
-            guard WCSession.isSupported() else { return }
+            guard WCSession.isSupported() else {
+                #if os(iOS)
+                    watch = WatchPresence(isPaired: false, hasApp: false)
+                #endif
+                return
+            }
             pets.onChange { [weak self] in self?.publish() }
             let session = WCSession.default
             session.delegate = self
@@ -88,8 +109,14 @@
             defaults.set(lastExchange, forKey: Self.lastBackupKey)
         }
 
-        private func activated(withContext data: Data?) {
+        private func updateWatchPresence(_ presence: WatchPresence?) {
+            guard let presence, presence != watch else { return }
+            watch = presence
+        }
+
+        private func activated(withContext data: Data?, watch presence: WatchPresence?) {
             isActivated = true
+            updateWatchPresence(presence)
             if let data { receive(data) }
             publish()
         }
@@ -101,7 +128,8 @@
         ) {
             guard state == .activated else { return }
             let context = session.receivedApplicationContext[Self.snapshotKey] as? Data
-            Task { @MainActor in self.activated(withContext: context) }
+            let presence = Self.presence(of: session)
+            Task { @MainActor in self.activated(withContext: context, watch: presence) }
         }
 
         public nonisolated func session(_ session: WCSession, didReceiveApplicationContext context: [String: Any]) {
@@ -129,7 +157,11 @@
 
         #if os(iOS)
             public nonisolated func sessionWatchStateDidChange(_ session: WCSession) {
-                Task { @MainActor in self.publish() }
+                let presence = Self.presence(of: session)
+                Task { @MainActor in
+                    self.updateWatchPresence(presence)
+                    self.publish()
+                }
             }
 
             public nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}
@@ -139,6 +171,16 @@
                 session.activate()
             }
         #endif
+    }
+
+    extension BackupLink {
+        nonisolated static func presence(of session: WCSession) -> WatchPresence? {
+            #if os(iOS)
+                WatchPresence(isPaired: session.isPaired, hasApp: session.isPaired && session.isWatchAppInstalled)
+            #else
+                nil
+            #endif
+        }
     }
 
     /// WatchConnectivity's reply handler isn't annotated `Sendable`, but it may be called from any

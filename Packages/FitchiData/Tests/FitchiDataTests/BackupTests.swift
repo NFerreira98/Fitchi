@@ -97,6 +97,40 @@ struct BackupTests {
         #expect(reinstalled.roster[newcomer.id]?.isActive == false)
     }
 
+    @Test func careOnBothDevicesBeforeTheySyncIsAllKept() throws {
+        let watchContainer = try FitchiStore.makeContainer(inMemory: true)
+        let watch = suite.makeStore(watchContainer, at: start)
+        let maple = try watch.hatchStarter(samples: [], force: true)
+
+        // The phone gets the backup and feeds Maple ten hours later...
+        let phone = PetStore(
+            repository: GameRepository(container: try FitchiStore.makeContainer(inMemory: true)),
+            catalog: suite.catalog, clock: FixedClock(start + 36_000))
+        phone.load(grantsStarterEgg: false)
+        phone.restore(from: try #require(watch.snapshot(installDate: start)))
+        try phone.care(.feed, for: maple.id, earnings: [])
+
+        // ...and before that syncs, the watch plays with Maple (a newer save of the whole pet).
+        let watchLater = PetStore(
+            repository: GameRepository(container: watchContainer), catalog: suite.catalog,
+            clock: FixedClock(start + 39_600))
+        watchLater.load()
+        try watchLater.care(.play, for: maple.id, earnings: [])
+
+        let fromPhone = try #require(phone.snapshot(installDate: start))
+        let fromWatch = try #require(watchLater.snapshot(installDate: start))
+        #expect(watchLater.restore(from: fromPhone))
+        #expect(phone.restore(from: fromWatch))
+        for store in [watchLater, phone] {
+            let pet = try #require(store.roster[maple.id])
+            #expect(pet.anchor(for: .hunger).date == start + 36_000, "the phone's feed survives")
+            #expect(pet.anchor(for: .happiness).date == start + 39_600, "the watch's play survives")
+            #expect(store.transactions.count { if case .purchase = $0.kind { true } else { false } } == 2)
+        }
+        #expect(watchLater.roster[maple.id] == phone.roster[maple.id])
+        #expect(fromPhone.merged(with: fromWatch) == fromWatch.merged(with: fromPhone))
+    }
+
     @Test func earlierInstallDateIsAdopted() throws {
         let defaults = try #require(UserDefaults(suiteName: "backup-tests-\(UUID().uuidString)"))
         #expect(AppInstall.date(in: defaults, now: start) == start)

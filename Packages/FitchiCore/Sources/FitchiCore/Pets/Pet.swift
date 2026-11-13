@@ -147,6 +147,21 @@ public struct Pet: Identifiable, Codable, Hashable, Sendable {
         }
     }
 
+    /// This pet with each need taken from whichever copy changed it last, so care given on two
+    /// devices before they sync is all kept (feeding on the phone, then playing on the watch).
+    /// Everything else stays as in `self`. Ties keep the higher value, so merging is
+    /// commutative, associative and idempotent.
+    public func mergingNeeds(from other: Pet) -> Pet {
+        guard other.id == id else { return self }
+        var merged = self
+        for stat in Stat.allCases {
+            let mine = anchor(for: stat)
+            let theirs = other.anchor(for: stat)
+            if (theirs.date, theirs.value) > (mine.date, mine.value) { merged.stats[stat] = theirs }
+        }
+        return merged
+    }
+
     mutating func setActive(_ active: Bool, at date: Date, in context: DecayContext) {
         guard active != isActive else { return }
         reanchor(at: date, in: context)

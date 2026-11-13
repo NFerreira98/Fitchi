@@ -7,6 +7,7 @@ import SwiftUI
 /// side (yours, how many of each, and what's still to find).
 struct PetPage: View {
     @Environment(PetStore.self) private var pets
+    @Environment(\.petHome) private var home
     let petID: UUID
     @State private var name = ""
     @State private var comparing: PetsView.CompareRequest?
@@ -87,10 +88,10 @@ struct PetPage: View {
                     .foregroundStyle(.indigo)
             }
             if pet.isActive {
-                Label("Living on your watch", systemImage: "applewatch").foregroundStyle(.green)
+                Label(home.activeLong, systemImage: home.symbol).foregroundStyle(.green)
                     .font(FitchiTheme.Fonts.text(.footnote, weight: .semibold))
             } else {
-                Button("Send to watch", systemImage: "applewatch") { pets.setActive(pet.id) }
+                Button(home.makeActive, systemImage: home.symbol) { pets.setActive(pet.id) }
                     .buttonStyle(.borderedProminent)
                     .tint(FitchiTheme.Colors.accent)
             }

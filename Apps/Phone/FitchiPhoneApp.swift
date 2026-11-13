@@ -13,7 +13,7 @@ struct FitchiPhoneApp: App {
     init() {
         FitchiTheme.Fonts.register()
         let store = ActivityStore.makeDefault(installDate: AppInstall.date())
-        // The phone doesn't hatch its own egg: it keeps a backup of the watch's game.
+        // The phone only grants the starter egg once it knows there's no watch (see `phoneHome`).
         let pets = PetStore.makeDefault(grantsStarterEgg: false)
         let backup = BackupLink(
             pets: pets, installDate: { AppInstall.date() },
@@ -26,6 +26,20 @@ struct FitchiPhoneApp: App {
         backup.start()
         // Achievements pay out whenever the game changes (and after activity refreshes, below).
         pets.onChange { Self.claimAchievements(pets, activity: store) }
+        // The Home Screen widget, and (without a watch) care reminders, follow every change.
+        pets.onChange { PetCompanions.refresh(pets, sendsReminders: Self.sendsReminders(backup)) }
+    }
+
+    /// Without a watch that has the app, the iPhone is the pet's home and sends reminders.
+    static func sendsReminders(_ backup: BackupLink) -> Bool {
+        backup.watch.map { !$0.hasApp } ?? false
+    }
+
+    /// Once WatchConnectivity says whether there's a watch: with none, a brand-new player gets
+    /// their starter egg here. Either way the widget and reminders are brought up to date.
+    private func watchPresenceChanged() {
+        if backup.watch?.isPaired == false { pets.grantStarterEggIfNew() }
+        PetCompanions.refresh(pets, sendsReminders: Self.sendsReminders(backup))
     }
 
     static func claimAchievements(_ pets: PetStore, activity: ActivityStore) {
@@ -42,11 +56,16 @@ struct FitchiPhoneApp: App {
                 .environment(activity)
                 .environment(pets)
                 .environment(backup)
+                .environment(\.petHome, PetHome(backup.watch))
                 .task { await activity.start() }
+                .onChange(of: backup.watch, initial: true) { watchPresenceChanged() }
         }
         .onChange(of: activity.lastRefreshed) { Self.claimAchievements(pets, activity: activity) }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await activity.refresh() } }
+            if phase == .active {
+                Task { await activity.refresh() }
+                PetCompanions.refresh(pets, sendsReminders: Self.sendsReminders(backup))
+            }
         }
     }
 }

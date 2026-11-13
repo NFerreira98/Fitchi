@@ -12,12 +12,17 @@ public struct PetGlance: Codable, Hashable, Sendable {
     /// Ledger ids of gifts already collected, so the complication only hints at waiting ones.
     /// Optional so glances saved by older versions still decode.
     public var collectedGifts: Set<String>?
+    /// The scene behind the pet, for the iPhone Home Screen widget. Optional for old glances.
+    public var backdropID: String?
 
-    public init(pet: Pet?, species: Species?, hasEgg: Bool, collectedGifts: Set<String> = []) {
+    public init(
+        pet: Pet?, species: Species?, hasEgg: Bool, collectedGifts: Set<String> = [], backdropID: String? = nil
+    ) {
         self.pet = pet
         self.species = species
         self.hasEgg = hasEgg
         self.collectedGifts = collectedGifts
+        self.backdropID = backdropID
     }
 
     /// Whether a gift is waiting at `date` (the pet must be around to have found it).
@@ -49,6 +54,6 @@ public extension PetStore {
     var glance: PetGlance {
         PetGlance(
             pet: activePet, species: activePet.flatMap(species(of:)), hasEgg: pendingEgg != nil,
-            collectedGifts: Set(collectedGiftIDs))
+            collectedGifts: Set(collectedGiftIDs), backdropID: inventory.activeBackdropID)
     }
 }

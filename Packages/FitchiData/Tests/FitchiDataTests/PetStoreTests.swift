@@ -108,3 +108,27 @@ struct CareLedgerTests {
         #expect(store.wallet(earnings: [earning]).balance == 140)
     }
 }
+
+@Suite("iPhone without a watch")
+@MainActor
+struct PhoneHomeTests {
+    let suite = PetStoreTests()
+
+    @Test func phoneGrantsTheEggOnlyToABrandNewPlayer() throws {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let phone = PetStore(
+            repository: GameRepository(container: try FitchiStore.makeContainer(inMemory: true)),
+            catalog: suite.catalog, clock: FixedClock(start))
+        phone.load(grantsStarterEgg: false)
+        #expect(phone.pendingEgg == nil)
+        var changes = 0
+        phone.onChange { changes += 1 }
+        phone.grantStarterEggIfNew()
+        #expect(phone.pendingEgg != nil)
+        #expect(changes == 1)
+        let pet = try phone.hatchStarter(samples: [], force: true)
+        phone.grantStarterEggIfNew()
+        #expect(phone.pendingEgg == nil, "no second egg once hatched")
+        #expect(phone.activePet?.id == pet.id)
+    }
+}

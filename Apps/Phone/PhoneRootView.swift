@@ -66,8 +66,11 @@ struct PhoneRootView: View {
 struct PhoneHomeView: View {
     @Environment(ActivityStore.self) private var activity
     @Environment(PetStore.self) private var pets
-    @Environment(BackupLink.self) private var backup
+    @Environment(\.petHome) private var home
+    @AppStorage(CareReminders.enabledKey) private var remindersOn = true
     @State private var showsDeveloper = false
+    /// The starter pet that just hatched on this iPhone, for the reveal.
+    @State private var newborn: Pet?
     /// Opens the Pets tab.
     var showAllPets: () -> Void = {}
 
@@ -75,9 +78,13 @@ struct PhoneHomeView: View {
         ScrollView {
             VStack(spacing: FitchiTheme.Spacing.l * 2) {
                 if let pet = pets.activePet {
-                    BackedUpPetView(pet: pet, lastBackup: backup.lastExchange)
+                    PhonePetView(pet: pet)
                     PhoneQuestsCard(petName: pet.name)
                     if pets.roster.pets.count > 1 { PetRosterView(showAll: showAllPets) }
+                } else if pets.pendingEgg != nil {
+                    PhoneEggView { newborn = $0 }
+                } else if home == .phone {
+                    ProgressView()
                 } else {
                     VStack(spacing: FitchiTheme.Spacing.s) {
                         Text("⌚️").font(.system(size: 56))
@@ -94,6 +101,14 @@ struct PhoneHomeView: View {
                     .frame(maxWidth: .infinity)
                     .padding(FitchiTheme.Spacing.l)
                     .background(.fill.tertiary, in: .rect(cornerRadius: 20))
+                if home == .phone {
+                    // Without a watch, the iPhone sends the "hungry" and gift notifications.
+                    Toggle("Care reminders", systemImage: "bell.fill", isOn: $remindersOn)
+                        .font(FitchiTheme.Fonts.text(.subheadline, weight: .semibold))
+                        .padding(FitchiTheme.Spacing.m)
+                        .background(.fill.tertiary, in: .rect(cornerRadius: 16))
+                        .onChange(of: remindersOn) { PetCompanions.refresh(pets, sendsReminders: true) }
+                }
                 #if DEBUG
                     Button("Developer tools", systemImage: "hammer.fill") { showsDeveloper = true }
                         .font(FitchiTheme.Fonts.text(.footnote, weight: .semibold))
@@ -103,6 +118,12 @@ struct PhoneHomeView: View {
             .padding(FitchiTheme.Spacing.l)
         }
         .refreshable { await activity.refresh() }
+        .fullScreenCover(item: $newborn) {
+            CareReminders.holdsPermissionPrompt = false
+            PetCompanions.refresh(pets, sendsReminders: home == .phone)
+        } content: { pet in
+            PhoneHatchView(pet: pet, isNewFind: true)
+        }
         #if DEBUG
             .sheet(isPresented: $showsDeveloper) { DeveloperView() }
         #endif
@@ -133,66 +154,10 @@ struct PhoneHomeView: View {
     }
 }
 
-/// The pet as last backed up from the watch. The watch is where you care for it; this copy is
-/// what restores it if the watch app is ever reinstalled.
-struct BackedUpPetView: View {
-    @Environment(PetStore.self) private var pets
-    @Environment(ActivityStore.self) private var activity
-    let pet: Pet
-    let lastBackup: Date?
-    @State private var cheers = CheerBoard()
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { timeline in
-            let mood = pet.mood(at: timeline.date, in: pets.decay)
-            let afterglow = Afterglow.level(at: timeline.date, samples: activity.samples)
-            VStack(spacing: FitchiTheme.Spacing.s) {
-                PetStage(
-                    pet: pet, species: pets.species(of: pet), mood: mood,
-                    backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene,
-                    petScale: 0.36,
-                    controlsBelow: false, afterglow: afterglow, cheeredAt: cheers.current?.startedAt
-                )
-                .aspectRatio(1.1, contentMode: .fit)
-                .clipShape(.rect(cornerRadius: 28))
-                Text(pet.name)
-                    .font(FitchiTheme.Fonts.display(.title))
-                Text(cheers.current?.milestone.message(petName: pet.name) ?? mood.headline(afterglow: afterglow))
-                    .font(FitchiTheme.Fonts.text(.subheadline))
-                    .foregroundStyle(.secondary)
-                Label(backupLine(at: timeline.date), systemImage: "checkmark.shield")
-                    .font(FitchiTheme.Fonts.text(.footnote))
-                    .foregroundStyle(.secondary)
-                PetVoiceRow(voice: PetVoice(petID: pet.id, speciesID: pet.speciesID), petName: pet.name)
-                    .padding(.horizontal, FitchiTheme.Spacing.m)
-                    .padding(.vertical, FitchiTheme.Spacing.s)
-                    .background(.fill.tertiary, in: .rect(cornerRadius: 14))
-            }
-        }
-        .sensoryFeedback(.success, trigger: cheers.current) { _, new in new != nil }
-        .onChange(of: activity.lastRefreshed, initial: true) {
-            cheers.check(
-                at: .now, samples: activity.samples, steps: activity.steps, today: activity.today,
-                pepGoal: Int(activity.rules.dailySoftCap))
-        }
-        .task(id: cheers.current) {
-            guard cheers.current != nil else { return }
-            try? await Task.sleep(for: CheerBoard.showsFor)
-            cheers.finish()
-        }
-    }
-
-    private func backupLine(at now: Date) -> String {
-        guard let lastBackup else { return "Backed up from your watch" }
-        let ago = lastBackup.formatted(.relative(presentation: .named, unitsStyle: .wide))
-        return now.timeIntervalSince(lastBackup) < 60
-            ? "Backed up from your watch just now" : "Backed up from your watch \(ago)"
-    }
-}
-
-/// Every pet you own. One lives on your watch; the rest rest (and get hungry more slowly).
+/// Every pet you own. One is active; the rest rest (and get hungry more slowly).
 struct PetRosterView: View {
     @Environment(PetStore.self) private var pets
+    @Environment(\.petHome) private var home
     var showAll: () -> Void = {}
 
     var body: some View {
@@ -223,11 +188,11 @@ struct PetRosterView: View {
             .frame(width: 72, height: 72)
             Text(pet.name).font(FitchiTheme.Fonts.display(.subheadline)).lineLimit(1)
             if pet.isActive {
-                Label("On watch", systemImage: "applewatch")
+                Label(home.activeShort, systemImage: home.symbol)
                     .font(FitchiTheme.Fonts.text(.caption2, weight: .semibold))
                     .foregroundStyle(.green)
             } else {
-                Button("Send to watch") { pets.setActive(pet.id) }
+                Button(home.makeActive) { pets.setActive(pet.id) }
                     .font(FitchiTheme.Fonts.text(.caption2, weight: .semibold))
                     .buttonStyle(.bordered)
                     .controlSize(.mini)

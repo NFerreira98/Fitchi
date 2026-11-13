@@ -30,6 +30,7 @@ struct PetPortrait: View {
 /// Badges that make a pet stand out: favourite, shiny or special, and whether it's on the watch.
 struct PetBadges: View {
     @Environment(PetStore.self) private var pets
+    @Environment(\.petHome) private var home
     let pet: Pet
 
     var body: some View {
@@ -37,7 +38,7 @@ struct PetBadges: View {
             if pet.isFavorite { Image(systemName: "star.fill").foregroundStyle(.yellow) }
             if pet.isShiny { Text("✨") }
             if let condition = pets.catalog.colouring(of: pet)?.when, !pet.isShiny { Text(condition.emoji) }
-            if pet.isActive { Image(systemName: "applewatch").foregroundStyle(.green) }
+            if pet.isActive { Image(systemName: home.symbol).foregroundStyle(.green) }
         }
         .font(.system(size: 13, weight: .semibold))
     }
@@ -46,6 +47,7 @@ struct PetBadges: View {
 /// A grid card: portrait, badges, name and colouring.
 struct PetTile: View {
     @Environment(PetStore.self) private var pets
+    @Environment(\.petHome) private var home
     let pet: Pet
 
     var body: some View {
@@ -74,15 +76,15 @@ struct PetTile: View {
                 .lineLimit(1)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(PetTile.description(of: pet, pets: pets))
+        .accessibilityLabel(PetTile.description(of: pet, pets: pets, home: home))
     }
 
-    static func description(of pet: Pet, pets: PetStore) -> String {
+    static func description(of pet: Pet, pets: PetStore, home: PetHome) -> String {
         let species = pets.species(of: pet)?.name ?? pet.speciesID
         let colouring = pets.catalog.colouring(of: pet)?.name ?? ""
         let extras = [
             pet.isFavorite ? "favourite" : nil, pet.isShiny ? "shiny" : nil,
-            pets.catalog.colouringKind(of: pet) == .special ? "special" : nil, pet.isActive ? "on your watch" : nil,
+            pets.catalog.colouringKind(of: pet) == .special ? "special" : nil, pet.isActive ? home.activeLabel : nil,
         ].compactMap { $0 }
         return ([pet.name, "\(colouring) \(species)"] + extras).joined(separator: ", ")
     }
@@ -91,6 +93,7 @@ struct PetTile: View {
 /// A list row: more detail per pet, for scanning.
 struct PetRow: View {
     @Environment(PetStore.self) private var pets
+    @Environment(\.petHome) private var home
     let pet: Pet
 
     var body: some View {
@@ -120,7 +123,7 @@ struct PetRow: View {
         .padding(10)
         .background(.fill.quaternary, in: .rect(cornerRadius: 16))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(PetTile.description(of: pet, pets: pets))
+        .accessibilityLabel(PetTile.description(of: pet, pets: pets, home: home))
     }
 }
 

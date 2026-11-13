@@ -42,6 +42,7 @@ targets:
     platform: iOS
     sources:
       - Apps/Phone
+      - Apps/Shared # code both apps compile (widget data, care reminders)
       - path: Content # bundled catalog JSON: the phone shows the backed-up pet
         type: folder
         buildPhase: resources
@@ -50,6 +51,7 @@ targets:
       properties:
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.access: []
+        com.apple.security.application-groups: [group.com.nicholasferreira.fitchi]
     settings:
       base:
         PRODUCT_NAME: Fitchi
@@ -66,6 +68,7 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     dependencies:
       - target: FitchiWatch # embedded under Fitchi.app/Watch
+      - target: FitchiPhoneWidgets # Home and Lock Screen widgets
       - package: FitchiCore
       - package: FitchiData
       - package: FitchiHealth
@@ -77,6 +80,7 @@ targets:
     platform: watchOS
     sources:
       - Apps/Watch
+      - Apps/Shared
       - path: Content # bundled catalog JSON, loaded by PetStore
         type: folder
         buildPhase: resources
@@ -112,7 +116,7 @@ targets:
     platform: watchOS
     sources:
       - path: Apps/Widgets
-        excludes: [Info.plist]
+        excludes: [Info.plist, PhoneInfo.plist, "*.entitlements"]
     entitlements:
       path: Apps/Widgets/FitchiWatchWidgets.entitlements
       properties:
@@ -129,6 +133,37 @@ targets:
       base:
         PRODUCT_NAME: FitchiWatchWidgets
         PRODUCT_BUNDLE_IDENTIFIER: com.nicholasferreira.fitchi.watchkitapp.widgets
+        SKIP_INSTALL: YES
+    dependencies:
+      - package: FitchiCore
+      - package: FitchiData
+      - package: FitchiUI
+
+  # ---------------------------------------------------------------- iPhone widgets
+  # Same code as the complications (Apps/Widgets), plus Home Screen sizes.
+  FitchiPhoneWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Apps/Widgets
+        excludes: [Info.plist, PhoneInfo.plist, "*.entitlements"]
+    entitlements:
+      path: Apps/Widgets/FitchiPhoneWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.nicholasferreira.fitchi]
+    info:
+      path: Apps/Widgets/PhoneInfo.plist
+      properties:
+        CFBundleDisplayName: Fitchi
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_NAME: FitchiPhoneWidgets
+        PRODUCT_BUNDLE_IDENTIFIER: com.nicholasferreira.fitchi.widgets
+        TARGETED_DEVICE_FAMILY: "1"
         SKIP_INSTALL: YES
     dependencies:
       - package: FitchiCore

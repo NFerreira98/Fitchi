@@ -10,7 +10,8 @@ struct GlanceTests {
     @Test func glanceFollowsTheActivePetThroughSharedDefaults() throws {
         let suite = PetStoreTests()
         let store = suite.makeStore(try FitchiStore.makeContainer(inMemory: true), at: suite.start)
-        #expect(store.glance == PetGlance(pet: nil, species: nil, hasEgg: true))
+        #expect(
+            store.glance == PetGlance(pet: nil, species: nil, hasEgg: true, backdropID: Catalog.defaultBackdropID))
 
         let pet = try store.hatchStarter(samples: [], force: true)
         let glance = store.glance

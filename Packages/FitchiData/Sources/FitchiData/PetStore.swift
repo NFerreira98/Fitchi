@@ -21,7 +21,7 @@ public final class PetStore {
 
     public private(set) var status: Status = .loading
     public internal(set) var roster = PetRoster()
-    public private(set) var starterEgg: StarterEgg?
+    public internal(set) var starterEgg: StarterEgg?
     /// Pep spent and granted outside of activity (welcome bonus, purchases). Append-only.
     public internal(set) var transactions: [PepTransaction] = []
     public private(set) var inventory = Inventory()
@@ -75,7 +75,7 @@ public final class PetStore {
     public func species(of pet: Pet) -> Species? { catalog.species(id: pet.speciesID) }
 
     /// Loads saved state. A brand-new player gets their starter egg here, unless
-    /// `grantsStarterEgg` is false (the iPhone, which only keeps a backup of the watch's game).
+    /// `grantsStarterEgg` is false (the iPhone, until it knows there's no watch to grant it).
     public func load(grantsStarterEgg: Bool = true) {
         guard !catalog.species.isEmpty else {
             status = .failed("Couldn't load the pet catalog.")
@@ -87,11 +87,7 @@ public final class PetStore {
         }
         do {
             try reloadSavedState(from: repository)
-            if grantsStarterEgg, starterEgg == nil, roster.pets.isEmpty {
-                let egg = StarterEgg(grantedAt: clock.now)
-                try repository.save(egg, at: clock.now)
-                starterEgg = egg
-            }
+            if grantsStarterEgg { try grantStarterEgg(in: repository) }
             if !transactions.contains(where: { $0.kind == .welcomeBonus }) {
                 let bonus = PepTransaction.welcomeBonus(pointsRules.welcomeBonus, at: clock.now)
                 try repository.append([bonus])

@@ -37,7 +37,7 @@ struct ShopView: View {
             ) { egg in
                 Button("Buy and hatch") { buy(egg) }
             } message: { _ in
-                Text("It hatches right away. New pets rest until you choose them for your watch.")
+                Text("It hatches right away. New pets rest until you make them your active pet.")
             }
             .alert("Can't buy that", isPresented: Binding(get: { problem != nil }, set: { if !$0 { problem = nil } })) {
                 Button("OK", role: .cancel) {}
@@ -109,7 +109,7 @@ struct ShopView: View {
         } header: {
             Text("Backdrops")
         } footer: {
-            Text("Backdrops work with every pet, on your watch and here.")
+            Text("Backdrops work with every pet, everywhere you play.")
         }
     }
 
@@ -154,7 +154,7 @@ struct ShopView: View {
             Text("Accessories")
         } footer: {
             if let pet = pets.activePet {
-                Text("Shown on \(pet.name). Buy once, wear on any pet; change outfits on your watch too.")
+                Text("Shown on \(pet.name). Buy once, wear on any pet; change outfits here or on your watch.")
             }
         }
     }

@@ -25,6 +25,7 @@ public struct Earning: Codable, Hashable, Sendable, Identifiable {
 ///
 /// From v2, everyday steps (outside workouts and exercise minutes) also earn a little:
 /// one Pep per `stepsPerPep`, up to `stepPepDailyCap` a day, separate from the soft cap.
+/// From v3, workouts are never capped and steps-only days (no watch) earn generously.
 public struct PointsRules: Hashable, Sendable {
     public var version: Int
     public var basePerMinute: Double
@@ -39,9 +40,17 @@ public struct PointsRules: Hashable, Sendable {
     /// Everyday steps per Pep; nil means steps earn nothing.
     public var stepsPerPep: Double?
     public var stepPepDailyCap: Double
+    /// Whether real workouts count towards the soft cap. From v3 only passive exercise minutes
+    /// do: a long run or ride always pays in full.
+    public var softCapsWorkouts: Bool
+    /// Steps per Pep on days without exercise minutes (no watch worn, e.g. an iPhone-only
+    /// player): steps are then the main way to earn. Nil means the everyday rate applies.
+    public var stepsOnlyDayStepsPerPep: Double?
+    /// The cap on those days; nil means no cap.
+    public var stepsOnlyDayCap: Double?
 
     /// The rules the apps use now.
-    public static let current = v2
+    public static let current = v3
 
     public static let v1 = PointsRules(
         version: 1,
@@ -56,7 +65,10 @@ public struct PointsRules: Hashable, Sendable {
         maxMinutesPerSample: 240,
         welcomeBonus: 100,
         stepsPerPep: nil,
-        stepPepDailyCap: 0
+        stepPepDailyCap: 0,
+        softCapsWorkouts: true,
+        stepsOnlyDayStepsPerPep: nil,
+        stepsOnlyDayCap: nil
     )
 
     /// v1 plus a trickle of Pep for everyday walking: about 0.5 Pep per minute of walking,
@@ -66,6 +78,21 @@ public struct PointsRules: Hashable, Sendable {
         rules.version = 2
         rules.stepsPerPep = 200
         rules.stepPepDailyCap = 25
+        return rules
+    }()
+
+    /// v2, generous for big efforts and for players without a watch:
+    /// - real workouts always earn in full (the soft cap only slows passive exercise minutes),
+    ///   and one can run up to 6 hours, so a marathon or a long ride pays what it's worth;
+    /// - on days without exercise minutes (only a watch records them), steps earn 1 Pep per
+    ///   100 with no cap: about what a watch earns for the same walking.
+    public static let v3: PointsRules = {
+        var rules = v2
+        rules.version = 3
+        rules.maxMinutesPerSample = 360
+        rules.softCapsWorkouts = false
+        rules.stepsOnlyDayStepsPerPep = 100
+        rules.stepsOnlyDayCap = nil
         return rules
     }()
 
@@ -103,8 +130,18 @@ public struct PointsRules: Hashable, Sendable {
             let day = calendar.startOfDay(for: bucket.start)
             totals[day, default: 0] += bucket.everydaySteps(after: installDate, excluding: samples)
         }
+        // Days a watch logged exercise minutes; the rest are steps-only days.
+        let watchDays = Set(
+            samples.filter { $0.kind == .passive && !$0.isUserEntered }.map { calendar.startOfDay(for: $0.start) })
         return totals.keys.sorted().compactMap { day in
-            let amount = Int(min(totals[day, default: 0] / stepsPerPep, stepPepDailyCap).rounded(.down))
+            var perPep = stepsPerPep
+            var cap: Double? = stepPepDailyCap
+            if let generous = stepsOnlyDayStepsPerPep, !watchDays.contains(day) {
+                perPep = generous
+                cap = stepsOnlyDayCap
+            }
+            let pep = totals[day, default: 0] / perPep
+            let amount = Int(min(pep, cap ?? pep).rounded(.down))
             guard amount > 0 else { return nil }
             return Earning(
                 sourceID: Self.stepsSourceID(for: day, calendar: calendar), day: day, amount: amount,
@@ -139,9 +176,11 @@ public struct PointsRules: Hashable, Sendable {
             let day = calendar.startOfDay(for: sample.start)
             let rawBefore = rawTotals[day, default: 0]
             let raw = rawPep(for: sample)
-            let underCap = max(0, min(raw, dailySoftCap - rawBefore))
+            // From v3 workouts skip the cap (and don't use it up); passive minutes still count.
+            let capped = softCapsWorkouts || sample.kind == .passive
+            let underCap = capped ? max(0, min(raw, dailySoftCap - rawBefore)) : raw
             let overCap = raw - underCap
-            rawTotals[day] = rawBefore + raw
+            if capped { rawTotals[day] = rawBefore + raw }
 
             let paidBefore = paidTotals[day, default: 0]
             let paidAfter = paidBefore + underCap + overCap * overCapRate
