@@ -315,25 +315,29 @@ extension PetStore {
         didChange()
     }
 
-    /// Buys and hatches an egg. The pet joins the roster (resting, unless it's the first).
-    public func buyEgg(_ egg: EggType, earnings: [Earning]) throws(PurchaseError) -> Pet {
+    /// Buys and hatches an egg. The pet joins the roster (resting, unless it's the first). Eggs
+    /// favour colourings the player hasn't found, and refund part of the price for a repeat.
+    public func buyEgg(_ egg: EggType, earnings: [Earning]) throws(PurchaseError) -> HatchResult {
         var wallet = wallet(earnings: earnings)
         var rng = SystemRandomNumberGenerator()
         let now = clock.now
-        let pet: Pet
+        var hatch: HatchResult
         do {
-            pet = try Shop.buyEgg(egg, from: catalog, wallet: &wallet, at: now, using: &rng)
+            hatch = try Shop.buyEgg(
+                egg, from: catalog, wallet: &wallet, at: now,
+                history: HatchHistory(pets: roster.pets, catalog: catalog),
+                using: &rng)
         } catch let error as ShopError {
             throw .shop(error)
         } catch {
             throw .hatch
         }
-        roster.add(pet, at: now, in: decay)
-        let saved = roster[pet.id] ?? pet
-        try? repository?.save(saved, at: now)
+        roster.add(hatch.pet, at: now, in: decay)
+        hatch.pet = roster[hatch.pet.id] ?? hatch.pet
+        try? repository?.save(hatch.pet, at: now)
         try save(wallet: wallet, inventory: inventory)
         didChange()
-        return saved
+        return hatch
     }
 
     /// Makes a pet the one shown on the watch; the others rest (and decay slower).

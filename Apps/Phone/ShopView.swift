@@ -45,7 +45,7 @@ struct ShopView: View {
                 Text(problem ?? "")
             }
             .fullScreenCover(item: $hatched) { hatched in
-                PhoneHatchView(pet: hatched.pet, isNewFind: hatched.isNewFind)
+                PhoneHatchView(pet: hatched.pet, isNewFind: hatched.isNewFind, refund: hatched.refund)
             }
         }
     }
@@ -68,7 +68,9 @@ struct ShopView: View {
         } header: {
             Text("Eggs")
         } footer: {
-            Text("Each egg hatches a surprise pet, with the odds shown. Any pet can be shiny (1 in 64).")
+            Text(
+                "Each egg hatches a surprise pet, with the odds shown. Any pet can be shiny (1 in 64). "
+                    + "Eggs favour colourings you haven't found, and a repeat gives 25% of its price back.")
         }
     }
 
@@ -81,13 +83,9 @@ struct ShopView: View {
     }
 
     private func buy(_ egg: EggType) {
-        let wasFound = Set(pets.collection.entries.filter(\.isFound).map(\.id))
         do {
-            let pet = try pets.buyEgg(egg, earnings: activity.earnings)
-            let entry = pets.collection.entries.first {
-                $0.speciesID == pet.speciesID && $0.isFound && !wasFound.contains($0.id)
-            }
-            hatched = HatchedPet(pet: pet, isNewFind: entry != nil)
+            let hatch = try pets.buyEgg(egg, earnings: activity.earnings)
+            hatched = HatchedPet(pet: hatch.pet, isNewFind: hatch.isNewFind, refund: hatch.refund)
         } catch {
             problem = message(for: error)
         }
@@ -221,6 +219,7 @@ struct ShopView: View {
 struct HatchedPet: Identifiable {
     let pet: Pet
     let isNewFind: Bool
+    let refund: Int
     var id: UUID { pet.id }
 }
 

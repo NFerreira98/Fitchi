@@ -31,6 +31,14 @@ public struct PepTransaction: Codable, Hashable, Sendable, Identifiable {
         PepTransaction(id: "welcome-bonus", kind: .welcomeBonus, amount: amount, date: date)
     }
 
+    /// Part of an egg's price back for hatching a repeat. Fixed id per pet, so it pays once.
+    /// Recorded as an adjustment so older app versions can still read the ledger.
+    public static func repeatRefund(petID: UUID, eggID: String, amount: Int, at date: Date) -> PepTransaction {
+        PepTransaction(
+            id: "repeat-refund:\(petID.uuidString)", kind: .adjustment(reason: "Repeat refund: \(eggID)"),
+            amount: amount, date: date)
+    }
+
     /// Fixed id per achievement, so each reward can only be granted once.
     public static func achievementReward(_ achievement: Achievement, at date: Date) -> PepTransaction {
         PepTransaction(

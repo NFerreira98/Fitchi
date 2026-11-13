@@ -71,7 +71,7 @@ struct ShopStoreTests {
         let starter = try #require(store.activePet)
         let egg = try #require(store.catalog.eggs.first)
         let before = store.collection.foundCount
-        let newcomer = try store.buyEgg(egg, earnings: rich)
+        let newcomer = try store.buyEgg(egg, earnings: rich).pet
         #expect(store.roster.pets.count == 2)
         #expect(store.activePet?.id == starter.id, "the starter stays on the watch")
         #expect(store.roster[newcomer.id]?.isActive == false)

@@ -12,6 +12,8 @@ struct PhoneHatchView: View {
     let pet: Pet
     /// First time this species-and-colour has been found: it's new in the collection.
     let isNewFind: Bool
+    /// Pep paid back because this colouring was already in the collection.
+    let refund: Int
     @State private var stage = Stage.rocking
     @State private var flash = false
     @State private var name: String
@@ -22,9 +24,10 @@ struct PhoneHatchView: View {
         case revealed
     }
 
-    init(pet: Pet, isNewFind: Bool) {
+    init(pet: Pet, isNewFind: Bool, refund: Int = 0) {
         self.pet = pet
         self.isNewFind = isNewFind
+        self.refund = refund
         _name = State(initialValue: pet.name)
     }
 
@@ -85,7 +88,7 @@ struct PhoneHatchView: View {
                     .font(FitchiTheme.Fonts.display(size: 30))
                     .foregroundStyle(CollectionCard.gold)
             }
-            Text("It's a \(species?.name ?? "pet")!")
+            Text(isNewFind || pet.isShiny ? "It's a \(species?.name ?? "pet")!" : "Another \(species?.name ?? "pet")!")
                 .font(FitchiTheme.Fonts.display(size: 34))
             HStack(spacing: FitchiTheme.Spacing.s) {
                 if let colouring { Text(colouring.name) }
@@ -102,6 +105,18 @@ struct PhoneHatchView: View {
             }
             .font(FitchiTheme.Fonts.text(.subheadline, weight: .semibold))
             .foregroundStyle(.secondary)
+            if !isNewFind {
+                // A repeat is still its own pet: say what makes this one different.
+                Text("\(pet.personality.title) · \(pet.personality.blurb)")
+                    .font(FitchiTheme.Fonts.text(.footnote))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                if refund > 0 {
+                    Text("+\(refund) Pep back for a repeat")
+                        .font(FitchiTheme.Fonts.display(.headline).monospacedDigit())
+                        .foregroundStyle(FitchiTheme.Colors.points)
+                }
+            }
         }
         .multilineTextAlignment(.center)
 

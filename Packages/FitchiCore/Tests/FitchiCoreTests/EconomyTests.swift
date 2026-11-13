@@ -89,9 +89,10 @@ struct EconomyTests {
         let egg = try #require(catalog.egg(id: "meadow-egg"))
         var wallet = Wallet(transactions: [.welcomeBonus(700, at: now)])
         var rng = SeededRandom(seed: 3)
-        let pet = try Shop.buyEgg(egg, from: catalog, wallet: &wallet, at: now, using: &rng)
+        let hatch = try Shop.buyEgg(egg, from: catalog, wallet: &wallet, at: now, using: &rng)
+        #expect(hatch.isNewFind && hatch.refund == 0, "nothing found yet, so it can't be a repeat")
         #expect(wallet.balance == 100)
-        #expect(catalog.species(id: pet.speciesID) != nil)
+        #expect(catalog.species(id: hatch.pet.speciesID) != nil)
     }
 
     @Test func eggDisplayOddsArePercentages() throws {

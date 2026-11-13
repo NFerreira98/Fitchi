@@ -23,18 +23,29 @@ public enum Shop {
     }
 
     /// Buys and hatches an egg. The new pet is returned; add it to the roster.
+    /// Buys and hatches an egg. An exact repeat of something already in the collection pays back
+    /// part of the price (`DuplicateRules.refundShare`).
     public static func buyEgg(
         _ egg: EggType,
         from catalog: Catalog,
         wallet: inout Wallet,
         at date: Date,
+        history: HatchHistory = .empty,
+        duplicates: DuplicateRules = .v1,
         using rng: inout some RandomNumberGenerator
-    ) throws -> Pet {
+    ) throws -> HatchResult {
         guard wallet.canAfford(egg.price) else {
             throw ShopError.insufficientFunds(price: egg.price, balance: wallet.balance)
         }
-        let pet = try Hatchery.hatch(egg, from: catalog, at: date, using: &rng)
+        let pet = try Hatchery.hatch(
+            egg, from: catalog, at: date, history: history, duplicates: duplicates, using: &rng)
         wallet.record(.purchase(itemID: egg.id, price: egg.price, at: date))
-        return pet
+        let entryID = catalog.species(id: pet.speciesID)?.collectionID(for: pet.variant)
+        let isNewFind = entryID.map { !history.found.contains($0) } ?? true
+        let refund = isNewFind ? 0 : duplicates.refund(for: egg)
+        if refund > 0 {
+            wallet.record(.repeatRefund(petID: pet.id, eggID: egg.id, amount: refund, at: date))
+        }
+        return HatchResult(pet: pet, isNewFind: isNewFind, refund: refund)
     }
 }
