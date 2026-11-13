@@ -55,6 +55,10 @@ public struct StageReaction: Equatable, Sendable {
 public struct PetStage: View {
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+    /// When this device last showed the pet, to say hello after time away.
+    @AppStorage(PetStage.lastSeenKey) private var lastSeen: Double = 0
+    @State private var greeting: PetLife.Greeting?
     private let pet: Pet
     private let species: Species?
     private let mood: PetMood
@@ -66,12 +70,25 @@ public struct PetStage: View {
     /// The watch puts stats and buttons over the bottom of the stage; a stage on its own (the
     /// phone) lets the pet use all the ground down to the bottom edge.
     private let controlsBelow: Bool
+    /// A fixed time of day to light the scene for; nil follows the real clock.
+    private let fixedLight: SceneLight?
+    /// Each change plays the big hello (for trying it out).
+    private let bigHellos: Int
+
+    /// UserDefaults key for when the pet was last on screen (seconds since the reference date).
+    public static let lastSeenKey = "fitchi.petLastSeen"
+    /// Away this long and the pet says hello; this long again and it's a big hello.
+    static let greetAfter: TimeInterval = 120
+    static let bigGreetAfter: TimeInterval = 4 * 3600
 
     public init(
         pet: Pet, species: Species?, mood: PetMood = .content, backdrop: SceneBackdrop.Kind = .meadow,
-        style: PetLayoutStyle, reaction: StageReaction? = nil, petScale: CGFloat = 0.5, controlsBelow: Bool = true
+        style: PetLayoutStyle, reaction: StageReaction? = nil, petScale: CGFloat = 0.5, controlsBelow: Bool = true,
+        light: SceneLight? = nil, bigHellos: Int = 0
     ) {
+        self.bigHellos = bigHellos
         self.controlsBelow = controlsBelow
+        self.fixedLight = light
         self.pet = pet
         self.species = species
         self.mood = mood
@@ -94,6 +111,7 @@ public struct PetStage: View {
                 ) { timeline in
                     let frame = frame(at: timeline.date)
                     let ground = groundBand(in: size)
+                    let light = fixedLight ?? SceneLight(at: timeline.date)
                     // Farther back is higher up the ground and a little smaller.
                     let drawn = petSize * (1 - depthShrink * (1 - frame.depth))
                     let feet = ground.back + (ground.front - ground.back) * frame.depth
@@ -102,6 +120,13 @@ public struct PetStage: View {
                         y: feet - drawn / 2)
                     pet(frame, size: drawn)
                         .position(center)
+                    if let visitor = frame.visitor {
+                        let kind = backdrop.visitor(in: light)
+                        let visitorSize = drawn * (kind == .bird ? 0.26 : 0.22)
+                        VisitorView(kind: kind, visitor: visitor)
+                            .frame(width: visitorSize, height: visitorSize)
+                            .position(x: center.x + visitor.offsetX * drawn, y: feet - visitor.height * drawn)
+                    }
                     if let reaction {
                         FloatingReward(text: reaction.floater)
                             .id(reaction.id)
@@ -110,6 +135,26 @@ public struct PetStage: View {
                 }
             }
         }
+        .onAppear(perform: arrive)
+        .onDisappear(perform: leave)
+        .onChange(of: scenePhase) { _, phase in phase == .active ? arrive() : leave() }
+        .onChange(of: isLuminanceReduced) { _, dimmed in dimmed ? leave() : arrive() }
+        .onChange(of: bigHellos) {
+            greeting = PetLife.Greeting(startedAt: Date.now.timeIntervalSinceReferenceDate, isBig: true)
+        }
+    }
+
+    /// The pet is on screen again: say hello if it's been a while.
+    private func arrive() {
+        let now = Date.now.timeIntervalSinceReferenceDate
+        let away = now - lastSeen
+        lastSeen = now
+        guard away > Self.greetAfter, reaction == nil, !mood.isAsleep else { return }
+        greeting = PetLife.Greeting(startedAt: now + 0.6, isBig: away > Self.bigGreetAfter && !mood.isDown)
+    }
+
+    private func leave() {
+        lastSeen = Date.now.timeIntervalSinceReferenceDate
     }
 
     private func frame(at date: Date) -> PetFrame {
@@ -118,7 +163,17 @@ public struct PetStage: View {
             reaction: reaction.map {
                 PetLife.Reaction(action: $0.action, startedAt: $0.startedAt.timeIntervalSinceReferenceDate)
             },
-            still: reduceMotion)
+            still: reduceMotion, visitors: backdrop.hasVisitors, greeting: greeting)
+    }
+
+    /// The backdrop, alive: clouds drift, grass sways and the light follows the time of day.
+    /// 12 fps is plenty for things this slow; it stops when the wrist is down.
+    private var livingBackdrop: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 12, paused: isLuminanceReduced)) { timeline in
+            SceneBackdrop(
+                backdrop, time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate,
+                light: fixedLight ?? SceneLight(at: timeline.date))
+        }
     }
 
     @ViewBuilder
@@ -175,7 +230,7 @@ public struct PetStage: View {
         switch style {
         case .island:
             let diameter = min(size.width * 0.95, size.height * 0.8)
-            SceneBackdrop(backdrop)
+            livingBackdrop
                 .frame(width: diameter, height: diameter)
                 .mask(
                     RadialGradient(
@@ -184,9 +239,9 @@ public struct PetStage: View {
                 )
                 .position(x: size.width / 2, y: islandGround(in: size) - diameter * 0.32)
         case .fullScene where !controlsBelow:
-            SceneBackdrop(backdrop)
+            livingBackdrop
         case .fullScene:
-            SceneBackdrop(backdrop)
+            livingBackdrop
                 .mask(
                     LinearGradient(
                         stops: [.init(color: .black, location: 0.6), .init(color: .clear, location: 0.95)],
@@ -199,7 +254,7 @@ public struct PetStage: View {
                         .frame(height: size.height * 0.3)
                 }
         case .horizon:
-            SceneBackdrop(backdrop)
+            livingBackdrop
                 .frame(height: size.height * 0.64)
                 .mask(
                     LinearGradient(

@@ -18,6 +18,8 @@
         @State private var outfit: [AccessorySlot: String] = [:]
         @State private var backdrop = SceneBackdrop.Kind.meadow
         @State private var mood = SandboxMood.content
+        @State private var timeOfDay = SandboxTime.now
+        @State private var hellos = 0
         /// A fixed id so the sandbox pet keeps the same wandering pattern while you change it.
         @State private var sandboxID = UUID()
 
@@ -74,7 +76,8 @@
                 if let species {
                     PetStage(
                         pet: sandboxPet(species), species: species, mood: mood.mood, backdrop: backdrop,
-                        style: .fullScene, petScale: 0.36, controlsBelow: false
+                        style: .fullScene, petScale: 0.36, controlsBelow: false, light: timeOfDay.light,
+                        bigHellos: hellos
                     )
                     .frame(height: 260)
                     .clipShape(.rect(cornerRadius: 16))
@@ -114,10 +117,18 @@
                         Text(mood.rawValue.capitalized).tag(mood)
                     }
                 }
+                Picker("Time of day", selection: $timeOfDay) {
+                    ForEach(SandboxTime.allCases, id: \.self) { time in
+                        Text(time.rawValue.capitalized).tag(time)
+                    }
+                }
+                Button("Say a big hello") { hellos += 1 }
             } header: {
                 Text("Dress-up sandbox")
             } footer: {
-                Text("Just a preview: nothing here is bought, saved or sent to your watch.")
+                Text(
+                    "Just a preview: nothing here is bought, saved or sent to your watch. "
+                        + "Visitors drop by outdoors every minute or two while the pet stands about.")
             }
         }
 
@@ -138,6 +149,20 @@
     }
 
     /// Moods worth eyeballing accessories in: they change the face, posture and naps.
+    enum SandboxTime: String, CaseIterable {
+        case now, dawn, noon, dusk, night
+
+        var light: SceneLight? {
+            switch self {
+            case .now: nil
+            case .dawn: .dawn
+            case .noon: .day
+            case .dusk: .dusk
+            case .night: .midnight
+            }
+        }
+    }
+
     enum SandboxMood: String, CaseIterable {
         case content, thriving, hungry, sleepy, sad
 

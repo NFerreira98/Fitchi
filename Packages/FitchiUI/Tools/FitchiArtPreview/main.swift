@@ -16,12 +16,17 @@ enum ArtPreview {
         // `--stages` renders live stages at phone and watch sizes, to check where pets stand.
         let stages = arguments.first == "--stages"
         if stages { arguments.removeFirst() }
+        // `--scenes` renders every backdrop through the day, plus the visitors.
+        let scenes = arguments.first == "--scenes"
+        if scenes { arguments.removeFirst() }
         let output = arguments.first ?? "pets.png"
         let content = URL(fileURLWithPath: arguments.count > 1 ? arguments[1] : "../../Content")
         let catalog = try Catalog.load(from: content)
         let renderer = ImageRenderer(
             content: Group {
-                if stages {
+                if scenes {
+                    SceneSheet()
+                } else if stages {
                     StageSheet(catalog: catalog)
                 } else if accessories {
                     AccessorySheet(catalog: catalog)
@@ -150,6 +155,49 @@ struct StageSheet: View {
         return PetStage(
             pet: pet, species: catalog.species(id: id), backdrop: backdrops[index % backdrops.count], style: style,
             petScale: scale, controlsBelow: controlsBelow)
+    }
+}
+
+/// Every backdrop at dawn, noon, dusk and midnight, mid-animation, and the three visitors.
+struct SceneSheet: View {
+    let times: [(String, SceneLight)] = [
+        ("Dawn", .dawn), ("Noon", .day), ("Golden hour", SceneLight(at: 18.3)), ("Dusk", .dusk),
+        ("Midnight", .midnight),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(SceneBackdrop.Kind.allCases, id: \.self) { kind in
+                HStack(spacing: 10) {
+                    ForEach(times, id: \.0) { name, light in
+                        VStack(spacing: 4) {
+                            SceneBackdrop(kind, time: 1_000, light: light)
+                                .frame(width: 160, height: 150)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                            Text("\(kind.rawValue.dropFirst(9)) · \(name)")
+                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                }
+            }
+            HStack(spacing: 20) {
+                ForEach(Array([Visitor.Kind.butterfly, .bird, .firefly].enumerated()), id: \.offset) { index, kind in
+                    ForEach(0..<3) { variety in
+                        VisitorView(
+                            kind: kind,
+                            visitor: Visitor(
+                                offsetX: 0, height: 1, facingRight: variety != 1, clock: Double(variety) * 0.07,
+                                variety: variety)
+                        )
+                        .frame(width: 60, height: 60)
+                        .background(index == 2 ? Color(white: 0.05) : Color(white: 0.85))
+                    }
+                }
+            }
+        }
+        .padding(20)
+        .background(Color(white: 0.12))
     }
 }
 

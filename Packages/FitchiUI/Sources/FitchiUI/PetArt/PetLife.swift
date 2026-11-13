@@ -10,6 +10,8 @@ public struct PetFrame: Hashable, Sendable {
     /// How far back on the ground the pet is: 0 = the back (near the horizon, smaller),
     /// 1 = the front (nearest, full size). Stages without depth ignore it.
     public var depth: Double = 0.5
+    /// A butterfly (or bird, or firefly) dropping by, which the pet is watching.
+    public var visitor: Visitor?
 
     public init() {}
 }
@@ -51,9 +53,11 @@ public enum PetLife {
     /// - Parameters:
     ///   - wander: false keeps the pet in the middle (hatching, small previews).
     ///   - still: Reduce Motion. The pet stays put and only changes expression.
+    ///   - visitors: whether little creatures drop by now and then (outdoor scenes).
+    ///   - greeting: a hello when you come back to the app.
     public static func frame(
         at time: TimeInterval, seed: Int, mood: PetMood, reaction: Reaction? = nil, wander: Bool = true,
-        still: Bool = false
+        still: Bool = false, visitors: Bool = false, greeting: Greeting? = nil
     ) -> PetFrame {
         var frame = PetFrame()
         let clock = still ? 0 : time
@@ -78,6 +82,13 @@ public enum PetLife {
             return frame
         }
 
+        let greetingElapsed = greeting?.elapsed(at: time)
+        if let greeting, wander, !still,
+            let big = bigGreeting(greeting, at: time, seed: seed, mood: mood, clock: clock)
+        {
+            return big
+        }
+
         frame.pose = still ? PetPose() : PetPose.idle(at: clock, seed: Double(seed % 1000) / 25)
         if wander && !still {
             let place = position(at: time, seed: seed, mood: mood)
@@ -94,6 +105,12 @@ public enum PetLife {
         }
         express(mood, clock: still ? 0 : time, seed: seed, on: &frame)
         showNeeds(mood, clock: clock, asleep: false, on: &frame)
+        if visitors, wander, !still, let visitor = visit(at: time, seed: seed, mood: mood) {
+            watch(visitor, on: &frame)
+        }
+        if let elapsed = greetingElapsed {
+            greet(elapsed: still ? 0.3 : elapsed, on: &frame.pose)
+        }
         return frame
     }
 
@@ -254,6 +271,9 @@ public enum PetLife {
         }
     }
 
+}
+
+extension PetLife {
     // MARK: - Care
 
     static func act(_ reaction: Reaction, elapsed: Double, still: Bool, on frame: inout PetFrame) {

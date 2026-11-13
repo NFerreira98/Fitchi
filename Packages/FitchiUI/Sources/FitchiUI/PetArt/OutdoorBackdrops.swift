@@ -25,20 +25,34 @@ private func rollingHills(_ height: CGFloat, base: CGFloat, lift: CGFloat) -> Pa
 }
 
 enum SnowyHill {
-    static func draw(_ context: GraphicsContext, height: CGFloat) {
+    static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         let horizon: CGFloat = 54
-        Sky.draw(context, top: color(0xA9C8F0), bottom: color(0xE8EEFB), horizon: horizon)
+        Sky.draw(context, top: color(0xA9C8F0), bottom: color(0xE8EEFB), horizon: horizon, world: world)
         context.fill(rollingHills(height, base: horizon, lift: 14), with: .color(color(0xDCE7F7)))
         fillGradient(context, CGRect(x: 0, y: horizon + 6, width: 100, height: height), 0xFFFFFF, 0xE3ECF8)
         for (x, size) in [(10.0, 1.0), (88, 1.2), (77, 0.75)] {
             pine(context, at: CGPoint(x: x, y: horizon + 4 + (1 - size) * 6), size: size)
         }
-        // Gentle snowfall.
-        for (x, y) in [(14.0, 10.0), (36, 22), (58, 8), (70, 34), (92, 14), (46, 40), (24, 44), (84, 46)] {
-            context.fill(Path(ellipse: CGPoint(x: x, y: y), rx: 1, ry: 1), with: .color(.white.opacity(0.9)))
-        }
+        snowfall(context, height: height, world: world)
         for (x, y) in [(30.0, horizon + 22), (70, horizon + 30)] {
             context.fill(Path(ellipse: CGPoint(x: x, y: y), rx: 7, ry: 1.2), with: .color(color(0xC9D8EE)))
+        }
+    }
+
+    /// Flakes drifting down the whole scene, each at its own pace, swaying as they fall.
+    static func snowfall(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
+        // Across, how far down it starts (0…1) and how fast it falls.
+        let flakes: [(x: Double, start: Double)] = [
+            (14, 0.1), (36, 0.35), (58, 0.05), (70, 0.6), (92, 0.2), (46, 0.75), (24, 0.9), (84, 0.45), (6, 0.55),
+            (64, 0.85),
+        ]
+        let fall = Double(height) + 6
+        for (index, flake) in flakes.enumerated() {
+            let speed = 3.8 + Double(index * 7 % 5) * 0.5
+            let size = 0.8 + Double(index * 3 % 4) * 0.1
+            let travelled = (flake.start * fall + world.time * speed).truncatingRemainder(dividingBy: fall)
+            let center = CGPoint(x: flake.x + 2.5 * world.wave(0.8, Double(index)), y: travelled - 3)
+            context.fill(Path(ellipse: center, rx: size, ry: size), with: .color(.white.opacity(0.9)))
         }
     }
 
@@ -64,39 +78,42 @@ enum SnowyHill {
 }
 
 enum Beach {
-    static func draw(_ context: GraphicsContext, height: CGFloat) {
+    static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         let horizon: CGFloat = 46
-        Sky.draw(context, top: color(0x6EC6F5), bottom: color(0xD9F3FF), horizon: horizon)
-        context.fill(Path(ellipse: CGPoint(x: 82, y: 14), rx: 7, ry: 7), with: .color(color(0xFFE27A)))
-        fillGradient(context, CGRect(x: 0, y: horizon, width: 100, height: 12), 0x4FB8DE, 0x7AD6EC)
-        for (x, y) in [(18.0, horizon + 4), (52, horizon + 7), (80, horizon + 3)] {
+        Sky.draw(context, top: color(0x6EC6F5), bottom: color(0xD9F3FF), horizon: horizon, world: world)
+        fillGradient(context, CGRect(x: 0, y: horizon, width: 100, height: 14), 0x4FB8DE, 0x7AD6EC)
+        for (index, (startX, y)) in [(18.0, horizon + 4), (52, horizon + 7), (80, horizon + 3)].enumerated() {
+            let x = startX + 3 * world.wave(0.6, Double(index) * 2)
             var wave = Path()
             wave.move(to: CGPoint(x: x - 5, y: y))
             wave.addQuadCurve(to: CGPoint(x: x + 5, y: y), control: CGPoint(x: x, y: y - 1.6))
             context.stroke(wave, with: .color(.white.opacity(0.8)), style: StrokeStyle(lineWidth: 1, lineCap: .round))
         }
-        // Foam line, then sand.
+        // Foam line, then sand. The tide laps in and out.
+        let tide = 1.2 * world.wave(0.5)
         var shore = Path()
-        shore.move(to: CGPoint(x: 0, y: horizon + 12))
-        shore.addQuadCurve(to: CGPoint(x: 100, y: horizon + 11), control: CGPoint(x: 50, y: horizon + 15))
+        shore.move(to: CGPoint(x: 0, y: horizon + 12 + tide))
+        shore.addQuadCurve(
+            to: CGPoint(x: 100, y: horizon + 11 + tide), control: CGPoint(x: 50, y: horizon + 15 + tide))
         shore.addLine(to: CGPoint(x: 100, y: height))
         shore.addLine(to: CGPoint(x: 0, y: height))
         context.fill(shore, with: .color(color(0xF7E3B5)))
         context.stroke(
             shore.trimmedPath(from: 0, to: 0.25), with: .color(.white),
             style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
-        palm(context, base: CGPoint(x: 8, y: horizon + 16))
+        palm(context, base: CGPoint(x: 8, y: horizon + 16), sway: world.wave(0.9))
         starfish(context, at: CGPoint(x: 86, y: horizon + 30))
         context.fill(Path(ellipse: CGPoint(x: 22, y: horizon + 34), rx: 2.4, ry: 1.6), with: .color(color(0xFFC7C2)))
     }
 
-    static func palm(_ context: GraphicsContext, base: CGPoint) {
+    static func palm(_ context: GraphicsContext, base: CGPoint, sway: Double) {
         var trunk = Path()
         trunk.move(to: base)
         trunk.addQuadCurve(to: CGPoint(x: base.x + 6, y: base.y - 34), control: CGPoint(x: base.x - 2, y: base.y - 18))
         context.stroke(trunk, with: .color(color(0xA5774D)), style: StrokeStyle(lineWidth: 3, lineCap: .round))
         let crown = CGPoint(x: base.x + 6, y: base.y - 34)
-        for angle in [-160.0, -120, -60, -20, 20] {
+        for (index, start) in [-160.0, -120, -60, -20, 20].enumerated() {
+            let angle = start + sway * 5 + sin(Double(index)) * sway * 2
             let tip = CGPoint(x: crown.x + cos(angle * .pi / 180) * 13, y: crown.y + sin(angle * .pi / 180) * 8 + 5)
             var frond = Path()
             frond.move(to: crown)
@@ -119,33 +136,39 @@ enum Beach {
 }
 
 enum StarryNight {
-    static func draw(_ context: GraphicsContext, height: CGFloat) {
+    static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         let horizon: CGFloat = 56
         fillGradient(context, CGRect(x: 0, y: 0, width: 100, height: horizon + 2), 0x1B2350, 0x4B4A86)
         // A crescent moon: a bright disc with a sky-coloured bite.
         context.fill(Path(ellipse: CGPoint(x: 78, y: 16), rx: 7, ry: 7), with: .color(color(0xFFF2B8)))
         context.fill(Path(ellipse: CGPoint(x: 81.5, y: 13.5), rx: 6, ry: 6), with: .color(color(0x232A5A)))
-        for (x, y, size) in [
-            (12.0, 10.0, 1.6), (30, 22, 1.1), (46, 8, 1.8), (60, 28, 1.0), (22, 36, 1.2), (92, 34, 1.3),
-        ] {
-            context.fill(Sparkles.star(at: CGPoint(x: x, y: y), size: size), with: .color(color(0xFFF6D6)))
+        Sky.drawStars(context, world: world, strength: 1)
+        // Now and then a shooting star streaks across.
+        let streak = world.cycle(23)
+        if world.time > 0, streak < 0.05 {
+            let progress = streak / 0.05
+            let head = CGPoint(x: 20 + 40 * progress, y: 6 + 14 * progress)
+            var trail = Path()
+            trail.move(to: CGPoint(x: head.x - 9, y: head.y - 3.2))
+            trail.addLine(to: head)
+            context.stroke(
+                trail,
+                with: .linearGradient(
+                    Gradient(colors: [.clear, .white.opacity(1 - progress * 0.6)]),
+                    startPoint: CGPoint(x: head.x - 9, y: head.y - 3.2), endPoint: head),
+                style: StrokeStyle(lineWidth: 1, lineCap: .round))
         }
         context.fill(rollingHills(height, base: horizon, lift: 12), with: .color(color(0x2E5A57)))
         fillGradient(context, CGRect(x: 0, y: horizon + 6, width: 100, height: height), 0x3C7A6A, 0x2B5C55)
-        Flora.tufts(context, rows: [horizon + 14, horizon + 28], color: color(0x24504A))
-        // Fireflies.
-        for (x, y) in [(16.0, horizon + 4), (84, horizon - 2), (66, horizon + 18)] {
-            context.fill(
-                Path(ellipse: CGPoint(x: x, y: y), rx: 2.6, ry: 2.6), with: .color(color(0xFFF07A).opacity(0.25)))
-            context.fill(Path(ellipse: CGPoint(x: x, y: y), rx: 1, ry: 1), with: .color(color(0xFFF07A)))
-        }
+        Flora.tufts(context, rows: [horizon + 14, horizon + 28], color: color(0x24504A), world: world)
+        Fireflies.draw(context, world: world, around: horizon + 4, strength: 1)
     }
 }
 
 enum Forest {
-    static func draw(_ context: GraphicsContext, height: CGFloat) {
+    static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         let horizon: CGFloat = 56
-        Sky.draw(context, top: color(0xA8DCC4), bottom: color(0xE4F5E8), horizon: horizon)
+        Sky.draw(context, top: color(0xA8DCC4), bottom: color(0xE4F5E8), horizon: horizon, world: world)
         // Two rows of round treetops: a hazy one behind, a darker one in front.
         for (index, x) in stride(from: -4.0, through: 104, by: 14).enumerated() {
             tree(
@@ -158,9 +181,27 @@ enum Forest {
                 lift: index % 2 == 0 ? 2 : 6)
         }
         fillGradient(context, CGRect(x: 0, y: horizon, width: 100, height: height), 0x7BC173, 0x5EA45C)
-        Flora.tufts(context, rows: [horizon + 10, horizon + 24, horizon + 38], color: color(0x4C8C4A))
+        Flora.tufts(context, rows: [horizon + 10, horizon + 24, horizon + 38], color: color(0x4C8C4A), world: world)
         mushroom(context, at: CGPoint(x: 14, y: horizon + 22))
         mushroom(context, at: CGPoint(x: 88, y: horizon + 30))
+        if world.time > 0 { fallingLeaves(context, horizon: horizon, world: world) }
+    }
+
+    /// A couple of leaves let go of the front trees and flutter down to the grass.
+    static func fallingLeaves(_ context: GraphicsContext, horizon: CGFloat, world: SceneWorld) {
+        for (index, (startX, period)) in [(22.0, 11.0), (80, 14)].enumerated() {
+            let progress = world.cycle(period, offset: Double(index) * 0.4)
+            // Falls for the first 60% of its cycle, rests on the grass a moment, then is gone.
+            guard progress < 0.75 else { continue }
+            let fall = min(1, progress / 0.6)
+            let center = CGPoint(
+                x: startX + 6 * sin(fall * .pi * 3) + 8 * fall, y: horizon - 22 + fall * 34)
+            let angle = 40 * sin(fall * .pi * 3)
+            let fade = progress > 0.6 ? 1 - (progress - 0.6) / 0.15 : 1
+            context.fill(
+                Path(ellipse: center, rx: 1.8, ry: 0.9, degrees: angle),
+                with: .color(color(index == 0 ? 0xE8A33D : 0xC9663B).opacity(fade)))
+        }
     }
 
     static func tree(

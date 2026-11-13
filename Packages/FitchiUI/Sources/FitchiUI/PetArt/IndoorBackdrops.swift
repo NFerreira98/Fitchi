@@ -28,15 +28,25 @@ private func rug(_ context: GraphicsContext, fill: UInt32, trim: UInt32) {
         rug.applying(.identity), with: .color(color(trim)), style: StrokeStyle(lineWidth: 1.4, dash: [2, 2]))
 }
 
-/// A window with sky, a cloud and curtains.
-private func window(_ context: GraphicsContext, frame rect: CGRect, curtain: UInt32) {
+/// A window with sky, a cloud and curtains. At night it shows a dark sky and the moon.
+private func window(_ context: GraphicsContext, frame rect: CGRect, curtain: UInt32, world: SceneWorld) {
     context.fill(Path(roundedRect: rect.insetBy(dx: -1.5, dy: -1.5), cornerRadius: 2), with: .color(.white))
     context.fill(
         Path(rect),
         with: .linearGradient(
             Gradient(colors: [color(0x8FD0FF), color(0xD8F0FF)]), startPoint: CGPoint(x: 0, y: rect.minY),
             endPoint: CGPoint(x: 0, y: rect.maxY)))
-    Sky.cloud(context, at: CGPoint(x: rect.midX, y: rect.midY), size: 0.45)
+    var glass = context
+    glass.clip(to: Path(rect))
+    let drift = CGFloat(world.cycle(60)) * (rect.width + 10) - 5
+    Sky.cloud(glass, at: CGPoint(x: rect.minX + drift, y: rect.midY), size: 0.45)
+    let night = world.light.night
+    if night > 0.01 {
+        glass.fill(Path(rect), with: .color(color(0x1B2350).opacity(0.9 * night)))
+        glass.fill(
+            Path(ellipse: CGPoint(x: rect.minX + rect.width * 0.7, y: rect.minY + rect.height * 0.3), rx: 2.2, ry: 2.2),
+            with: .color(color(0xFFF4C8).opacity(night)))
+    }
     context.fill(Path(CGRect(x: rect.midX - 0.6, y: rect.minY, width: 1.2, height: rect.height)), with: .color(.white))
     for side in [rect.minX - 3, rect.maxX - 2] {
         context.fill(
@@ -46,13 +56,14 @@ private func window(_ context: GraphicsContext, frame rect: CGRect, curtain: UIn
 }
 
 enum Bedroom {
-    static func draw(_ context: GraphicsContext, height: CGFloat) {
+    static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         room(context, height: height, wall: 0xE6DCF7, floor: 0xE8C9A0, planks: 0xC9A27A)
         // Little star wallpaper.
-        for (x, y) in [(10.0, 8.0), (30, 18), (52, 6), (70, 20), (90, 9), (40, 34), (62, 40)] {
-            context.fill(Sparkles.star(at: CGPoint(x: x, y: y), size: 1.6), with: .color(.white.opacity(0.75)))
+        for (index, (x, y)) in [(10.0, 8.0), (30, 18), (52, 6), (70, 20), (90, 9), (40, 34), (62, 40)].enumerated() {
+            let twinkle = 0.6 + 0.2 * world.wave(0.9, Double(index) * 1.7)
+            context.fill(Sparkles.star(at: CGPoint(x: x, y: y), size: 1.6), with: .color(.white.opacity(twinkle)))
         }
-        window(context, frame: CGRect(x: 8, y: 12, width: 18, height: 20), curtain: 0xB79CE8)
+        window(context, frame: CGRect(x: 8, y: 12, width: 18, height: 20), curtain: 0xB79CE8, world: world)
         bed(context)
         // A bedside lamp glowing on the left.
         context.fill(Path(CGRect(x: 6, y: floorLine - 12, width: 10, height: 12)), with: .color(color(0xC59A72)))
@@ -68,6 +79,9 @@ enum Bedroom {
         context.fill(shade, with: .color(color(0xFFE28A)))
         rug(context, fill: 0xF4B8C8, trim: 0xFFFFFF)
     }
+
+    /// The bedside lamp's bulb, for its glow at night.
+    static let lamp = CGPoint(x: 11, y: floorLine - 22)
 
     /// A bed against the right wall, partly out of frame.
     private static func bed(_ context: GraphicsContext) {
@@ -91,7 +105,7 @@ enum Bedroom {
 }
 
 enum LivingRoom {
-    static func draw(_ context: GraphicsContext, height: CGFloat) {
+    static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         room(context, height: height, wall: 0xFFE3CC, floor: 0xD9A877, planks: 0xB98656)
         // Framed pictures.
         for (rect, art) in [
@@ -103,7 +117,7 @@ enum LivingRoom {
             context.fill(Path(rect), with: .color(color(UInt32(art))))
         }
         sofa(context)
-        plant(context, base: CGPoint(x: 90, y: floorLine))
+        plant(context, base: CGPoint(x: 90, y: floorLine), sway: world.wave(0.7))
         // A floor lamp on the left.
         context.fill(Path(CGRect(x: 9.3, y: floorLine - 34, width: 1.4, height: 34)), with: .color(color(0x5E5560)))
         context.fill(
@@ -111,6 +125,9 @@ enum LivingRoom {
             with: .color(color(0xFFF0C2)))
         rug(context, fill: 0xA8C8E8, trim: 0xFFFFFF)
     }
+
+    /// The floor lamp's shade, for its glow at night.
+    static let lamp = CGPoint(x: 10, y: floorLine - 37)
 
     private static func sofa(_ context: GraphicsContext) {
         let body = color(0xE8836B)
@@ -135,8 +152,9 @@ enum LivingRoom {
         }
     }
 
-    static func plant(_ context: GraphicsContext, base: CGPoint) {
-        for (angle, length) in [(-115.0, 14.0), (-90, 18), (-65, 14), (-140, 10), (-40, 10)] {
+    static func plant(_ context: GraphicsContext, base: CGPoint, sway: Double) {
+        for (index, (start, length)) in [(-115.0, 14.0), (-90, 18), (-65, 14), (-140, 10), (-40, 10)].enumerated() {
+            let angle = start + sway * (2 + Double(index % 3))
             let radians = angle * .pi / 180
             let tip = CGPoint(x: base.x + cos(radians) * length, y: base.y - 8 + sin(radians) * length)
             context.fill(
@@ -152,7 +170,7 @@ enum LivingRoom {
 }
 
 enum Kitchen {
-    static func draw(_ context: GraphicsContext, height: CGFloat) {
+    static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         context.fill(Path(CGRect(x: 0, y: 0, width: 100, height: floorLine)), with: .color(color(0xD7F0E6)))
         // Checkerboard floor.
         let tile: CGFloat = 8
@@ -166,7 +184,7 @@ enum Kitchen {
                     with: .color(color(light ? 0xFFFFFF : 0xF2C9C9)))
             }
         }
-        window(context, frame: CGRect(x: 41, y: 8, width: 18, height: 14), curtain: 0xFFB7A8)
+        window(context, frame: CGRect(x: 41, y: 8, width: 18, height: 14), curtain: 0xFFB7A8, world: world)
         // Counters with a tiled backsplash, cupboards and a fridge.
         for x in stride(from: 0.0, through: 100, by: 5) {
             var grout = Path()
@@ -189,10 +207,42 @@ enum Kitchen {
         }
         // A kettle and a fruit bowl on the counters.
         context.fill(Path(ellipse: CGPoint(x: 14, y: floorLine - 24), rx: 4, ry: 3.5), with: .color(color(0xFF8A6B)))
+        if world.time > 0 { steam(context, from: CGPoint(x: 16.5, y: floorLine - 28), world: world) }
         for (x, fruit) in [(80.0, 0xFFC94D), (84.5, 0xE8524A), (89, 0x8BC34A)] {
             context.fill(
                 Path(ellipse: CGPoint(x: x, y: floorLine - 22.5), rx: 2.4, ry: 2.4), with: .color(color(UInt32(fruit))))
         }
         context.fill(Path(ellipse: CGPoint(x: 84.5, y: floorLine - 21), rx: 7, ry: 2), with: .color(color(0xC9A27A)))
+    }
+
+    /// Wisps of steam curling up from the kettle.
+    static func steam(_ context: GraphicsContext, from spout: CGPoint, world: SceneWorld) {
+        for index in 0..<2 {
+            let rise = world.cycle(3.2, offset: Double(index) * 0.5)
+            var wisp = Path()
+            let bottom = CGPoint(x: spout.x, y: spout.y - rise * 10)
+            wisp.move(to: bottom)
+            wisp.addCurve(
+                to: CGPoint(x: bottom.x + 1, y: bottom.y - 6), control1: CGPoint(x: bottom.x + 2.5, y: bottom.y - 2),
+                control2: CGPoint(x: bottom.x - 2, y: bottom.y - 4))
+            context.stroke(
+                wisp, with: .color(.white.opacity(0.75 * sin(.pi * rise))),
+                style: StrokeStyle(lineWidth: 1.1, lineCap: .round))
+        }
+    }
+
+    /// Warm light along the backsplash over the counters once it's dark.
+    static func underCounterLights(_ context: GraphicsContext, world: SceneWorld) {
+        let night = world.light.night
+        guard night > 0.02 else { return }
+        let glow = Color(red: 1, green: 0.88, blue: 0.6)
+        for (start, width) in [(0.0, 30.0), (70, 30)] {
+            let rect = CGRect(x: start, y: floorLine - 32, width: width, height: 12)
+            context.fill(
+                Path(rect),
+                with: .linearGradient(
+                    Gradient(colors: [glow.opacity(0.5 * night), .clear]), startPoint: CGPoint(x: 0, y: rect.minY),
+                    endPoint: CGPoint(x: 0, y: rect.maxY)))
+        }
     }
 }
