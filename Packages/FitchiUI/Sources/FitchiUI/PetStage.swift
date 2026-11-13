@@ -128,32 +128,36 @@ public struct PetStage: View {
                     let (center, drawn) = placement(x: frame.x, depth: frame.depth, in: size, petSize: petSize)
                     let feet = center.y + drawn / 2
                     let footing = backdrop.footing(in: season)
-                    GroundMarks(
-                        marks: marks(at: timeline.date, footing: footing, in: size, petSize: petSize), footing: footing)
-                    pet(frame, size: drawn)
-                        // In the same light as the scene, and a touch hazier at the back.
-                        .colorMultiply(
-                            (backdrop == .starryNight ? .midnight : light).petTint(indoor: backdrop.isIndoor)
-                        )
-                        .saturation(backdrop.isIndoor ? 1 : 1 - 0.18 * (1 - frame.depth))
-                        // Only the pet itself, not the margin around it, takes touches.
-                        .contentShape(Rectangle().inset(by: drawn * (PetFigure.marginScale - 1) / 2))
-                        .simultaneousGesture(touchGesture)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(pet.name)
-                        .accessibilityAction(named: "Boop") { boopNow() }
-                        .position(center)
-                    if let visitor = frame.visitor {
-                        let kind = backdrop.visitor(in: light, season: season)
-                        let visitorSize = drawn * (kind == .bird ? 0.26 : 0.22)
-                        VisitorView(kind: kind, visitor: visitor)
-                            .frame(width: visitorSize, height: visitorSize)
-                            .position(x: center.x + visitor.offsetX * drawn, y: feet - visitor.height * drawn)
-                    }
-                    if let reaction {
-                        FloatingReward(text: reaction.floater)
-                            .id(reaction.id)
-                            .position(x: center.x + drawn * 0.45, y: center.y - drawn * 0.4)
+                    // One layer over another; the timeline would otherwise stack them top to bottom.
+                    ZStack {
+                        GroundMarks(
+                            marks: marks(at: timeline.date, footing: footing, in: size, petSize: petSize),
+                            footing: footing)
+                        pet(frame, size: drawn)
+                            // In the same light as the scene, and a touch hazier at the back.
+                            .colorMultiply(
+                                (backdrop == .starryNight ? .midnight : light).petTint(indoor: backdrop.isIndoor)
+                            )
+                            .saturation(backdrop.isIndoor ? 1 : 1 - 0.18 * (1 - frame.depth))
+                            // Only the pet itself, not the margin around it, takes touches.
+                            .contentShape(Rectangle().inset(by: drawn * (PetFigure.marginScale - 1) / 2))
+                            .simultaneousGesture(touchGesture)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(pet.name)
+                            .accessibilityAction(named: "Boop") { boopNow() }
+                            .position(center)
+                        if let visitor = frame.visitor {
+                            let kind = backdrop.visitor(in: light, season: season)
+                            let visitorSize = drawn * (kind == .bird ? 0.26 : 0.22)
+                            VisitorView(kind: kind, visitor: visitor)
+                                .frame(width: visitorSize, height: visitorSize)
+                                .position(x: center.x + visitor.offsetX * drawn, y: feet - visitor.height * drawn)
+                        }
+                        if let reaction {
+                            FloatingReward(text: reaction.floater)
+                                .id(reaction.id)
+                                .position(x: center.x + drawn * 0.45, y: center.y - drawn * 0.4)
+                        }
                     }
                 }
             }
