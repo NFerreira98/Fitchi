@@ -74,7 +74,7 @@
                 if let species {
                     PetStage(
                         pet: sandboxPet(species), species: species, mood: mood.mood, backdrop: backdrop,
-                        style: .fullScene
+                        style: .fullScene, petScale: 0.36, controlsBelow: false
                     )
                     .frame(height: 260)
                     .clipShape(.rect(cornerRadius: 16))

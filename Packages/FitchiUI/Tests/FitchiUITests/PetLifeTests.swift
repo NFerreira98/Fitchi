@@ -71,4 +71,23 @@ struct PetLifeTests {
         #expect(Set(frames).count == 1)
         #expect(frames.first?.x == 0)
     }
+
+    @Test func strollsRoamFrontToBackAsWellAsSideToSide() {
+        let frames = stride(from: 0.0, to: 3_600, by: 7).map {
+            PetLife.frame(at: 800_000_000 + $0, seed: 42, mood: .content)
+        }
+        let depths = frames.map(\.depth)
+        let xs = frames.map(\.x)
+        #expect((depths.max() ?? 0) - (depths.min() ?? 0) > 0.7, "uses most of the ground's depth")
+        #expect((xs.max() ?? 0) - (xs.min() ?? 0) > 1.2)
+        #expect(depths.allSatisfy { (0...1).contains($0) })
+    }
+
+    @Test func depthChangesSmoothlyWhileWalking() {
+        let frames = stride(from: 0.0, to: 600, by: 0.05).map {
+            PetLife.frame(at: 800_000_000 + $0, seed: 7, mood: .content).depth
+        }
+        let biggestJump = zip(frames, frames.dropFirst()).map { abs($1 - $0) }.max() ?? 0
+        #expect(biggestJump < 0.05, "no teleporting between spots")
+    }
 }

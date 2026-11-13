@@ -7,6 +7,9 @@ public struct PetFrame: Hashable, Sendable {
     public var effects = PetEffects()
     /// Where the pet stands across its patch of ground, −1 (left) … 1 (right).
     public var x: Double = 0
+    /// How far back on the ground the pet is: 0 = the back (near the horizon, smaller),
+    /// 1 = the front (nearest, full size). Stages without depth ignore it.
+    public var depth: Double = 0.5
 
     public init() {}
 }
@@ -57,7 +60,13 @@ public enum PetLife {
         frame.effects.clock = clock
 
         if let reaction, time - reaction.startedAt < reaction.duration, time >= reaction.startedAt {
-            frame.x = wander && !still ? position(at: reaction.startedAt, seed: seed, mood: mood).x : 0
+            if wander && !still {
+                let place = position(at: reaction.startedAt, seed: seed, mood: mood)
+                frame.x = place.x
+                frame.depth = place.depth
+            } else {
+                frame.x = 0
+            }
             frame.pose = PetPose.idle(at: clock, seed: Double(seed % 1000) / 25)
             act(reaction, elapsed: still ? reaction.duration / 2 : time - reaction.startedAt, still: still, on: &frame)
             return frame
@@ -73,6 +82,7 @@ public enum PetLife {
         if wander && !still {
             let place = position(at: time, seed: seed, mood: mood)
             frame.x = place.x
+            frame.depth = place.depth
             frame.pose.flipped = place.facingRight
             if let stride = place.stride { walk(&frame.pose, stride: stride) }
             let nap = napAmount(at: time, seed: seed, mood: mood)
@@ -91,6 +101,7 @@ public enum PetLife {
 
     struct Place {
         var x: Double
+        var depth: Double = 0.5
         var facingRight: Bool
         /// Seconds into a walk, while walking.
         var stride: Double?
@@ -104,24 +115,32 @@ public enum PetLife {
         let lookBack = 16
         // Spots for the recent past, oldest first, so each stroll knows where it starts.
         var spot = 0.0
+        var depth = 0.5
         var facingRight = false
         var walkFrom = 0.0
+        var depthFrom = 0.5
         for past in (index - lookBack)...index {
             guard strolls(in: past, seed: seed, mood: mood) else { continue }
             let target = noise(seed &+ 1, past) * 2 - 1
             walkFrom = spot
+            depthFrom = depth
             facingRight = target > spot
             spot = target
+            // Each stroll also heads somewhere new front-to-back, so the pet roams the ground.
+            depth = noise(seed &+ 2, past)
         }
         guard strolls(in: index, seed: seed, mood: mood) else {
-            return Place(x: spot, facingRight: facingRight)
+            return Place(x: spot, depth: depth, facingRight: facingRight)
         }
         let speed = mood.isDown || mood.isTired ? 0.22 : 0.4
-        let duration = min(slot - 0.5, max(1.2, abs(spot - walkFrom) / speed))
-        guard into < duration else { return Place(x: spot, facingRight: facingRight) }
+        let distance = (pow(spot - walkFrom, 2) + pow((depth - depthFrom) * 1.2, 2)).squareRoot()
+        let duration = min(slot - 0.5, max(1.2, distance / speed))
+        guard into < duration else { return Place(x: spot, depth: depth, facingRight: facingRight) }
         let progress = into / duration
         let eased = progress * progress * (3 - 2 * progress)
-        return Place(x: walkFrom + (spot - walkFrom) * eased, facingRight: facingRight, stride: into)
+        return Place(
+            x: walkFrom + (spot - walkFrom) * eased, depth: depthFrom + (depth - depthFrom) * eased,
+            facingRight: facingRight, stride: into)
     }
 
     static func strolls(in index: Int, seed: Int, mood: PetMood) -> Bool {

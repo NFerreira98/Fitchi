@@ -141,9 +141,10 @@ struct BackedUpPetView: View {
             VStack(spacing: FitchiTheme.Spacing.s) {
                 PetStage(
                     pet: pet, species: pets.species(of: pet), mood: mood,
-                    backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene, petScale: 0.45
+                    backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene,
+                    petScale: 0.36,
+                    controlsBelow: false
                 )
-                // Square-ish like the watch, so the pet stands on the meadow.
                 .aspectRatio(1.1, contentMode: .fit)
                 .clipShape(.rect(cornerRadius: 28))
                 Text(pet.name)

@@ -13,12 +13,21 @@ enum ArtPreview {
         // `--accessories` renders every species wearing every accessory instead.
         let accessories = arguments.first == "--accessories"
         if accessories { arguments.removeFirst() }
+        // `--stages` renders live stages at phone and watch sizes, to check where pets stand.
+        let stages = arguments.first == "--stages"
+        if stages { arguments.removeFirst() }
         let output = arguments.first ?? "pets.png"
         let content = URL(fileURLWithPath: arguments.count > 1 ? arguments[1] : "../../Content")
         let catalog = try Catalog.load(from: content)
         let renderer = ImageRenderer(
             content: Group {
-                if accessories { AccessorySheet(catalog: catalog) } else { ContactSheet(catalog: catalog) }
+                if stages {
+                    StageSheet(catalog: catalog)
+                } else if accessories {
+                    AccessorySheet(catalog: catalog)
+                } else {
+                    ContactSheet(catalog: catalog)
+                }
             })
         renderer.scale = 2
         guard let image = renderer.cgImage else { throw PreviewError.renderFailed }
@@ -97,6 +106,50 @@ struct ContactSheet: View {
         pose.earAngle = 14
         pose.lookX = 0.8
         return pose
+    }
+}
+
+/// Live stages (the phone card, then the three watch layouts) for several pets, each caught at a
+/// different point of its wandering.
+struct StageSheet: View {
+    let catalog: Catalog
+    let species = ["axolotl", "cat", "dog", "bunny", "penguin", "red-panda"]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 12) {
+                ForEach(Array(species.enumerated()), id: \.offset) { index, id in
+                    stage(id, index, style: .fullScene, controlsBelow: false, scale: 0.36)
+                        .frame(width: 330, height: 300)
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                }
+            }
+            ForEach([PetLayoutStyle.island, .fullScene, .horizon], id: \.self) { style in
+                HStack(spacing: 12) {
+                    ForEach(Array(species.enumerated()), id: \.offset) { index, id in
+                        stage(id, index, style: style, controlsBelow: true, scale: style == .island ? 0.48 : 0.42)
+                            .frame(width: 198, height: 242)
+                            .background(Color.black)
+                            .clipShape(RoundedRectangle(cornerRadius: 30))
+                    }
+                }
+            }
+        }
+        .padding(20)
+        .background(Color(white: 0.12))
+    }
+
+    private func stage(
+        _ id: String, _ index: Int, style: PetLayoutStyle, controlsBelow: Bool, scale: CGFloat
+    ) -> some View {
+        let pet = Pet(
+            id: UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", index * 7 + 3)) ?? UUID(),
+            name: id, speciesID: id, traits: PetTraits(appetite: 0.5, playfulness: 0.5, stamina: 0.5, tidiness: 0.5),
+            personality: .easygoing, hatchedAt: .now)
+        let backdrops: [SceneBackdrop.Kind] = [.meadow, .forest, .beach, .bedroom, .snowyHill, .livingRoom]
+        return PetStage(
+            pet: pet, species: catalog.species(id: id), backdrop: backdrops[index % backdrops.count], style: style,
+            petScale: scale, controlsBelow: controlsBelow)
     }
 }
 

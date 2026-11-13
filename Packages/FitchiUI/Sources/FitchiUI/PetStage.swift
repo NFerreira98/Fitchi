@@ -61,13 +61,17 @@ public struct PetStage: View {
     private let backdrop: SceneBackdrop.Kind
     private let style: PetLayoutStyle
     private let reaction: StageReaction?
-    /// Pet width as a fraction of the stage width.
+    /// Pet width as a fraction of the stage width (at the front of the ground).
     private let petScale: CGFloat
+    /// The watch puts stats and buttons over the bottom of the stage; a stage on its own (the
+    /// phone) lets the pet use all the ground down to the bottom edge.
+    private let controlsBelow: Bool
 
     public init(
         pet: Pet, species: Species?, mood: PetMood = .content, backdrop: SceneBackdrop.Kind = .meadow,
-        style: PetLayoutStyle, reaction: StageReaction? = nil, petScale: CGFloat = 0.5
+        style: PetLayoutStyle, reaction: StageReaction? = nil, petScale: CGFloat = 0.5, controlsBelow: Bool = true
     ) {
+        self.controlsBelow = controlsBelow
         self.pet = pet
         self.species = species
         self.mood = mood
@@ -89,15 +93,19 @@ public struct PetStage: View {
                     .animation(minimumInterval: reduceMotion ? 0.5 : 1.0 / 20, paused: isLuminanceReduced)
                 ) { timeline in
                     let frame = frame(at: timeline.date)
+                    let ground = groundBand(in: size)
+                    // Farther back is higher up the ground and a little smaller.
+                    let drawn = petSize * (1 - depthShrink * (1 - frame.depth))
+                    let feet = ground.back + (ground.front - ground.back) * frame.depth
                     let center = CGPoint(
-                        x: size.width / 2 + frame.x * wanderRange(in: size, petSize: petSize),
-                        y: groundY(in: size) - petSize / 2)
-                    pet(frame, size: petSize)
+                        x: geometry.size.width / 2 + frame.x * wanderRange(in: geometry.size, petSize: drawn),
+                        y: feet - drawn / 2)
+                    pet(frame, size: drawn)
                         .position(center)
                     if let reaction {
                         FloatingReward(text: reaction.floater)
                             .id(reaction.id)
-                            .position(x: center.x + petSize * 0.45, y: center.y - petSize * 0.4)
+                            .position(x: center.x + drawn * 0.45, y: center.y - drawn * 0.4)
                     }
                 }
             }
@@ -140,12 +148,25 @@ public struct PetStage: View {
         }
     }
 
-    /// Where the pet's feet touch the ground.
-    private func groundY(in size: CGSize) -> CGFloat {
+    /// Where the island's ground sits (the island scene is placed around it).
+    private func islandGround(in size: CGSize) -> CGFloat { size.height * 0.70 }
+
+    /// How much smaller the pet is at the very back of the ground.
+    private var depthShrink: CGFloat { style == .island ? 0.12 : 0.22 }
+
+    /// The strip of ground the pet's feet can be on, from the back (just below the horizon) to the
+    /// front. Backdrops are drawn to the stage's width with the horizon at about 56% of it, so
+    /// the ground is found from the width, not guessed from the height.
+    private func groundBand(in size: CGSize) -> (back: CGFloat, front: CGFloat) {
         switch style {
-        case .island: size.height * 0.70
-        case .fullScene: size.height * 0.58
-        case .horizon: size.height * 0.56
+        case .island:
+            let diameter = min(size.width * 0.95, size.height * 0.8)
+            let front = islandGround(in: size)
+            return (front - diameter * 0.12, front)
+        case .fullScene, .horizon:
+            let back = size.width * 0.6
+            let front = controlsBelow ? size.height * (style == .horizon ? 0.6 : 0.63) : size.height * 0.93
+            return (min(back, front), max(back, front))
         }
     }
 
@@ -161,7 +182,9 @@ public struct PetStage: View {
                         colors: [.black, .black.opacity(0.9), .clear], center: .center, startRadius: diameter * 0.16,
                         endRadius: diameter / 2)
                 )
-                .position(x: size.width / 2, y: groundY(in: size) - diameter * 0.32)
+                .position(x: size.width / 2, y: islandGround(in: size) - diameter * 0.32)
+        case .fullScene where !controlsBelow:
+            SceneBackdrop(backdrop)
         case .fullScene:
             SceneBackdrop(backdrop)
                 .mask(
