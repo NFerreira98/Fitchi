@@ -208,7 +208,8 @@ public final class PetStore {
         let now = clock.now
         let pet: Pet
         do {
-            pet = try Hatchery.hatchStarter(from: catalog, at: now, rules: hatchRules, using: &rng)
+            pet = try Hatchery.hatchStarter(
+                from: catalog, at: now, moment: hatchMoment, rules: hatchRules, using: &rng)
         } catch {
             throw .noSpecies
         }
@@ -327,7 +328,7 @@ extension PetStore {
         do {
             hatch = try Shop.buyEgg(
                 egg, from: catalog, wallet: &wallet, at: now,
-                history: HatchHistory(pets: roster.pets, catalog: catalog),
+                history: HatchHistory(pets: roster.pets, catalog: catalog), moment: hatchMoment,
                 using: &rng)
         } catch let error as ShopError {
             throw .shop(error)

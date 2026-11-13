@@ -1,3 +1,4 @@
+import FitchiCore
 import SwiftUI
 
 /// A background the pet stands in front of. Backdrops are unlockable on their own and work with

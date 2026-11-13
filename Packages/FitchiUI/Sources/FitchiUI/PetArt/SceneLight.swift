@@ -1,3 +1,4 @@
+import FitchiCore
 import SwiftUI
 
 /// How a scene is lit at a moment of the real day: a warm glow at dawn and dusk, the sun's arc
@@ -42,10 +43,7 @@ public struct SceneLight: Hashable, Sendable {
         sun = (0...1).contains(progress) ? progress : nil
     }
 
-    static func smooth(_ value: Double) -> Double {
-        let clamped = min(1, max(0, value))
-        return clamped * clamped * (3 - 2 * clamped)
-    }
+    static func smooth(_ value: Double) -> Double { StableNoise.smooth(value) }
 }
 
 /// What a backdrop is drawn for: the animation clock (seconds; 0 for a still picture) and light.

@@ -14,6 +14,8 @@ public struct Species: Codable, Hashable, Sendable, Identifiable {
     public var variants: [ColorVariant]
     /// The rare shiny colouring (see `VariantRules.shinyChance`).
     public var shiny: ColorVariant?
+    /// Conditions this species likes: it hatches more often then (within its rarity).
+    public var affinities: [SpeciesAffinity]
 
     public init(
         id: String,
@@ -24,8 +26,10 @@ public struct Species: Codable, Hashable, Sendable, Identifiable {
         defaultNames: [String] = [],
         emoji: String? = nil,
         variants: [ColorVariant] = [],
-        shiny: ColorVariant? = nil
+        shiny: ColorVariant? = nil,
+        affinities: [SpeciesAffinity] = []
     ) {
+        self.affinities = affinities
         self.id = id
         self.name = name
         self.rarity = rarity
@@ -38,7 +42,7 @@ public struct Species: Codable, Hashable, Sendable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, rarity, traitRanges, favoriteItemIDs, defaultNames, emoji, variants, shiny
+        case id, name, rarity, traitRanges, favoriteItemIDs, defaultNames, emoji, variants, shiny, affinities
     }
 
     public init(from decoder: any Decoder) throws {
@@ -52,5 +56,6 @@ public struct Species: Codable, Hashable, Sendable, Identifiable {
         emoji = try container.decodeIfPresent(String.self, forKey: .emoji)
         variants = try container.decodeIfPresent([ColorVariant].self, forKey: .variants) ?? []
         shiny = try container.decodeIfPresent(ColorVariant.self, forKey: .shiny)
+        affinities = try container.decodeIfPresent([SpeciesAffinity].self, forKey: .affinities) ?? []
     }
 }

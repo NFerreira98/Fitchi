@@ -12,6 +12,8 @@ public struct CollectionEntry: Hashable, Sendable, Identifiable {
     public var isShiny: Bool
     /// When the first pet matching this entry hatched; nil while undiscovered.
     public var foundAt: Date?
+    /// For a special colouring: when it can hatch (snow, night, autumn…).
+    public var condition: HatchCondition?
 
     public var id: String { "\(speciesID)/\(variantID ?? "-")" }
     public var isFound: Bool { foundAt != nil }
@@ -66,6 +68,8 @@ public struct CollectionBook: Hashable, Sendable {
     public var foundCount: Int { entries.count(where: \.isFound) }
     public var totalCount: Int { entries.count }
     public var shiniesFound: Int { entries.count { $0.isShiny && $0.isFound } }
+    public var specialsFound: Int { entries.count { $0.condition != nil && $0.isFound } }
+    public var specialsTotal: Int { entries.count { $0.condition != nil } }
 
     private static func key(_ speciesID: String, _ variantID: String?) -> String {
         "\(speciesID)/\(variantID ?? "-")"
@@ -76,6 +80,6 @@ public struct CollectionBook: Hashable, Sendable {
     ) -> CollectionEntry {
         CollectionEntry(
             speciesID: species.id, variantID: variant?.id, name: variant?.name ?? species.name, rarity: species.rarity,
-            isShiny: shiny, foundAt: found[key(species.id, variant?.id)])
+            isShiny: shiny, foundAt: found[key(species.id, variant?.id)], condition: variant?.when)
     }
 }

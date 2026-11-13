@@ -30,11 +30,26 @@ public struct CollectionCard: View {
                         .strokeBorder(entry.isFound ? Self.gold : Self.gold.opacity(0.35), lineWidth: 2)
                 }
             }
+            .overlay(alignment: .topTrailing) {
+                // Special colourings wear their condition, found or not: a clue where to look.
+                if let condition = entry.condition {
+                    Text(condition.emoji)
+                        .font(.system(size: 15))
+                        .padding(5)
+                }
+            }
             Text(title)
                 .font(FitchiTheme.Fonts.display(.caption, weight: .bold))
                 .foregroundStyle(entry.isFound ? (entry.isShiny ? Self.gold : .primary) : .secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+            if let condition = entry.condition, !entry.isFound {
+                Text(condition.short)
+                    .font(FitchiTheme.Fonts.text(.caption2, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText)
@@ -70,12 +85,14 @@ public struct CollectionCard: View {
     }
 
     private var accessibilityText: String {
+        let special = entry.condition.map { ". \($0.hint)" } ?? ""
         guard entry.isFound else {
-            return speciesDiscovered
-                ? "\(species.name), \(entry.isShiny ? "shiny, " : "")not found yet" : "Undiscovered"
+            return
+                (speciesDiscovered
+                ? "\(species.name), \(entry.isShiny ? "shiny, " : "")not found yet" : "Undiscovered") + special
         }
         let found = entry.foundAt.map { ", found \($0.formatted(date: .abbreviated, time: .omitted))" } ?? ""
-        return "\(entry.isShiny ? "Shiny " : "")\(entry.name) \(species.name)\(found)"
+        return "\(entry.isShiny ? "Shiny " : "")\(entry.name) \(species.name)\(found)\(special)"
     }
 }
 

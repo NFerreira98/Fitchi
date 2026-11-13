@@ -105,6 +105,15 @@ struct PhoneHatchView: View {
             }
             .font(FitchiTheme.Fonts.text(.subheadline, weight: .semibold))
             .foregroundStyle(.secondary)
+            if let condition = colouring?.when {
+                // A special colouring: say what made it possible.
+                Text("\(condition.emoji) \(condition.hint)!")
+                    .font(FitchiTheme.Fonts.text(.subheadline, weight: .semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 3)
+                    .background(Color.indigo.opacity(0.18), in: .capsule)
+                    .foregroundStyle(.indigo)
+            }
             if !isNewFind {
                 // A repeat is still its own pet: say what makes this one different.
                 Text("\(pet.personality.title) · \(pet.personality.blurb)")

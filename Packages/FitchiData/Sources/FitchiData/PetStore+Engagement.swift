@@ -114,6 +114,9 @@ extension PetStore {
 
     /// Hatches a free egg: same odds, duplicate protection and repeat refund as a bought one, at
     /// no cost. Only the phone offers this, so one egg can't hatch on two devices at once.
+    /// The season, weather and time of day right now: what special colourings can hatch.
+    public var hatchMoment: HatchMoment { HatchMoment(at: clock.now) }
+
     public func hatchRewardEgg(_ reward: RewardEgg) throws(PurchaseError) -> HatchResult {
         guard rewardEggs.contains(reward) else { throw .notSaved }
         let now = clock.now
@@ -126,7 +129,7 @@ extension PetStore {
         do {
             hatch = try Shop.buyEgg(
                 reward.egg, from: catalog, wallet: &wallet, at: now,
-                history: HatchHistory(pets: roster.pets, catalog: catalog), using: &rng)
+                history: HatchHistory(pets: roster.pets, catalog: catalog), moment: hatchMoment, using: &rng)
         } catch {
             throw .hatch
         }

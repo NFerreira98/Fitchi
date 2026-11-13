@@ -32,13 +32,14 @@ public enum Shop {
         at date: Date,
         history: HatchHistory = .empty,
         duplicates: DuplicateRules = .v1,
+        moment: HatchMoment = .plain,
         using rng: inout some RandomNumberGenerator
     ) throws -> HatchResult {
         guard wallet.canAfford(egg.price) else {
             throw ShopError.insufficientFunds(price: egg.price, balance: wallet.balance)
         }
         let pet = try Hatchery.hatch(
-            egg, from: catalog, at: date, history: history, duplicates: duplicates, using: &rng)
+            egg, from: catalog, at: date, history: history, duplicates: duplicates, moment: moment, using: &rng)
         wallet.record(.purchase(itemID: egg.id, price: egg.price, at: date))
         let entryID = catalog.species(id: pet.speciesID)?.collectionID(for: pet.variant)
         let isNewFind = entryID.map { !history.found.contains($0) } ?? true

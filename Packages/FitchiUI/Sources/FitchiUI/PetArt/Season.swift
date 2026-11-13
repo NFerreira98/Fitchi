@@ -1,27 +1,7 @@
+import FitchiCore
 import SwiftUI
 
-/// The time of year, which dresses the green outdoor scenes: blossom drifting in spring, golden
-/// grass and falling leaves in autumn, frost and a little snow in winter. Like the light, a pure
-/// function of the date (and which half of the world you're in).
-public enum Season: String, CaseIterable, Sendable {
-    case spring, summer, autumn, winter
-
-    /// Countries mostly or wholly south of the equator, where the seasons are the other way round.
-    static let southernRegions: Set<String> = [
-        "AR", "AU", "BO", "BR", "BW", "CL", "FJ", "LS", "MG", "MU", "MZ", "NA", "NC", "NZ", "PE", "PY", "SZ", "UY",
-        "ZA", "ZW",
-    ]
-
-    /// - Parameter southern: nil works it out from the device's region.
-    public init(at date: Date, calendar: Calendar = .current, southern: Bool? = nil) {
-        let month = calendar.component(.month, from: date)
-        let isSouthern = southern ?? Self.southernRegions.contains(Locale.current.region?.identifier ?? "")
-        // Meteorological seasons: March–May is spring in the north.
-        let north: [Season] = [.winter, .spring, .summer, .autumn]
-        let index = (month % 12) / 3
-        self = north[(index + (isSouthern ? 2 : 0)) % 4]
-    }
-
+extension Season {
     /// Autumn trees turn different colours: orange, red and gold.
     static let autumnLeaves = [
         Color(red: 0.93, green: 0.55, blue: 0.2), Color(red: 0.84, green: 0.33, blue: 0.2),

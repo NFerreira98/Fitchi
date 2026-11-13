@@ -54,6 +54,12 @@ struct ShopView: View {
 
     private var eggs: some View {
         Section {
+            // What can hatch right now changes with the weather and the time of day.
+            TimelineView(.everyMinute) { _ in
+                HatchMomentBanner(
+                    moment: pets.hatchMoment, catalog: pets.catalog,
+                    found: Set(pets.collection.entries.filter(\.isFound).map(\.id)))
+            }
             ForEach(pets.catalog.eggs) { egg in
                 HStack(spacing: FitchiTheme.Spacing.m) {
                     EggFigure().frame(width: 48, height: 48)
@@ -70,7 +76,8 @@ struct ShopView: View {
         } footer: {
             Text(
                 "Each egg hatches a surprise pet, with the odds shown. Any pet can be shiny (1 in 64). "
-                    + "Eggs favour colourings you haven't found, and a repeat gives 25% of its price back.")
+                    + "Eggs favour colourings you haven't found, and a repeat gives 25% of its price back. "
+                    + "Some colourings only hatch in rain, snow or wind, or at dawn, dusk or night.")
         }
     }
 

@@ -1,3 +1,4 @@
+import FitchiCore
 import SwiftUI
 
 // Outdoor scenes. Same conventions as the meadow: a 100-wide art space, the horizon around

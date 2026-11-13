@@ -35,7 +35,7 @@ struct VariantTests {
         // Weights 4 : 3 : 2 : 1
         #expect(counts["leucistic", default: 0] > counts["wild", default: 0])
         #expect(counts["golden", default: 0] > counts["melanoid", default: 0])
-        #expect(Set(counts.keys) == Set(axolotl.variants.map(\.id)))
+        #expect(Set(counts.keys) == Set(axolotl.regularVariants.map(\.id)), "special ones need their moment")
     }
 
     @Test func noShinyMeansNoShinyRoll() throws {

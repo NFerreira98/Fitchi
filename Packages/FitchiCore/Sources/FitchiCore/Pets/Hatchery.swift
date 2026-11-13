@@ -6,16 +6,24 @@ public enum HatchError: Error, Equatable {
 
 /// Creates pets: the free random starter and pets hatched from eggs.
 public enum Hatchery {
-    /// The free starter egg: a random *common* species.
+    /// The free starter egg: a random *common* species (favouring any that like the moment).
+    /// - Parameter moment: the season, weather and time it hatches in (`HatchMoment(at:)`).
     public static func hatchStarter(
         from catalog: Catalog,
         at date: Date,
+        moment: HatchMoment = .plain,
         rules: HatchRules = .v1,
+        variants: VariantRules = .v1,
         using rng: inout some RandomNumberGenerator
     ) throws(HatchError) -> Pet {
         let commons = catalog.species.filter { $0.rarity == .common }
-        guard let species = commons.randomElement(using: &rng) else { throw .noSpeciesAvailable }
-        return makePet(species: species, at: date, initialValue: rules.newbornStatValue, using: &rng)
+        let weights = Dictionary(commons.map { ($0.id, $0.affinity(at: moment)) }, uniquingKeysWith: +)
+        guard let id = rng.weightedPick(weights, order: commons.map(\.id)),
+            let species = commons.first(where: { $0.id == id })
+        else { throw .noSpeciesAvailable }
+        return makePet(
+            species: species, at: date, initialValue: rules.newbornStatValue,
+            variant: variants.roll(for: species, at: moment, using: &rng), using: &rng)
     }
 
     /// Hatches an egg: rolls a rarity using the egg's odds, then a species and colouring of that
@@ -28,6 +36,7 @@ public enum Hatchery {
         history: HatchHistory = .empty,
         duplicates: DuplicateRules = .v1,
         variants: VariantRules = .v1,
+        moment: HatchMoment = .plain,
         using rng: inout some RandomNumberGenerator
     ) throws(HatchError) -> Pet {
         let byRarity = Dictionary(grouping: catalog.species, by: \.rarity)
@@ -41,7 +50,7 @@ public enum Hatchery {
         {
             return makePet(species: species, at: date, variant: PetVariant(id: shiny.id, isShiny: true), using: &rng)
         }
-        let candidates = colourings(of: pool)
+        let candidates = colourings(of: pool, at: moment)
         let fresh = candidates.filter { !history.found.contains($0.id) }
         let pityPool = history.repeatsInARow >= duplicates.pityAfter && !fresh.isEmpty ? fresh : candidates
         var weights: [String: Double] = [:]
@@ -55,16 +64,19 @@ public enum Hatchery {
         return makePet(species: picked.species, at: date, variant: picked.variant, using: &rng)
     }
 
-    /// Every regular colouring in `pool`, weighted so each species is equally likely and its
-    /// colourings keep their relative weights (as before duplicate protection).
-    private static func colourings(of pool: [Species]) -> [Colouring] {
-        pool.flatMap { species -> [Colouring] in
-            let share = 1 / Double(pool.count)
-            guard !species.variants.isEmpty else {
+    /// Every colouring in `pool` that can hatch at `moment` (regular ones, plus special ones whose
+    /// condition holds). Each species gets an equal share of the rarity, scaled by its affinity
+    /// for the moment; its colourings keep their relative weights (as before duplicate protection).
+    private static func colourings(of pool: [Species], at moment: HatchMoment) -> [Colouring] {
+        let affinity = pool.reduce(0) { $0 + $1.affinity(at: moment) }
+        return pool.flatMap { species -> [Colouring] in
+            let share = species.affinity(at: moment) / max(affinity, .leastNonzeroMagnitude)
+            let open = species.variants(at: moment)
+            guard !open.isEmpty else {
                 return [Colouring(species: species, variant: nil, weight: share)]
             }
-            let total = species.variants.reduce(0) { $0 + $1.weight }
-            return species.variants.map { colouring in
+            let total = open.reduce(0) { $0 + $1.weight }
+            return open.map { colouring in
                 Colouring(
                     species: species, variant: PetVariant(id: colouring.id),
                     weight: share * colouring.weight / max(total, .leastNonzeroMagnitude))

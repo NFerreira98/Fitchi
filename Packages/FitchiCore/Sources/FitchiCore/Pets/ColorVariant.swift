@@ -13,8 +13,15 @@ public struct ColorVariant: Codable, Hashable, Sendable, Identifiable {
     public var colors: [String: String]
     /// How `marking` is drawn: `stripes`, `spots` or `patches`.
     public var pattern: String?
+    /// A special colouring that only hatches in these conditions (snow, night, autumn…); nil
+    /// for a regular one.
+    public var when: HatchCondition?
 
-    public init(id: String, name: String, weight: Double = 1, colors: [String: String], pattern: String? = nil) {
+    public init(
+        id: String, name: String, weight: Double = 1, colors: [String: String], pattern: String? = nil,
+        when: HatchCondition? = nil
+    ) {
+        self.when = when
         self.id = id
         self.name = name
         self.weight = weight
@@ -23,7 +30,7 @@ public struct ColorVariant: Codable, Hashable, Sendable, Identifiable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, weight, colors, pattern
+        case id, name, weight, colors, pattern, when
     }
 
     public init(from decoder: any Decoder) throws {
@@ -33,6 +40,7 @@ public struct ColorVariant: Codable, Hashable, Sendable, Identifiable {
         weight = try container.decodeIfPresent(Double.self, forKey: .weight) ?? 1
         colors = try container.decode([String: String].self, forKey: .colors)
         pattern = try container.decodeIfPresent(String.self, forKey: .pattern)
+        when = try container.decodeIfPresent(HatchCondition.self, forKey: .when)
     }
 
     public static let requiredColorSlots = ["body", "belly", "accent"]
@@ -51,6 +59,7 @@ public struct ColorVariant: Codable, Hashable, Sendable, Identifiable {
             if !Self.knownColorSlots.contains(slot) { problems.append("\(label) has unknown colour slot '\(slot)'") }
             if !Self.isHexColor(value) { problems.append("\(label) colour '\(slot)' is not #RRGGBB") }
         }
+        if let when, when.isEmpty { problems.append("\(label) has an empty 'when' condition") }
         if let pattern, !Self.knownPatterns.contains(pattern) {
             problems.append("\(label) has unknown pattern '\(pattern)'")
         }
@@ -88,8 +97,23 @@ public struct VariantRules: Hashable, Sendable {
         if let shiny = species.shiny, shinyRoll < shinyChance {
             return PetVariant(id: shiny.id, isShiny: true)
         }
-        let weights = Dictionary(species.variants.map { ($0.id, $0.weight) }, uniquingKeysWith: +)
-        guard let id = rng.weightedPick(weights, order: species.variants.map(\.id)) else { return nil }
+        let regular = species.regularVariants
+        let weights = Dictionary(regular.map { ($0.id, $0.weight) }, uniquingKeysWith: +)
+        guard let id = rng.weightedPick(weights, order: regular.map(\.id)) else { return nil }
+        return PetVariant(id: id)
+    }
+
+    /// Like `roll(for:using:)`, but special colourings whose condition holds at `moment` can turn up too.
+    public func roll(for species: Species, at moment: HatchMoment, using rng: inout some RandomNumberGenerator)
+        -> PetVariant?
+    {
+        let shinyRoll = Double.random(in: 0..<1, using: &rng)
+        if let shiny = species.shiny, shinyRoll < shinyChance {
+            return PetVariant(id: shiny.id, isShiny: true)
+        }
+        let open = species.variants(at: moment)
+        let weights = Dictionary(open.map { ($0.id, $0.weight) }, uniquingKeysWith: +)
+        guard let id = rng.weightedPick(weights, order: open.map(\.id)) else { return nil }
         return PetVariant(id: id)
     }
 }

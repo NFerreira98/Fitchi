@@ -45,9 +45,13 @@ struct CollectionView: View {
             }
             ProgressView(value: Double(book.foundCount), total: Double(max(book.totalCount, 1)))
                 .tint(FitchiTheme.Colors.accent)
-            Text("Hatch eggs to find new pets and colours. Shinies turn up 1 in 64.")
-                .font(FitchiTheme.Fonts.text(.footnote))
-                .foregroundStyle(.secondary)
+            Text(
+                "Hatch eggs to find new pets and colours. Shinies turn up 1 in 64. "
+                    + "\(book.specialsFound) of \(book.specialsTotal) specials found: they only hatch in certain "
+                    + "weather (🌧️ ❄️ 💨), at certain times (🌅 🌆 🌙) or seasons (🌸 🍂)."
+            )
+            .font(FitchiTheme.Fonts.text(.footnote))
+            .foregroundStyle(.secondary)
         }
         .accessibilityElement(children: .combine)
     }

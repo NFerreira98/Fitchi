@@ -345,13 +345,7 @@ extension PetLife {
     // MARK: - Noise
 
     /// A stable pseudo-random number in 0..<1 for a pair of integers (SplitMix64).
-    static func noise(_ seed: Int, _ index: Int) -> Double {
-        var value = UInt64(bitPattern: Int64(seed)) &* 0x9E37_79B9_7F4A_7C15 &+ UInt64(bitPattern: Int64(index))
-        value = (value ^ (value >> 30)) &* 0xBF58_476D_1CE4_E5B9
-        value = (value ^ (value >> 27)) &* 0x94D0_49BB_1331_11EB
-        value ^= value >> 31
-        return Double(value >> 11) / Double(UInt64(1) << 53)
-    }
+    static func noise(_ seed: Int, _ index: Int) -> Double { StableNoise.value(seed, index) }
 }
 
 public extension PetLife {

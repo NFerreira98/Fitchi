@@ -80,11 +80,26 @@ public struct Catalog: Codable, Hashable, Sendable {
             if Set(variantIDs).count != variantIDs.count {
                 problems.append("Species '\(spec.id)' has duplicate variant ids")
             }
-            if spec.shiny != nil && spec.variants.isEmpty {
+            if spec.shiny != nil && spec.regularVariants.isEmpty {
                 problems.append("Species '\(spec.id)' has a shiny but no regular variants")
             }
+            problems += conditionProblems(spec)
             problems += spec.favoriteItemIDs.filter { !itemIDs.contains($0) }
                 .map { "Species '\(spec.id)' favorite '\($0)' is not an item" }
+        }
+        return problems
+    }
+
+    /// Special colourings and affinities need a real condition; the shiny is never conditional.
+    private func conditionProblems(_ spec: Species) -> [String] {
+        var problems: [String] = []
+        if !spec.specialVariants.isEmpty && spec.regularVariants.isEmpty {
+            problems.append("Species '\(spec.id)' has only special variants: nothing could hatch in fair weather")
+        }
+        if spec.shiny?.when != nil { problems.append("Species '\(spec.id)' shiny can't have a 'when' condition") }
+        for affinity in spec.affinities {
+            if affinity.when.isEmpty { problems.append("Species '\(spec.id)' has an affinity with no condition") }
+            if affinity.boost <= 0 { problems.append("Species '\(spec.id)' has an affinity with a non-positive boost") }
         }
         return problems
     }
