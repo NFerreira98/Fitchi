@@ -59,6 +59,11 @@ public struct PetStage: View {
     /// When this device last showed the pet, to say hello after time away.
     @AppStorage(PetStage.lastSeenKey) private var lastSeen: Double = 0
     @State private var greeting: PetLife.Greeting?
+    @State private var boop: PetLife.Boop?
+    @State private var boops = 0
+    /// A finger on the pet: a quick tap boops it, holding pets it. A swipe cancels.
+    @State private var touch: (start: Date, swiped: Bool)?
+    @State private var pats = 0
     private let pet: Pet
     private let species: Species?
     private let mood: PetMood
@@ -74,6 +79,10 @@ public struct PetStage: View {
     private let fixedLight: SceneLight?
     /// Each change plays the big hello (for trying it out).
     private let bigHellos: Int
+    /// 0…1, the glow after a workout (`Afterglow.level`).
+    private let afterglow: Double
+    /// Holding longer than this pets instead of booping.
+    static let holdToPet: TimeInterval = 0.35
 
     /// UserDefaults key for when the pet was last on screen (seconds since the reference date).
     public static let lastSeenKey = "fitchi.petLastSeen"
@@ -84,8 +93,9 @@ public struct PetStage: View {
     public init(
         pet: Pet, species: Species?, mood: PetMood = .content, backdrop: SceneBackdrop.Kind = .meadow,
         style: PetLayoutStyle, reaction: StageReaction? = nil, petScale: CGFloat = 0.5, controlsBelow: Bool = true,
-        light: SceneLight? = nil, bigHellos: Int = 0
+        light: SceneLight? = nil, bigHellos: Int = 0, afterglow: Double = 0
     ) {
+        self.afterglow = afterglow
         self.bigHellos = bigHellos
         self.controlsBelow = controlsBelow
         self.fixedLight = light
@@ -119,6 +129,12 @@ public struct PetStage: View {
                         x: geometry.size.width / 2 + frame.x * wanderRange(in: geometry.size, petSize: drawn),
                         y: feet - drawn / 2)
                     pet(frame, size: drawn)
+                        // Only the pet itself, not the margin around it, takes touches.
+                        .contentShape(Rectangle().inset(by: drawn * (PetFigure.marginScale - 1) / 2))
+                        .simultaneousGesture(touchGesture)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(pet.name)
+                        .accessibilityAction(named: "Boop") { boopNow() }
                         .position(center)
                     if let visitor = frame.visitor {
                         let kind = backdrop.visitor(in: light)
@@ -142,6 +158,45 @@ public struct PetStage: View {
         .onChange(of: bigHellos) {
             greeting = PetLife.Greeting(startedAt: Date.now.timeIntervalSinceReferenceDate, isBig: true)
         }
+        .sensoryFeedback(.impact(weight: .light), trigger: boops)
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: pats)
+        .task(id: touch?.start) {
+            // Still holding after a moment: that's petting. A soft tap says it's noticed.
+            guard touch != nil else { return }
+            try? await Task.sleep(for: .seconds(Self.holdToPet))
+            if let touch, !touch.swiped { pats += 1 }
+        }
+    }
+
+    private var touchGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let moved = hypot(value.translation.width, value.translation.height) > 12
+                if touch == nil {
+                    touch = (.now, false)
+                } else if moved {
+                    touch?.swiped = true
+                }
+            }
+            .onEnded { _ in
+                if let touch, !touch.swiped, Date.now.timeIntervalSince(touch.start) < Self.holdToPet {
+                    boopNow()
+                }
+                touch = nil
+            }
+    }
+
+    private func boopNow() {
+        guard reaction == nil else { return }
+        boop = PetLife.Boop(startedAt: Date.now.timeIntervalSinceReferenceDate, variety: boops)
+        boops += 1
+    }
+
+    /// Seconds of petting so far at `date`, once a hold has lasted long enough.
+    private func pettedFor(at date: Date) -> Double? {
+        guard let touch, !touch.swiped else { return nil }
+        let held = date.timeIntervalSince(touch.start) - Self.holdToPet
+        return held > 0 ? held : nil
     }
 
     /// The pet is on screen again: say hello if it's been a while.
@@ -163,7 +218,9 @@ public struct PetStage: View {
             reaction: reaction.map {
                 PetLife.Reaction(action: $0.action, startedAt: $0.startedAt.timeIntervalSinceReferenceDate)
             },
-            still: reduceMotion, visitors: backdrop.hasVisitors, greeting: greeting)
+            still: reduceMotion, visitors: backdrop.hasVisitors,
+            cues: PetLife.Cues(
+                greeting: greeting, boop: boop, pettedFor: pettedFor(at: date), afterglow: afterglow))
     }
 
     /// The backdrop, alive: clouds drift, grass sways and the light follows the time of day.
@@ -268,82 +325,5 @@ public struct PetStage: View {
                 }
                 .frame(maxHeight: .infinity, alignment: .top)
         }
-    }
-}
-
-/// A small ring showing one stat, for the corners of the pet screen.
-public struct StatRing: View {
-    private let stat: Stat
-    private let value: Double
-
-    public init(_ stat: Stat, value: Double) {
-        self.stat = stat
-        self.value = value
-    }
-
-    public var body: some View {
-        ZStack {
-            Circle().stroke(stat.color.opacity(0.25), lineWidth: 3)
-            Circle()
-                .trim(from: 0, to: max(0.02, min(value / 100, 1)))
-                .stroke(stat.color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-            Image(systemName: stat.systemImage)
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(stat.color)
-        }
-        .frame(width: 24, height: 24)
-        .animation(.spring(duration: 0.6), value: value)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(stat.title): \(Int(value.rounded())) out of 100")
-    }
-}
-
-/// A thin labelled bar, for the Horizon layout.
-public struct StatPip: View {
-    private let stat: Stat
-    private let value: Double
-
-    public init(_ stat: Stat, value: Double) {
-        self.stat = stat
-        self.value = value
-    }
-
-    public var body: some View {
-        VStack(spacing: 2) {
-            Capsule()
-                .fill(stat.color.opacity(0.25))
-                .overlay(alignment: .leading) {
-                    GeometryReader { geometry in
-                        Capsule().fill(stat.color).frame(width: geometry.size.width * max(0.04, min(value / 100, 1)))
-                    }
-                }
-                .frame(height: 5)
-            Image(systemName: stat.systemImage)
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(stat.color)
-        }
-        .animation(.spring(duration: 0.6), value: value)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(stat.title): \(Int(value.rounded())) out of 100")
-    }
-}
-
-/// Rises and fades out once.
-struct FloatingReward: View {
-    let text: String
-    @State private var risen = false
-
-    var body: some View {
-        Text(text)
-            .font(FitchiTheme.Fonts.display(.headline, weight: .heavy).monospacedDigit())
-            .foregroundStyle(.white)
-            .shadow(color: .black.opacity(0.5), radius: 2)
-            .offset(y: risen ? -30 : 0)
-            .opacity(risen ? 0 : 1)
-            .onAppear {
-                withAnimation(.easeOut(duration: 1.4)) { risen = true }
-            }
-            .accessibilityHidden(true)
     }
 }

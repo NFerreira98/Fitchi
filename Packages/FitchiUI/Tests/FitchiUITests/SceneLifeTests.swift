@@ -57,20 +57,71 @@ struct VisitorTests {
         let start = day.first { PetLife.napAmount(at: $0, seed: seed, mood: .content) == 0 && $0 > 100 } ?? 100
         let greeting = PetLife.Greeting(startedAt: start, isBig: true)
         let before = PetLife.frame(at: start - 0.01, seed: seed, mood: .content)
-        let first = PetLife.frame(at: start, seed: seed, mood: .content, greeting: greeting)
+        let first = PetLife.frame(at: start, seed: seed, mood: .content, cues: .init(greeting: greeting))
         #expect(abs(first.x - before.x) < 0.05 && abs(first.depth - before.depth) < 0.05)
-        let middle = PetLife.frame(at: start + 2, seed: seed, mood: .content, greeting: greeting)
+        let middle = PetLife.frame(at: start + 2, seed: seed, mood: .content, cues: .init(greeting: greeting))
         #expect(middle.depth > 0.9 && abs(middle.x) < 0.01, "front and centre")
-        let last = PetLife.frame(at: start + greeting.duration - 0.01, seed: seed, mood: .content, greeting: greeting)
-        let after = PetLife.frame(at: start + greeting.duration, seed: seed, mood: .content, greeting: greeting)
+        let last = PetLife.frame(
+            at: start + greeting.duration - 0.01, seed: seed, mood: .content, cues: .init(greeting: greeting))
+        let after = PetLife.frame(
+            at: start + greeting.duration, seed: seed, mood: .content, cues: .init(greeting: greeting))
         #expect(abs(last.x - after.x) < 0.05 && abs(last.depth - after.depth) < 0.05, "no jump at the end")
     }
 
     @Test func aSmallHelloFacesYouWithAGrin() {
         let greeting = PetLife.Greeting(startedAt: 0.5, isBig: false)
-        let frame = PetLife.frame(at: 0.8, seed: seed, mood: .content, wander: false, greeting: greeting)
+        let frame = PetLife.frame(at: 0.8, seed: seed, mood: .content, wander: false, cues: .init(greeting: greeting))
         #expect(frame.pose.lookX == 0 && frame.pose.mouthOpen > 0.5 && frame.pose.lift > 0)
-        let asleep = PetLife.frame(at: 0.8, seed: seed, mood: PetMood(isAsleep: true), greeting: greeting)
+        let asleep = PetLife.frame(at: 0.8, seed: seed, mood: PetMood(isAsleep: true), cues: .init(greeting: greeting))
         #expect(asleep.pose.sleep == 1, "a sleeping pet sleeps through it")
+    }
+}
+
+@Suite("Touch and afterglow")
+struct TouchTests {
+    let seed = 1234
+
+    @Test func eachBoopInARowGetsADifferentReaction() {
+        let frames = (0..<4).map { variety in
+            PetLife.frame(
+                at: 10.4, seed: seed, mood: .content, wander: false,
+                cues: .init(boop: PetLife.Boop(startedAt: 10, variety: variety)))
+        }
+        #expect(Set(frames.map(\.pose)).count == 4)
+        let after = PetLife.frame(
+            at: 10.01 + PetLife.Boop.duration, seed: seed, mood: .content, wander: false,
+            cues: .init(boop: PetLife.Boop(startedAt: 10, variety: 0)))
+        #expect(after == PetLife.frame(at: 10.01 + PetLife.Boop.duration, seed: seed, mood: .content, wander: false))
+    }
+
+    @Test func pettingClosesItsEyesAndBringsHearts() {
+        let frame = PetLife.frame(at: 20, seed: seed, mood: .content, wander: false, cues: .init(pettedFor: 1))
+        #expect(frame.pose.eyesOpen == 0 && frame.pose.smile == 1)
+        #expect(frame.effects.hearts != nil)
+    }
+
+    @Test func aSleepingPetOnlyStirs() {
+        let asleep = PetMood(isAsleep: true)
+        let frame = PetLife.frame(
+            at: 10.5, seed: seed, mood: asleep, cues: .init(boop: PetLife.Boop(startedAt: 10, variety: 1)))
+        #expect(frame.pose.sleep == 1 && frame.pose.lift == 0)
+        #expect(frame.pose.eyesOpen > 0 && frame.pose.eyesOpen < 0.5)
+    }
+
+    @Test func pumpedPetsHopAndSparkleNowAndThen() {
+        let times = (0..<400).map { Double($0) * 0.1 }
+        let pumped = times.map {
+            PetLife.frame(at: $0, seed: seed, mood: .content, wander: false, cues: .init(afterglow: 1))
+        }
+        #expect(pumped.contains { if case .sparkle = $0.effects.prop { true } else { false } })
+        let calm = times.map { PetLife.frame(at: $0, seed: seed, mood: .content, wander: false) }
+        #expect(pumped.map(\.pose.lift).max() ?? 0 > calm.map(\.pose.lift).max() ?? 0)
+        // A sad pet isn't feeling it.
+        let sad = PetMood(condition: .sad)
+        #expect(
+            times.allSatisfy {
+                PetLife.frame(at: $0, seed: seed, mood: sad, wander: false, cues: .init(afterglow: 1)).effects.prop
+                    == nil
+            })
     }
 }

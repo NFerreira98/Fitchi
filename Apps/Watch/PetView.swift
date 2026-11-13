@@ -21,17 +21,19 @@ struct PetView: View {
             let values = pet.values(at: timeline.date, in: pets.decay)
             let mood = pet.mood(at: timeline.date, in: pets.decay)
             let balance = pets.wallet(earnings: activity.earnings).balance
+            let afterglow = Afterglow.level(at: timeline.date, samples: activity.samples)
             ZStack {
                 PetStage(
                     pet: pet, species: pets.species(of: pet), mood: mood,
                     backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: style,
-                    reaction: event?.reaction, petScale: style == .island ? 0.48 : (style == .horizon ? 0.38 : 0.42)
+                    reaction: event?.reaction, petScale: style == .island ? 0.48 : (style == .horizon ? 0.38 : 0.42),
+                    afterglow: afterglow
                 )
                 .ignoresSafeArea()
                 VStack(spacing: 0) {
                     header(
                         balance: balance,
-                        status: event?.message ?? mood.headline)
+                        status: event?.message ?? mood.headline(afterglow: afterglow))
                     if let moment = pets.openMoment(at: timeline.date), event == nil {
                         giftButton(moment)
                     }

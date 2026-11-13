@@ -59,6 +59,13 @@ extension PetMood {
         if isTired { return "Sleepy" }
         return condition.title
     }
+
+    /// The headline, or "Pumped from your workout!" while a happy pet still has the afterglow.
+    public func headline(afterglow: Double) -> String {
+        let needsNothing = !isAsleep && !isHungry && !isDirty && !isBored && !isTired
+        guard afterglow > 0.15, needsNothing, condition == .content || condition == .thriving else { return headline }
+        return "Pumped from your workout! 💪"
+    }
 }
 
 extension Personality {

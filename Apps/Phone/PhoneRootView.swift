@@ -132,24 +132,26 @@ struct PhoneHomeView: View {
 /// what restores it if the watch app is ever reinstalled.
 struct BackedUpPetView: View {
     @Environment(PetStore.self) private var pets
+    @Environment(ActivityStore.self) private var activity
     let pet: Pet
     let lastBackup: Date?
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
             let mood = pet.mood(at: timeline.date, in: pets.decay)
+            let afterglow = Afterglow.level(at: timeline.date, samples: activity.samples)
             VStack(spacing: FitchiTheme.Spacing.s) {
                 PetStage(
                     pet: pet, species: pets.species(of: pet), mood: mood,
                     backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene,
                     petScale: 0.36,
-                    controlsBelow: false
+                    controlsBelow: false, afterglow: afterglow
                 )
                 .aspectRatio(1.1, contentMode: .fit)
                 .clipShape(.rect(cornerRadius: 28))
                 Text(pet.name)
                     .font(FitchiTheme.Fonts.display(.title))
-                Text(mood.headline)
+                Text(mood.headline(afterglow: afterglow))
                     .font(FitchiTheme.Fonts.text(.subheadline))
                     .foregroundStyle(.secondary)
                 Label(backupLine(at: timeline.date), systemImage: "checkmark.shield")

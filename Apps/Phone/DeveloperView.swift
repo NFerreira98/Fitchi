@@ -20,6 +20,7 @@
         @State private var mood = SandboxMood.content
         @State private var timeOfDay = SandboxTime.now
         @State private var hellos = 0
+        @State private var justWorkedOut = false
         /// A fixed id so the sandbox pet keeps the same wandering pattern while you change it.
         @State private var sandboxID = UUID()
 
@@ -77,7 +78,7 @@
                     PetStage(
                         pet: sandboxPet(species), species: species, mood: mood.mood, backdrop: backdrop,
                         style: .fullScene, petScale: 0.36, controlsBelow: false, light: timeOfDay.light,
-                        bigHellos: hellos
+                        bigHellos: hellos, afterglow: justWorkedOut ? 1 : 0
                     )
                     .frame(height: 260)
                     .clipShape(.rect(cornerRadius: 16))
@@ -122,13 +123,15 @@
                         Text(time.rawValue.capitalized).tag(time)
                     }
                 }
+                Toggle("Just worked out", isOn: $justWorkedOut)
                 Button("Say a big hello") { hellos += 1 }
             } header: {
                 Text("Dress-up sandbox")
             } footer: {
                 Text(
                     "Just a preview: nothing here is bought, saved or sent to your watch. "
-                        + "Visitors drop by outdoors every minute or two while the pet stands about.")
+                        + "Visitors drop by outdoors every minute or two while the pet stands about. "
+                        + "Tap the pet to boop it; hold to pet it.")
             }
         }
 

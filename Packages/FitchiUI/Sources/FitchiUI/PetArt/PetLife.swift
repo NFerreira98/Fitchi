@@ -54,10 +54,10 @@ public enum PetLife {
     ///   - wander: false keeps the pet in the middle (hatching, small previews).
     ///   - still: Reduce Motion. The pet stays put and only changes expression.
     ///   - visitors: whether little creatures drop by now and then (outdoor scenes).
-    ///   - greeting: a hello when you come back to the app.
+    ///   - cues: a hello when you come back, a boop or a pat, the glow after a workout.
     public static func frame(
         at time: TimeInterval, seed: Int, mood: PetMood, reaction: Reaction? = nil, wander: Bool = true,
-        still: Bool = false, visitors: Bool = false, greeting: Greeting? = nil
+        still: Bool = false, visitors: Bool = false, cues: Cues = Cues()
     ) -> PetFrame {
         var frame = PetFrame()
         let clock = still ? 0 : time
@@ -79,11 +79,11 @@ public enum PetLife {
         if mood.isAsleep {
             sleep(&frame, amount: 1, clock: clock)
             showNeeds(mood, clock: clock, asleep: true, on: &frame)
+            stir(cues, at: time, on: &frame)
             return frame
         }
 
-        let greetingElapsed = greeting?.elapsed(at: time)
-        if let greeting, wander, !still,
+        if let greeting = cues.greeting, wander, !still,
             let big = bigGreeting(greeting, at: time, seed: seed, mood: mood, clock: clock)
         {
             return big
@@ -100,6 +100,7 @@ public enum PetLife {
             if nap > 0 {
                 sleep(&frame, amount: nap, clock: clock)
                 showNeeds(mood, clock: clock, asleep: nap > 0.5, on: &frame)
+                stir(cues, at: time, on: &frame)
                 return frame
             }
         }
@@ -108,9 +109,7 @@ public enum PetLife {
         if visitors, wander, !still, let visitor = visit(at: time, seed: seed, mood: mood) {
             watch(visitor, on: &frame)
         }
-        if let elapsed = greetingElapsed {
-            greet(elapsed: still ? 0.3 : elapsed, on: &frame.pose)
-        }
+        respond(to: cues, at: time, seed: seed, mood: mood, still: still, on: &frame)
         return frame
     }
 

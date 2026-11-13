@@ -184,3 +184,25 @@ struct StreakLadderTests {
         }
     }
 }
+
+@Suite("Afterglow")
+struct AfterglowTests {
+    func at(_ hour: Int, _ minute: Int = 0) -> Date { TestSupport.date(2026, 3, 9, hour: hour, minute: minute) }
+
+    @Test func fadesOverAnHourAfterARealWorkout() {
+        let run = ActivitySample(id: "run", kind: .run, start: at(7), end: at(7, 30))
+        #expect(Afterglow.level(at: at(7, 30), samples: [run]) == 1)
+        #expect(abs(Afterglow.level(at: at(8), samples: [run]) - 0.5) < 0.001)
+        #expect(Afterglow.level(at: at(8, 30), samples: [run]) == 0)
+        #expect(Afterglow.level(at: at(7, 15), samples: [run]) == 0, "not until it's over")
+    }
+
+    @Test func passiveShortAndHandEnteredDontCount() {
+        let samples = [
+            ActivitySample(id: "p", kind: .passive, start: at(7), end: at(7, 30)),
+            ActivitySample(id: "s", kind: .walk, start: at(7), end: at(7, 5)),
+            ActivitySample(id: "h", kind: .run, start: at(7), end: at(7, 30), isUserEntered: true),
+        ]
+        #expect(Afterglow.level(at: at(7, 31), samples: samples) == 0)
+    }
+}
