@@ -10,6 +10,11 @@ import UniformTypeIdentifiers
 enum ArtPreview {
     static func run() throws {
         var arguments = Array(CommandLine.arguments.dropFirst())
+        // `--sounds DIR` writes every pet sound in a few voices as WAV files, to listen to.
+        if arguments.first == "--sounds" {
+            try SoundSheet.write(to: arguments.count > 1 ? arguments[1] : "sounds")
+            return
+        }
         // `--accessories` renders every species wearing every accessory instead.
         let accessories = arguments.first == "--accessories"
         if accessories { arguments.removeFirst() }

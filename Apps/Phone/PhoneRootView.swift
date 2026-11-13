@@ -157,6 +157,10 @@ struct BackedUpPetView: View {
                 Label(backupLine(at: timeline.date), systemImage: "checkmark.shield")
                     .font(FitchiTheme.Fonts.text(.footnote))
                     .foregroundStyle(.secondary)
+                PetVoiceRow(voice: PetVoice(petID: pet.id, speciesID: pet.speciesID), petName: pet.name)
+                    .padding(.horizontal, FitchiTheme.Spacing.m)
+                    .padding(.vertical, FitchiTheme.Spacing.s)
+                    .background(.fill.tertiary, in: .rect(cornerRadius: 14))
             }
         }
     }

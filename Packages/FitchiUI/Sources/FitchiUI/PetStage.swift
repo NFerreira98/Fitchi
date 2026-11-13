@@ -169,6 +169,11 @@ public struct PetStage: View {
         .onChange(of: bigHellos) {
             greeting = PetLife.Greeting(startedAt: Date.now.timeIntervalSinceReferenceDate, isBig: true)
         }
+        .modifier(
+            StageSounds(
+                voice: PetVoice(petID: pet.id, speciesID: pet.speciesID), seed: PetLife.seed(for: pet.id), mood: mood,
+                reaction: reaction, boops: boops, pats: pats, greeting: greeting, quiet: isLuminanceReduced)
+        )
         .sensoryFeedback(.impact(weight: .light), trigger: boops)
         .sensoryFeedback(.impact(flexibility: .soft), trigger: pats)
         .task(id: touch?.start) {

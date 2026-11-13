@@ -247,6 +247,7 @@ struct PetDetailView: View {
     @State private var name = ""
     @AppStorage(PetLayoutStyle.storageKey) private var style = PetLayoutStyle.island
     @AppStorage(CareReminders.enabledKey) private var remindersOn = true
+    @AppStorage(PetSounds.enabledKey) private var soundsOn = true
 
     var body: some View {
         if let pet = pets.roster[petID] {
@@ -281,6 +282,20 @@ struct PetDetailView: View {
                         .onChange(of: remindersOn) { PetCompanions.refresh(pets) }
                 } footer: {
                     Text("A nudge when \(pet.name) gets hungry, bored, sleepy or grubby. Never at night.")
+                }
+                Section {
+                    let voice = PetVoice(petID: pet.id, speciesID: pet.speciesID)
+                    Button {
+                        PetSounds.shared.play(.hello, voice: voice)
+                    } label: {
+                        Label(voice.name, systemImage: "speaker.wave.2.fill")
+                    }
+                    .disabled(!soundsOn)
+                    Toggle("Pet sounds", isOn: $soundsOn)
+                } header: {
+                    Text("Voice")
+                } footer: {
+                    Text("Every pet is born with its own voice. Tap to hear \(pet.name).")
                 }
                 Section("Personality") {
                     VStack(alignment: .leading, spacing: 2) {

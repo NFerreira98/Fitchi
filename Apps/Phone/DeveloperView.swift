@@ -137,6 +137,10 @@
                         Text(personality.rawValue.capitalized).tag(personality)
                     }
                 }
+                if let species {
+                    PetVoiceRow(voice: PetVoice(petID: sandboxID, speciesID: species.id), petName: "Sandbox")
+                }
+                Button("Roll a new voice") { sandboxID = UUID() }
                 Toggle("Just worked out", isOn: $justWorkedOut)
                 Button("Say a big hello") { hellos += 1 }
             } header: {
