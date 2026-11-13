@@ -19,6 +19,9 @@
         @State private var backdrop = SceneBackdrop.Kind.meadow
         @State private var mood = SandboxMood.content
         @State private var timeOfDay = SandboxTime.now
+        /// nil follows the calendar.
+        @State private var season: Season?
+        @State private var personality = Personality.easygoing
         @State private var hellos = 0
         @State private var justWorkedOut = false
         /// A fixed id so the sandbox pet keeps the same wandering pattern while you change it.
@@ -78,7 +81,7 @@
                     PetStage(
                         pet: sandboxPet(species), species: species, mood: mood.mood, backdrop: backdrop,
                         style: .fullScene, petScale: 0.36, controlsBelow: false, light: timeOfDay.light,
-                        bigHellos: hellos, afterglow: justWorkedOut ? 1 : 0
+                        bigHellos: hellos, afterglow: justWorkedOut ? 1 : 0, season: season
                     )
                     .frame(height: 260)
                     .clipShape(.rect(cornerRadius: 16))
@@ -123,6 +126,17 @@
                         Text(time.rawValue.capitalized).tag(time)
                     }
                 }
+                Picker("Season", selection: $season) {
+                    Text("Now").tag(Season?.none)
+                    ForEach(Season.allCases, id: \.self) { season in
+                        Text(season.rawValue.capitalized).tag(Season?.some(season))
+                    }
+                }
+                Picker("Personality", selection: $personality) {
+                    ForEach(Personality.allCases, id: \.self) { personality in
+                        Text(personality.rawValue.capitalized).tag(personality)
+                    }
+                }
                 Toggle("Just worked out", isOn: $justWorkedOut)
                 Button("Say a big hello") { hellos += 1 }
             } header: {
@@ -131,7 +145,8 @@
                 Text(
                     "Just a preview: nothing here is bought, saved or sent to your watch. "
                         + "Visitors drop by outdoors every minute or two while the pet stands about. "
-                        + "Tap the pet to boop it; hold to pet it.")
+                        + "Tap the pet to boop it; hold to pet it. Its personality shows in little habits now and then; "
+                        + "the meadow, pond and forest change with the seasons.")
             }
         }
 
@@ -144,7 +159,7 @@
             let variantID = shiny ? String(colouring.dropFirst("shiny:".count)) : colouring
             var pet = Pet(
                 id: sandboxID, name: "Sandbox", speciesID: species.id,
-                traits: PetTraits(appetite: 1, playfulness: 1, stamina: 1, tidiness: 1), personality: .easygoing,
+                traits: PetTraits(appetite: 1, playfulness: 1, stamina: 1, tidiness: 1), personality: personality,
                 hatchedAt: .now, variant: variantID.isEmpty ? nil : PetVariant(id: variantID, isShiny: shiny))
             pet.equipped = outfit
             return pet

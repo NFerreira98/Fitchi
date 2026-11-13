@@ -181,6 +181,21 @@ struct SceneSheet: View {
                     }
                 }
             }
+            // The green scenes through the year.
+            ForEach([SceneBackdrop.Kind.meadow, .pond, .forest], id: \.self) { kind in
+                HStack(spacing: 10) {
+                    ForEach(Season.allCases, id: \.self) { season in
+                        VStack(spacing: 4) {
+                            SceneBackdrop(kind, time: 1_003, light: .day, season: season)
+                                .frame(width: 160, height: 150)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                            Text("\(kind.rawValue.dropFirst(9)) · \(season.rawValue)")
+                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                }
+            }
             HStack(spacing: 20) {
                 ForEach(Array([Visitor.Kind.butterfly, .bird, .firefly].enumerated()), id: \.offset) { index, kind in
                     ForEach(0..<3) { variety in

@@ -81,6 +81,8 @@ public struct PetStage: View {
     private let bigHellos: Int
     /// 0…1, the glow after a workout (`Afterglow.level`).
     private let afterglow: Double
+    /// A fixed season to dress the scene for; nil follows the calendar.
+    private let fixedSeason: Season?
     /// Holding longer than this pets instead of booping.
     static let holdToPet: TimeInterval = 0.35
 
@@ -93,8 +95,9 @@ public struct PetStage: View {
     public init(
         pet: Pet, species: Species?, mood: PetMood = .content, backdrop: SceneBackdrop.Kind = .meadow,
         style: PetLayoutStyle, reaction: StageReaction? = nil, petScale: CGFloat = 0.5, controlsBelow: Bool = true,
-        light: SceneLight? = nil, bigHellos: Int = 0, afterglow: Double = 0
+        light: SceneLight? = nil, bigHellos: Int = 0, afterglow: Double = 0, season: Season? = nil
     ) {
+        self.fixedSeason = season
         self.afterglow = afterglow
         self.bigHellos = bigHellos
         self.controlsBelow = controlsBelow
@@ -120,15 +123,19 @@ public struct PetStage: View {
                     .animation(minimumInterval: reduceMotion ? 0.5 : 1.0 / 20, paused: isLuminanceReduced)
                 ) { timeline in
                     let frame = frame(at: timeline.date)
-                    let ground = groundBand(in: size)
                     let light = fixedLight ?? SceneLight(at: timeline.date)
-                    // Farther back is higher up the ground and a little smaller.
-                    let drawn = petSize * (1 - depthShrink * (1 - frame.depth))
-                    let feet = ground.back + (ground.front - ground.back) * frame.depth
-                    let center = CGPoint(
-                        x: geometry.size.width / 2 + frame.x * wanderRange(in: geometry.size, petSize: drawn),
-                        y: feet - drawn / 2)
+                    let season = fixedSeason ?? Season(at: timeline.date)
+                    let (center, drawn) = placement(x: frame.x, depth: frame.depth, in: size, petSize: petSize)
+                    let feet = center.y + drawn / 2
+                    let footing = backdrop.footing(in: season)
+                    GroundMarks(
+                        marks: marks(at: timeline.date, footing: footing, in: size, petSize: petSize), footing: footing)
                     pet(frame, size: drawn)
+                        // In the same light as the scene, and a touch hazier at the back.
+                        .colorMultiply(
+                            (backdrop == .starryNight ? .midnight : light).petTint(indoor: backdrop.isIndoor)
+                        )
+                        .saturation(backdrop.isIndoor ? 1 : 1 - 0.18 * (1 - frame.depth))
                         // Only the pet itself, not the margin around it, takes touches.
                         .contentShape(Rectangle().inset(by: drawn * (PetFigure.marginScale - 1) / 2))
                         .simultaneousGesture(touchGesture)
@@ -137,7 +144,7 @@ public struct PetStage: View {
                         .accessibilityAction(named: "Boop") { boopNow() }
                         .position(center)
                     if let visitor = frame.visitor {
-                        let kind = backdrop.visitor(in: light)
+                        let kind = backdrop.visitor(in: light, season: season)
                         let visitorSize = drawn * (kind == .bird ? 0.26 : 0.22)
                         VisitorView(kind: kind, visitor: visitor)
                             .frame(width: visitorSize, height: visitorSize)
@@ -220,7 +227,8 @@ public struct PetStage: View {
             },
             still: reduceMotion, visitors: backdrop.hasVisitors,
             cues: PetLife.Cues(
-                greeting: greeting, boop: boop, pettedFor: pettedFor(at: date), afterglow: afterglow))
+                greeting: greeting, boop: boop, pettedFor: pettedFor(at: date), afterglow: afterglow),
+            personality: pet.personality)
     }
 
     /// The backdrop, alive: clouds drift, grass sways and the light follows the time of day.
@@ -229,7 +237,7 @@ public struct PetStage: View {
         TimelineView(.animation(minimumInterval: 1.0 / 12, paused: isLuminanceReduced)) { timeline in
             SceneBackdrop(
                 backdrop, time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate,
-                light: fixedLight ?? SceneLight(at: timeline.date))
+                light: fixedLight ?? SceneLight(at: timeline.date), season: fixedSeason ?? Season(at: timeline.date))
         }
     }
 
@@ -325,5 +333,35 @@ public struct PetStage: View {
                 }
                 .frame(maxHeight: .infinity, alignment: .top)
         }
+    }
+}
+
+extension PetStage {
+    /// Where on the stage a pet standing at `x`, `depth` is centred, and how big it's drawn:
+    /// farther back is higher up the ground and a little smaller.
+    private func placement(x: Double, depth: Double, in size: CGSize, petSize: CGFloat) -> (CGPoint, CGFloat) {
+        let ground = groundBand(in: size)
+        let drawn = petSize * (1 - depthShrink * (1 - depth))
+        let feet = ground.back + (ground.front - ground.back) * depth
+        return (CGPoint(x: size.width / 2 + x * wanderRange(in: size, petSize: drawn), y: feet - drawn / 2), drawn)
+    }
+
+    /// Footprints and dust from recent strolls, placed on the ground. Steps the pet didn't really
+    /// take (it was acting out care or dashing over to say hello) are left out.
+    private func marks(at date: Date, footing: Footing, in size: CGSize, petSize: CGFloat) -> [GroundMark] {
+        guard footing != .none, !reduceMotion else { return [] }
+        let now = date.timeIntervalSinceReferenceDate
+        var busy: [ClosedRange<TimeInterval>] = []
+        if let reaction {
+            let start = reaction.startedAt.timeIntervalSinceReferenceDate
+            busy.append(start...(start + PetLife.duration(of: reaction.action)))
+        }
+        if let greeting, greeting.isBig { busy.append(greeting.startedAt...(greeting.startedAt + greeting.duration)) }
+        return PetLife.trail(at: now, seed: PetLife.seed(for: pet.id), mood: mood, lasting: footing.lasting)
+            .filter { step in !busy.contains { $0.contains(now - step.age) } }
+            .map { step in
+                let (center, drawn) = placement(x: step.x, depth: step.depth, in: size, petSize: petSize)
+                return GroundMark(step: step, point: CGPoint(x: center.x, y: center.y + drawn / 2), petSize: drawn)
+            }
     }
 }

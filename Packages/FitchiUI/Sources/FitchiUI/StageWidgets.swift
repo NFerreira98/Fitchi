@@ -77,3 +77,48 @@ struct FloatingReward: View {
             .accessibilityHidden(true)
     }
 }
+
+/// A footprint or dust puff placed on the stage: where the foot landed and how big the pet is
+/// at that depth.
+struct GroundMark {
+    var step: Footstep
+    var point: CGPoint
+    var petSize: CGFloat
+}
+
+/// Footprints in snow and sand that fade, or puffs of dust kicked up on grass.
+struct GroundMarks: View {
+    let marks: [GroundMark]
+    let footing: Footing
+
+    var body: some View {
+        Canvas { context, _ in
+            for mark in marks {
+                let fade = max(0, 1 - mark.step.age / footing.lasting)
+                let point = CGPoint(x: mark.point.x + mark.step.foot * mark.petSize * 0.1, y: mark.point.y)
+                switch footing {
+                case .prints(let color):
+                    // Fresh prints are crisp; they soften away as the ground settles.
+                    let width = mark.petSize * 0.07
+                    context.fill(
+                        Path(ellipse: point, rx: width, ry: width * 0.42),
+                        with: .color(color.opacity(0.55 * min(1, fade * 1.6))))
+                case .puffs(let color):
+                    let spread = mark.step.age / footing.lasting
+                    for side in [-1.0, 1.0] {
+                        let radius = mark.petSize * (0.03 + 0.05 * spread)
+                        let center = CGPoint(
+                            x: point.x + side * mark.petSize * 0.07 * spread,
+                            y: point.y - mark.petSize * 0.04 * spread)
+                        context.fill(
+                            Path(ellipse: center, rx: radius, ry: radius * 0.8),
+                            with: .color(color.opacity(0.6 * fade)))
+                    }
+                case .none: break
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}

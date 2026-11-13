@@ -55,9 +55,10 @@ public enum PetLife {
     ///   - still: Reduce Motion. The pet stays put and only changes expression.
     ///   - visitors: whether little creatures drop by now and then (outdoor scenes).
     ///   - cues: a hello when you come back, a boop or a pat, the glow after a workout.
+    ///   - personality: gives the pet its little habits while it stands about.
     public static func frame(
         at time: TimeInterval, seed: Int, mood: PetMood, reaction: Reaction? = nil, wander: Bool = true,
-        still: Bool = false, visitors: Bool = false, cues: Cues = Cues()
+        still: Bool = false, visitors: Bool = false, cues: Cues = Cues(), personality: Personality? = nil
     ) -> PetFrame {
         var frame = PetFrame()
         let clock = still ? 0 : time
@@ -106,11 +107,23 @@ public enum PetLife {
         }
         express(mood, clock: still ? 0 : time, seed: seed, on: &frame)
         showNeeds(mood, clock: clock, asleep: false, on: &frame)
-        if visitors, wander, !still, let visitor = visit(at: time, seed: seed, mood: mood) {
-            watch(visitor, on: &frame)
+        if wander, !still {
+            standAbout(at: time, seed: seed, mood: mood, visitors: visitors, personality: personality, on: &frame)
         }
         respond(to: cues, at: time, seed: seed, mood: mood, still: still, on: &frame)
         return frame
+    }
+
+    /// While standing about: watch a visitor drop by, or do a little personality habit.
+    static func standAbout(
+        at time: TimeInterval, seed: Int, mood: PetMood, visitors: Bool, personality: Personality?,
+        on frame: inout PetFrame
+    ) {
+        if visitors, let visitor = visit(at: time, seed: seed, mood: mood) {
+            watch(visitor, on: &frame)
+        } else if let personality, let elapsed = habit(at: time, seed: seed, mood: mood) {
+            perform(personality, elapsed: elapsed, on: &frame)
+        }
     }
 
     // MARK: - Wandering
@@ -148,15 +161,20 @@ public enum PetLife {
         guard strolls(in: index, seed: seed, mood: mood) else {
             return Place(x: spot, depth: depth, facingRight: facingRight)
         }
-        let speed = mood.isDown || mood.isTired ? 0.22 : 0.4
-        let distance = (pow(spot - walkFrom, 2) + pow((depth - depthFrom) * 1.2, 2)).squareRoot()
-        let duration = min(slot - 0.5, max(1.2, distance / speed))
+        let duration = strollDuration(across: spot - walkFrom, back: depth - depthFrom, mood: mood)
         guard into < duration else { return Place(x: spot, depth: depth, facingRight: facingRight) }
         let progress = into / duration
         let eased = progress * progress * (3 - 2 * progress)
         return Place(
             x: walkFrom + (spot - walkFrom) * eased, depth: depthFrom + (depth - depthFrom) * eased,
             facingRight: facingRight, stride: into)
+    }
+
+    /// How long a stroll takes, from how far it goes across and front to back.
+    static func strollDuration(across: Double, back: Double, mood: PetMood) -> Double {
+        let speed = mood.isDown || mood.isTired ? 0.22 : 0.4
+        let distance = (across * across + back * 1.2 * back * 1.2).squareRoot()
+        return min(slot - 0.5, max(1.2, distance / speed))
     }
 
     static func strolls(in index: Int, seed: Int, mood: PetMood) -> Bool {

@@ -24,14 +24,17 @@ public struct SceneBackdrop: View {
     private let kind: Kind
     private let time: TimeInterval
     private let light: SceneLight
+    private let season: Season
 
     /// - Parameters:
     ///   - time: an animation clock in seconds (clouds drift, grass sways); 0 is a still picture.
     ///   - light: the time of day to light the scene for.
-    public init(_ kind: Kind, time: TimeInterval = 0, light: SceneLight = .day) {
+    ///   - season: the time of year (meadow, pond and forest change with it); summer is as drawn.
+    public init(_ kind: Kind, time: TimeInterval = 0, light: SceneLight = .day, season: Season = .summer) {
         self.kind = kind
         self.time = time
         self.light = light
+        self.season = season
     }
 
     public init(id: String) {
@@ -45,7 +48,8 @@ public struct SceneBackdrop: View {
             context.scaleBy(x: scale, y: scale)
             let height = size.height / scale
             // The starry night is always night; everywhere else follows the real clock.
-            let world = SceneWorld(time: time, light: kind == .starryNight ? .day : light)
+            let world = SceneWorld(
+                time: time, light: kind == .starryNight ? .day : light, season: kind.hasSeasons ? season : .summer)
             switch kind {
             case .meadow: Meadow.draw(context, height: height, world: world)
             case .pond: Pond.draw(context, height: height, world: world)
@@ -57,12 +61,16 @@ public struct SceneBackdrop: View {
             case .livingRoom: LivingRoom.draw(context, height: height, world: world)
             case .kitchen: Kitchen.draw(context, height: height, world: world)
             }
+            if !kind.isIndoor {
+                if kind.hasSeasons { SeasonArt.draw(context, height: height, horizon: kind.horizon, world: world) }
+                Haze.draw(context, horizon: kind.horizon, world: world)
+            }
             Lighting.apply(context, height: height, world: world, indoor: kind.isIndoor)
             // Lights that shine through the dark: the moon and stars, fireflies, lamps.
             switch kind {
             case .meadow, .pond, .snowyHill, .beach, .forest:
                 Sky.nightSky(context, world: world)
-                if kind != .snowyHill && kind != .beach {
+                if kind != .snowyHill && kind != .beach && world.season != .winter {
                     Fireflies.draw(context, world: world, around: 60, strength: world.light.night)
                 }
             case .bedroom: Lighting.lamp(context, at: Bedroom.lamp, world: world)
@@ -81,10 +89,12 @@ extension SceneBackdrop.Kind {
     /// Whether little visitors (butterflies, birds, fireflies) drop by in this scene.
     public var hasVisitors: Bool { !isIndoor }
 
-    /// What drops by: a bird in the snow, fireflies at night, butterflies otherwise.
-    public func visitor(in light: SceneLight) -> Visitor.Kind {
-        if self == .starryNight || light.night > 0.6 { return .firefly }
-        return self == .snowyHill ? .bird : .butterfly
+    /// What drops by: a bird in the snow (or any winter scene), fireflies on warm nights,
+    /// butterflies otherwise.
+    public func visitor(in light: SceneLight, season: Season = .summer) -> Visitor.Kind {
+        let wintry = self == .snowyHill || (hasSeasons && season == .winter)
+        if self == .starryNight || (light.night > 0.6 && !wintry) { return .firefly }
+        return wintry ? .bird : .butterfly
     }
 }
 
@@ -230,21 +240,30 @@ private enum Meadow {
         hills.addQuadCurve(to: CGPoint(x: 100, y: horizon), control: CGPoint(x: 80, y: horizon - 12))
         hills.addLine(to: CGPoint(x: 100, y: height))
         hills.addLine(to: CGPoint(x: 0, y: height))
-        context.fill(hills, with: .color(Color(red: 0.55, green: 0.80, blue: 0.50)))
+        context.fill(hills, with: .color(world.greenery(Color(red: 0.55, green: 0.80, blue: 0.50))))
         let field = Path(CGRect(x: 0, y: horizon + 6, width: 100, height: height))
         context.fill(
             field,
             with: .linearGradient(
-                Gradient(colors: [Color(red: 0.62, green: 0.87, blue: 0.48), Color(red: 0.48, green: 0.78, blue: 0.40)]
-                ),
+                Gradient(colors: [
+                    world.greenery(Color(red: 0.62, green: 0.87, blue: 0.48)),
+                    world.greenery(Color(red: 0.48, green: 0.78, blue: 0.40)),
+                ]),
                 startPoint: CGPoint(x: 0, y: horizon + 6), endPoint: CGPoint(x: 0, y: height)
             ))
         Flora.tufts(
-            context, rows: [horizon + 12, horizon + 24, horizon + 38], color: Color(red: 0.40, green: 0.68, blue: 0.34),
-            world: world)
+            context, rows: [horizon + 12, horizon + 24, horizon + 38],
+            color: world.greenery(Color(red: 0.40, green: 0.68, blue: 0.34)), world: world)
+        guard world.season != .winter else { return }
         Flora.flowers(
             context,
-            at: [CGPoint(x: 10, y: horizon + 20), CGPoint(x: 88, y: horizon + 16), CGPoint(x: 82, y: horizon + 34)],
+            at: [CGPoint(x: 10, y: horizon + 20), CGPoint(x: 88, y: horizon + 16), CGPoint(x: 82, y: horizon + 34)]
+                + (world.season == .spring
+                    ? [
+                        CGPoint(x: 30, y: horizon + 30), CGPoint(x: 56, y: horizon + 14),
+                        CGPoint(x: 64, y: horizon + 40),
+                    ]
+                    : []),
             world: world)
     }
 }
@@ -256,18 +275,22 @@ private enum Pond {
             context, top: Color(red: 1, green: 0.78, blue: 0.70), bottom: Color(red: 1, green: 0.93, blue: 0.84),
             horizon: horizon, world: world)
         let bank = Path(CGRect(x: 0, y: horizon, width: 100, height: height))
-        context.fill(bank, with: .color(Color(red: 0.56, green: 0.80, blue: 0.52)))
+        context.fill(bank, with: .color(world.greenery(Color(red: 0.56, green: 0.80, blue: 0.52))))
         let water = Path(ellipse: CGPoint(x: 50, y: horizon + 16), rx: 58, ry: 14)
+        // In winter the pond freezes over: pale ice, no ripples.
+        let frozen = world.season == .winter
         context.fill(
             water,
             with: .linearGradient(
-                Gradient(colors: [Color(red: 0.55, green: 0.85, blue: 0.95), Color(red: 0.36, green: 0.70, blue: 0.88)]
-                ),
+                Gradient(
+                    colors: [Color(red: 0.55, green: 0.85, blue: 0.95), Color(red: 0.36, green: 0.70, blue: 0.88)]
+                        .map { frozen ? $0.mix(with: .white, by: 0.55) : $0 }),
                 startPoint: CGPoint(x: 0, y: horizon + 2), endPoint: CGPoint(x: 0, y: horizon + 30)
             ))
         context.stroke(water, with: .color(Color(red: 0.42, green: 0.66, blue: 0.40)), lineWidth: 1.6)
         // Ripples spread out and fade, one after another.
-        for (index, center) in [CGPoint(x: 30, y: horizon + 11), CGPoint(x: 68, y: horizon + 20)].enumerated() {
+        for (index, center) in [CGPoint(x: 30, y: horizon + 11), CGPoint(x: 68, y: horizon + 20)].enumerated()
+        where !frozen {
             let spread = world.time == 0 ? 0.5 : world.cycle(3.6, offset: Double(index) * 0.5)
             let width = 5 + 10 * spread
             var ripple = Path()
@@ -283,7 +306,9 @@ private enum Pond {
         reeds(context, baseX: 92, baseY: horizon + 6, sway: world.wave(1.1))
         reeds(context, baseX: 6, baseY: horizon + 4, sway: world.wave(1.1, 1.3))
         Flora.tufts(
-            context, rows: [horizon + 36, horizon + 46], color: Color(red: 0.42, green: 0.68, blue: 0.38), world: world)
+            context, rows: [horizon + 36, horizon + 46],
+            color: world.greenery(Color(red: 0.42, green: 0.68, blue: 0.38)),
+            world: world)
     }
 
     static func lilyPad(_ context: GraphicsContext, at center: CGPoint, size: CGFloat) {

@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 /// How a scene is lit at a moment of the real day: a warm glow at dawn and dusk, the sun's arc
 /// across the sky, and night (a darker world, the moon, stars and fireflies). Like the pet, a pure
@@ -52,8 +52,12 @@ public struct SceneLight: Hashable, Sendable {
 struct SceneWorld {
     var time: Double
     var light: SceneLight
+    var season: Season = .summer
 
     static let still = SceneWorld(time: 0, light: .day)
+
+    /// A plant colour as it looks this time of year.
+    func greenery(_ color: Color) -> Color { season.greenery(color) }
 
     /// A gentle −1…1 wave, offset by `phase` so neighbours don't move in step.
     func wave(_ speed: Double, _ phase: Double = 0) -> Double { sin(time * speed + phase) }

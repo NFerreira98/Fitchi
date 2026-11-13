@@ -40,14 +40,14 @@ enum SnowyHill {
     }
 
     /// Flakes drifting down the whole scene, each at its own pace, swaying as they fall.
-    static func snowfall(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
+    static func snowfall(_ context: GraphicsContext, height: CGFloat, world: SceneWorld, count: Int = 10) {
         // Across, how far down it starts (0…1) and how fast it falls.
         let flakes: [(x: Double, start: Double)] = [
             (14, 0.1), (36, 0.35), (58, 0.05), (70, 0.6), (92, 0.2), (46, 0.75), (24, 0.9), (84, 0.45), (6, 0.55),
             (64, 0.85),
         ]
         let fall = Double(height) + 6
-        for (index, flake) in flakes.enumerated() {
+        for (index, flake) in flakes.prefix(count).enumerated() {
             let speed = 3.8 + Double(index * 7 % 5) * 0.5
             let size = 0.8 + Double(index * 3 % 4) * 0.1
             let travelled = (flake.start * fall + world.time * speed).truncatingRemainder(dividingBy: fall)
@@ -172,19 +172,28 @@ enum Forest {
         // Two rows of round treetops: a hazy one behind, a darker one in front.
         for (index, x) in stride(from: -4.0, through: 104, by: 14).enumerated() {
             tree(
-                context, at: CGPoint(x: x, y: horizon - 6), radius: 10, crown: 0x86C49A, trunk: 0x9C7A5C,
-                lift: index % 2 == 0 ? 0 : 4)
+                context, at: CGPoint(x: x, y: horizon - 6), radius: 10,
+                crown: world.season == .autumn
+                    ? Season.autumnLeaves[index % 3].mix(with: .white, by: 0.25) : world.greenery(color(0x86C49A)),
+                trunk: 0x9C7A5C, lift: index % 2 == 0 ? 0 : 4)
         }
         for (index, x) in [4.0, 22, 80, 97].enumerated() {
             tree(
-                context, at: CGPoint(x: x, y: horizon + 2), radius: 12, crown: 0x4E9A68, trunk: 0x7A5638,
-                lift: index % 2 == 0 ? 2 : 6)
+                context, at: CGPoint(x: x, y: horizon + 2), radius: 12,
+                crown: world.season == .autumn ? Season.autumnLeaves[(index + 1) % 3] : world.greenery(color(0x4E9A68)),
+                trunk: 0x7A5638, lift: index % 2 == 0 ? 2 : 6, blossom: world.season == .spring)
         }
-        fillGradient(context, CGRect(x: 0, y: horizon, width: 100, height: height), 0x7BC173, 0x5EA45C)
-        Flora.tufts(context, rows: [horizon + 10, horizon + 24, horizon + 38], color: color(0x4C8C4A), world: world)
+        context.fill(
+            Path(CGRect(x: 0, y: horizon, width: 100, height: height)),
+            with: .linearGradient(
+                Gradient(colors: [world.greenery(color(0x7BC173)), world.greenery(color(0x5EA45C))]),
+                startPoint: CGPoint(x: 0, y: horizon), endPoint: CGPoint(x: 0, y: height)))
+        Flora.tufts(
+            context, rows: [horizon + 10, horizon + 24, horizon + 38], color: world.greenery(color(0x4C8C4A)),
+            world: world)
         mushroom(context, at: CGPoint(x: 14, y: horizon + 22))
         mushroom(context, at: CGPoint(x: 88, y: horizon + 30))
-        if world.time > 0 { fallingLeaves(context, horizon: horizon, world: world) }
+        if world.time > 0, world.season != .winter { fallingLeaves(context, horizon: horizon, world: world) }
     }
 
     /// A couple of leaves let go of the front trees and flutter down to the grass.
@@ -205,7 +214,8 @@ enum Forest {
     }
 
     static func tree(
-        _ context: GraphicsContext, at base: CGPoint, radius: CGFloat, crown: UInt32, trunk: UInt32, lift: CGFloat
+        _ context: GraphicsContext, at base: CGPoint, radius: CGFloat, crown: Color, trunk: UInt32, lift: CGFloat,
+        blossom: Bool = false
     ) {
         context.fill(
             Path(CGRect(x: base.x - 1.8, y: base.y - radius - lift, width: 3.6, height: radius + lift)),
@@ -218,7 +228,17 @@ enum Forest {
                     y: base.y - radius * 1.6 - lift + offsetY * radius - radius * scale,
                     width: radius * 2 * scale, height: radius * 2 * scale))
         }
-        context.fill(leaves, with: .color(color(crown)))
+        context.fill(leaves, with: .color(crown))
+        if blossom {
+            // Spring blossom dotted over the crown.
+            for (offsetX, offsetY) in [(-0.6, -1.5), (0.1, -2.1), (0.6, -1.3), (-0.2, -1.1), (0.35, -1.8)] {
+                context.fill(
+                    Path(
+                        ellipse: CGPoint(x: base.x + offsetX * radius, y: base.y + offsetY * radius - lift), rx: 1.3,
+                        ry: 1.3),
+                    with: .color(Color(red: 1, green: 0.8, blue: 0.88)))
+            }
+        }
     }
 
     static func mushroom(_ context: GraphicsContext, at base: CGPoint) {
