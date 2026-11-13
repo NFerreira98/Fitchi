@@ -216,8 +216,11 @@ struct PetRosterView: View {
 
     private func card(_ pet: Pet) -> some View {
         VStack(spacing: 4) {
-            LivingPetView(species: pets.species(of: pet), speciesID: pet.speciesID, variant: pet.variant, seed: pet.id)
-                .frame(width: 72, height: 72)
+            LivingPetView(
+                species: pets.species(of: pet), speciesID: pet.speciesID, variant: pet.variant, seed: pet.id,
+                accessories: pet.equipped, personality: pet.personality, framesPerSecond: 15
+            )
+            .frame(width: 72, height: 72)
             Text(pet.name).font(FitchiTheme.Fonts.display(.subheadline)).lineLimit(1)
             if pet.isActive {
                 Label("On watch", systemImage: "applewatch")

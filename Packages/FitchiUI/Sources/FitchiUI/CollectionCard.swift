@@ -69,12 +69,15 @@ public struct CollectionCard: View {
 
     @ViewBuilder private var figure: some View {
         if PetFigure.hasArt(for: species.id) {
-            let pet = PetFigure(speciesID: species.id, palette: PetPalette(species: species, variant: entry.variant))
             if entry.isFound {
-                pet
+                // Found ones are alive (gently: a grid of them is on screen at once).
+                LivingPetView(
+                    species: species, speciesID: species.id, variant: entry.variant, seedValue: seed,
+                    framesPerSecond: 12)
             } else {
                 // A solid "who's that?" shape: no eyes, blush or markings give it away.
-                Self.silhouetteColor.mask(pet)
+                Self.silhouetteColor.mask(
+                    PetFigure(speciesID: species.id, palette: PetPalette(species: species, variant: entry.variant)))
             }
         } else {
             Text(species.emoji ?? "🐾")
@@ -82,6 +85,11 @@ public struct CollectionCard: View {
                 .brightness(entry.isFound ? 0 : -1)
                 .opacity(entry.isFound ? 1 : 0.55)
         }
+    }
+
+    /// A steady seed from the entry's id, so neighbours don't breathe in step.
+    private var seed: Double {
+        Double(entry.id.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) % 10_007 }) / 97
     }
 
     private var accessibilityText: String {

@@ -13,6 +13,10 @@ struct PetsView: View {
     @State private var query = RosterQuery()
     @State private var showsFilters = false
     @State private var collapsed: Set<String> = []
+    /// Picking pets to compare: taps select instead of opening a pet.
+    @State private var selecting = false
+    @State private var selected: [UUID] = []
+    @State private var comparing: CompareRequest?
 
     enum Layout: String {
         case grid, list
@@ -31,6 +35,19 @@ struct PetsView: View {
             .navigationTitle("Pets")
             .searchable(text: $query.text, prompt: "Name, species or colour")
             .toolbar { toolbar }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(selecting ? "Cancel" : "Compare") {
+                        selecting.toggle()
+                        selected = []
+                    }
+                    .disabled(pets.roster.pets.count < 2)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if selecting { compareBar }
+            }
+            .sheet(item: $comparing) { PetCompareView(petIDs: $0.pets) }
             .navigationDestination(for: UUID.self) { PetPage(petID: $0) }
             .sheet(isPresented: $showsFilters) {
                 PetFilterSheet(query: $query, catalog: pets.catalog, owned: Set(pets.roster.pets.map(\.speciesID)))
@@ -157,20 +174,75 @@ struct PetsView: View {
         case .grid:
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 12)], spacing: 12) {
                 ForEach(list) { pet in
-                    NavigationLink(value: pet.id) { PetTile(pet: pet) }
-                        .buttonStyle(.plain)
-                        .contextMenu { PetMenu(pet: pet) }
+                    link(pet) { PetTile(pet: pet) }
                 }
             }
         case .list:
             LazyVStack(spacing: 8) {
                 ForEach(list) { pet in
-                    NavigationLink(value: pet.id) { PetRow(pet: pet) }
-                        .buttonStyle(.plain)
-                        .contextMenu { PetMenu(pet: pet) }
+                    link(pet) { PetRow(pet: pet) }
                 }
             }
         }
+    }
+}
+
+extension PetsView {
+    /// Two or three pets to put side by side.
+    struct CompareRequest: Identifiable {
+        let id = UUID()
+        let pets: [UUID]
+    }
+
+    static let compareLimit = 3
+
+    /// Opens the pet, or while picking for a comparison, selects it (up to three).
+    @ViewBuilder func link<Label: View>(_ pet: Pet, @ViewBuilder label: () -> Label) -> some View {
+        if selecting {
+            let index = selected.firstIndex(of: pet.id)
+            Button {
+                if let index {
+                    selected.remove(at: index)
+                } else if selected.count < Self.compareLimit {
+                    selected.append(pet.id)
+                }
+            } label: {
+                label()
+                    .opacity(index == nil && selected.count >= Self.compareLimit ? 0.4 : 1)
+                    .overlay(alignment: .topLeading) {
+                        Image(systemName: index == nil ? "circle" : "\((index ?? 0) + 1).circle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(index == nil ? Color.secondary : FitchiTheme.Colors.accent)
+                            .background(Circle().fill(.background))
+                            .padding(4)
+                    }
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: index)
+        } else {
+            NavigationLink(value: pet.id, label: label)
+                .buttonStyle(.plain)
+                .contextMenu { PetMenu(pet: pet) }
+        }
+    }
+
+    var compareBar: some View {
+        HStack {
+            Text(selected.count < 2 ? "Pick 2 or 3 pets to compare" : "\(selected.count) pets picked")
+                .font(FitchiTheme.Fonts.text(.subheadline, weight: .semibold))
+            Spacer()
+            Button("Compare") {
+                comparing = CompareRequest(pets: selected)
+                selecting = false
+                selected = []
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(FitchiTheme.Colors.accent)
+            .disabled(selected.count < 2)
+        }
+        .padding(.horizontal, FitchiTheme.Spacing.l)
+        .padding(.vertical, 12)
+        .background(.bar)
     }
 }
 

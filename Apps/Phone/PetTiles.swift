@@ -3,16 +3,24 @@ import FitchiData
 import FitchiUI
 import SwiftUI
 
-/// A pet drawn still, in its colouring and outfit (grids stay light: nothing animates).
+/// A pet in its colouring and outfit, gently alive (or still, where many are drawn small).
 struct PetPortrait: View {
     @Environment(PetStore.self) private var pets
     let pet: Pet
+    var animated = true
 
     var body: some View {
         if let species = pets.species(of: pet), PetFigure.hasArt(for: pet.speciesID) {
-            PetFigure(
-                speciesID: pet.speciesID, palette: PetPalette(species: species, variant: pet.variant),
-                accessories: pet.equipped)
+            if animated {
+                // Alive but light: 12 fps, and its personality shows now and then.
+                LivingPetView(
+                    species: species, speciesID: pet.speciesID, variant: pet.variant, seed: pet.id,
+                    accessories: pet.equipped, personality: pet.personality, framesPerSecond: 12)
+            } else {
+                PetFigure(
+                    speciesID: pet.speciesID, palette: PetPalette(species: species, variant: pet.variant),
+                    accessories: pet.equipped)
+            }
         } else {
             Text(pets.species(of: pet)?.emoji ?? "🐾").font(.system(size: 40))
         }

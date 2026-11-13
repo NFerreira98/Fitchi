@@ -9,6 +9,7 @@ struct PetPage: View {
     @Environment(PetStore.self) private var pets
     let petID: UUID
     @State private var name = ""
+    @State private var comparing: PetsView.CompareRequest?
 
     var body: some View {
         if let pet = pets.roster[petID], let species = pets.species(of: pet) {
@@ -34,7 +35,9 @@ struct PetPage: View {
             }
             .navigationTitle(pet.name)
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(item: $comparing) { PetCompareView(petIDs: $0.pets) }
             .toolbar {
+                compareMenu(pet)
                 Button {
                     pets.setFavorite(pet.id, !pet.isFavorite)
                 } label: {
@@ -47,6 +50,23 @@ struct PetPage: View {
         } else {
             ContentUnavailableView("Pet not found", systemImage: "pawprint")
         }
+    }
+
+    /// Pick another pet to put side by side with this one (same species first).
+    private func compareMenu(_ pet: Pet) -> some View {
+        let others = pets.roster.pets.filter { $0.id != pet.id }.sorted {
+            ($0.speciesID == pet.speciesID ? 0 : 1, $0.name) < ($1.speciesID == pet.speciesID ? 0 : 1, $1.name)
+        }
+        return Menu {
+            ForEach(others) { other in
+                Button("\(other.name) · \(pets.species(of: other)?.name ?? "")") {
+                    comparing = PetsView.CompareRequest(pets: [pet.id, other.id])
+                }
+            }
+        } label: {
+            Label("Compare with…", systemImage: "rectangle.split.2x1")
+        }
+        .disabled(others.isEmpty)
     }
 
     private func header(_ pet: Pet, _ species: Species) -> some View {
