@@ -9,11 +9,21 @@ public struct PetGlance: Codable, Hashable, Sendable {
     public var species: Species?
     /// True while the starter egg is still waiting to hatch.
     public var hasEgg: Bool
+    /// Ledger ids of gifts already collected, so the complication only hints at waiting ones.
+    /// Optional so glances saved by older versions still decode.
+    public var collectedGifts: Set<String>?
 
-    public init(pet: Pet?, species: Species?, hasEgg: Bool) {
+    public init(pet: Pet?, species: Species?, hasEgg: Bool, collectedGifts: Set<String> = []) {
         self.pet = pet
         self.species = species
         self.hasEgg = hasEgg
+        self.collectedGifts = collectedGifts
+    }
+
+    /// Whether a gift is waiting at `date` (the pet must be around to have found it).
+    public func hasGift(at date: Date, calendar: Calendar = .current) -> Bool {
+        guard pet != nil, let moment = PetMoments.open(at: date, calendar: calendar) else { return false }
+        return !(collectedGifts ?? []).contains(moment.id)
     }
 
     public static let empty = PetGlance(pet: nil, species: nil, hasEgg: true)
@@ -37,6 +47,8 @@ public enum GlanceStore {
 
 public extension PetStore {
     var glance: PetGlance {
-        PetGlance(pet: activePet, species: activePet.flatMap(species(of:)), hasEgg: pendingEgg != nil)
+        PetGlance(
+            pet: activePet, species: activePet.flatMap(species(of:)), hasEgg: pendingEgg != nil,
+            collectedGifts: Set(collectedGiftIDs))
     }
 }

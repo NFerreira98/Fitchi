@@ -32,11 +32,25 @@ struct PetView: View {
                     header(
                         balance: balance,
                         status: event?.message ?? mood.headline)
+                    if let moment = pets.openMoment(at: timeline.date), event == nil {
+                        giftButton(moment)
+                    }
                     Spacer(minLength: 0)
                     stats(values)
                     careButtons(balance: balance)
                 }
                 .ignoresSafeArea(edges: .top)
+                if pets.celebrations.isEmpty, let notice = pets.questNotices.first {
+                    QuestNoticeCard(notice, petName: pet.name, compact: true)
+                        .padding(.horizontal, 8)
+                        .id(notice.id)
+                        .transition(.scale(scale: 0.6).combined(with: .opacity))
+                        .onTapGesture { pets.dismissQuestNotice() }
+                        .task(id: notice.id) {
+                            try? await Task.sleep(for: .seconds(3))
+                            pets.dismissQuestNotice()
+                        }
+                }
                 if let next = pets.celebrations.first {
                     AchievementCelebration(next, compact: true)
                         .padding(.horizontal, 8)
@@ -50,10 +64,12 @@ struct PetView: View {
                 }
             }
             .animation(.spring(duration: 0.45), value: pets.celebrations.first?.id)
+            .animation(.spring(duration: 0.45), value: pets.questNotices.first?.id)
         }
         .toolbar(.hidden, for: .navigationBar)
         .sensoryFeedback(trigger: event) { _, new in new?.feedback }
         .sensoryFeedback(.success, trigger: pets.celebrations.first?.id) { _, new in new != nil }
+        .sensoryFeedback(.success, trigger: pets.questNotices.first?.id) { _, new in new != nil }
         .task(id: event) {
             guard event != nil else { return }
             // Long enough for the care animation (a nap is the longest) to finish.
@@ -123,6 +139,22 @@ struct PetView: View {
             .padding(.horizontal, FitchiTheme.Spacing.s)
             .padding(.bottom, FitchiTheme.Spacing.s)
         }
+    }
+
+    /// The pet found something: a bobbing present under the header. Tap to collect it.
+    private func giftButton(_ moment: PetMoment) -> some View {
+        Button {
+            if let collected = pets.collectGift() {
+                event = CareEvent(gift: collected, petName: pet.name)
+            }
+        } label: {
+            GiftBubble(isLucky: moment.isLucky)
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.trailing, 14)
+        .transition(.scale.combined(with: .opacity))
+        .accessibilityHint("Collects what \(pet.name) found")
     }
 
     private func careButtons(balance: Int) -> some View {
@@ -198,6 +230,12 @@ private struct CareEvent: Equatable {
             message = "\(petName) feels a little better."
             feedback = .impact(weight: .light)
         }
+    }
+
+    init(gift: PetMoment, petName: String) {
+        reaction = StageReaction(id: id, action: nil, floater: "\(gift.isLucky ? "🪙" : "🎁") +\(gift.pep)")
+        message = gift.isLucky ? "Lucky! \(petName) found \(gift.find)! 🪙" : "\(petName) found \(gift.find)! 🎁"
+        feedback = .success
     }
 
     init(action: CareAction, failure: QuickCareError, petName: String) {

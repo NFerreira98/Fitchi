@@ -41,6 +41,20 @@ struct PhoneRootView: View {
                     }
             }
         }
+        .overlay(alignment: .top) {
+            if pets.celebrations.isEmpty, let notice = pets.questNotices.first {
+                QuestNoticeCard(notice, petName: pets.activePet?.name ?? "your pet")
+                    .padding(.top, 8)
+                    .id(notice.id)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .onTapGesture { pets.dismissQuestNotice() }
+                    .task(id: notice.id) {
+                        try? await Task.sleep(for: .seconds(3))
+                        pets.dismissQuestNotice()
+                    }
+            }
+        }
+        .animation(.spring(duration: 0.5), value: pets.questNotices.first?.id)
         .animation(.spring(duration: 0.5), value: pets.celebrations.first?.id)
         .sensoryFeedback(.success, trigger: pets.celebrations.first?.id) { _, new in new != nil }
     }
@@ -57,6 +71,7 @@ struct PhoneHomeView: View {
             VStack(spacing: FitchiTheme.Spacing.l * 2) {
                 if let pet = pets.activePet {
                     BackedUpPetView(pet: pet, lastBackup: backup.lastExchange)
+                    PhoneQuestsCard(petName: pet.name)
                     if pets.roster.pets.count > 1 { PetRosterView() }
                 } else {
                     VStack(spacing: FitchiTheme.Spacing.s) {

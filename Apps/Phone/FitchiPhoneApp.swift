@@ -29,6 +29,7 @@ struct FitchiPhoneApp: App {
     }
 
     static func claimAchievements(_ pets: PetStore, activity: ActivityStore) {
+        pets.claimQuests(samples: activity.samples, steps: activity.steps)
         pets.claimAchievements(
             samples: activity.samples, steps: activity.steps, earnings: activity.earnings,
             installDate: activity.installDate)

@@ -9,6 +9,8 @@ struct WatchHomeView: View {
         NavigationStack {
             TabView {
                 PetHomeView()
+                WatchQuestsView()
+                    .navigationTitle("Quests")
                 WatchTodayView()
                     .navigationTitle("Today")
             }

@@ -20,13 +20,15 @@ public final class PetStore {
     }
 
     public private(set) var status: Status = .loading
-    public private(set) var roster = PetRoster()
+    public internal(set) var roster = PetRoster()
     public private(set) var starterEgg: StarterEgg?
     /// Pep spent and granted outside of activity (welcome bonus, purchases). Append-only.
     public internal(set) var transactions: [PepTransaction] = []
     public private(set) var inventory = Inventory()
     /// Achievements unlocked on this device that haven't been celebrated on screen yet.
     public private(set) var celebrations: [Achievement] = []
+    /// Finished quests, bonuses and chests waiting to be shown, oldest first.
+    public internal(set) var questNotices: [QuestNotice] = []
 
     public let catalog: Catalog
     public let decay: DecayContext

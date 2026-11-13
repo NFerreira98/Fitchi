@@ -49,12 +49,20 @@
                 }
                 Button("Remove test Pep", role: .destructive) { pets.removeTestPep(earnings: activity.earnings) }
                     .disabled(pets.testPep <= 0)
+                HStack {
+                    ForEach(["sparkle-egg", "golden-egg"], id: \.self) { egg in
+                        Button("+ \(EggName.display(egg))") { pets.grantTestRewardEgg(egg) }
+                            .buttonStyle(.bordered)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
             } header: {
                 Text("Test Pep")
             } footer: {
                 Text(
                     "Syncs to your watch like real Pep. Removing takes back what's left of it; "
-                        + "anything bought with it stays bought.")
+                        + "anything bought with it stays bought. Test eggs appear on Home, ready to hatch like a streak reward."
+                )
             }
         }
 

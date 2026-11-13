@@ -31,4 +31,14 @@ extension PetStore {
         transactions.append(entry)
         didChange()
     }
+
+    /// A streak-reward egg without the streak, for trying the free-egg hatch.
+    public func grantTestRewardEgg(_ eggID: String) {
+        let entry = PepTransaction(
+            id: "\(DailyQuests.eggTokenPrefix)test-\(UUID().uuidString):\(eggID)",
+            kind: .adjustment(reason: "Developer test egg"), amount: 0, date: clock.now)
+        try? repository?.append([entry])
+        transactions.append(entry)
+        didChange()
+    }
 }

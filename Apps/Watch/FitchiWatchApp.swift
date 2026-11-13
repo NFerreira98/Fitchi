@@ -34,7 +34,10 @@ struct FitchiWatchApp: App {
         Task { await store.start(backgroundDelivery: true) }
     }
 
+    /// Pays finished quests and unlocked achievements (quests first: their Pep counts towards
+    /// achievements).
     static func claimAchievements(_ pets: PetStore, activity: ActivityStore) {
+        pets.claimQuests(samples: activity.samples, steps: activity.steps)
         pets.claimAchievements(
             samples: activity.samples, steps: activity.steps, earnings: activity.earnings,
             installDate: activity.installDate)

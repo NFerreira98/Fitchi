@@ -14,7 +14,9 @@ enum PetCompanions {
         WidgetCenter.shared.reloadAllTimelines()
         let pet = pets.activePet
         let decay = pets.decay
-        Task { await CareReminders.schedule(for: pet, in: decay) }
+        let collected = pets.glance.collectedGifts ?? []
+        let gifts = PetMoments.upcoming(after: .now, calendar: decay.calendar).filter { !collected.contains($0.id) }
+        Task { await CareReminders.schedule(for: pet, gifts: gifts, in: decay) }
     }
 }
 
@@ -25,23 +27,41 @@ enum CareReminders {
     /// `@AppStorage` key for the on/off switch in About.
     static let enabledKey = "fitchi.careReminders"
     static let idPrefix = "fitchi.nudge."
+    static let giftPrefix = "fitchi.gift."
     /// watchOS keeps a limited number of pending notifications; a few ahead is plenty.
     static let maxPending = 6
+    /// Of those, how many announce gifts (the rest are care nudges).
+    static let maxGifts = 3
 
     static var isEnabled: Bool {
         UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true
     }
 
     @MainActor
-    static func schedule(for pet: Pet?, in decay: DecayContext) async {
+    static func schedule(for pet: Pet?, gifts: [PetMoment], in decay: DecayContext) async {
         let center = UNUserNotificationCenter.current()
-        let pending = await center.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix(idPrefix) }
+        let pending = await center.pendingNotificationRequests().map(\.identifier)
+            .filter { $0.hasPrefix(idPrefix) || $0.hasPrefix(giftPrefix) }
         center.removePendingNotificationRequests(withIdentifiers: pending)
         guard isEnabled, let pet else { return }
         guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true else { return }
 
         let now = Date()
-        for (index, nudge) in CareNudges.plan(for: pet, after: now, in: decay).prefix(maxPending).enumerated() {
+        // Only while the pet is around to find things.
+        let upcomingGifts = pet.mood(at: now, in: decay).condition.acceptsCare ? Array(gifts.prefix(maxGifts)) : []
+        for gift in upcomingGifts {
+            let content = UNMutableNotificationContent()
+            content.title = "\(pet.name) found something! \(gift.isLucky ? "🪙" : "🎁")"
+            content.body = "Come and see. It's waiting for the next 2 hours."
+            content.sound = .default
+            content.threadIdentifier = "fitchi.gifts"
+            let trigger = UNTimeIntervalNotificationTrigger(
+                timeInterval: max(1, gift.opens.timeIntervalSince(now)), repeats: false)
+            try? await center.add(
+                UNNotificationRequest(identifier: giftPrefix + gift.id, content: content, trigger: trigger))
+        }
+        let nudges = CareNudges.plan(for: pet, after: now, in: decay).prefix(maxPending - upcomingGifts.count)
+        for (index, nudge) in nudges.enumerated() {
             let content = UNMutableNotificationContent()
             content.title = title(for: nudge, name: pet.name)
             content.body = "Tap to check in on \(pet.name)."

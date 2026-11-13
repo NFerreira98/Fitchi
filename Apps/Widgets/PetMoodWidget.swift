@@ -31,6 +31,7 @@ struct PetMoodEntry: TimelineEntry {
     var mood: PetMood { pet.map { $0.mood(at: date, in: context) } ?? .content }
     var wellbeing: Double { pet.map { $0.wellbeing(at: date, in: context) } ?? 0 }
     var values: [Stat: Double] { pet.map { $0.values(at: date, in: context) } ?? [:] }
+    var hasGift: Bool { glance.hasGift(at: date, calendar: context.calendar) }
 
     /// A still frame of the pet showing its mood (no walking on a watch face).
     var frame: PetFrame {
@@ -54,9 +55,13 @@ struct PetMoodProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<PetMoodEntry>) -> Void) {
         let glance = GlanceStore.load() ?? .empty
         let now = Date.now
-        let entries = stride(from: 0, through: Self.span, by: Self.step).map {
-            PetMoodEntry(date: now.addingTimeInterval($0), glance: glance)
-        }
+        // Every 20 minutes, plus the moments gifts appear and go, so the hint is on time.
+        let calendar = DecayContext().calendar
+        let giftTimes = PetMoments.upcoming(after: now.addingTimeInterval(-7_200), days: 1, calendar: calendar)
+            .flatMap { [$0.opens, $0.closes] }
+            .filter { $0 > now && $0 < now.addingTimeInterval(Self.span) }
+        let dates = stride(from: 0, through: Self.span, by: Self.step).map { now.addingTimeInterval($0) } + giftTimes
+        let entries = dates.sorted().map { PetMoodEntry(date: $0, glance: glance) }
         completion(Timeline(entries: entries, policy: .after(now.addingTimeInterval(Self.span))))
     }
 }
@@ -97,6 +102,10 @@ struct PetMoodView: View {
                     .widgetAccentable()
             }
             figure.padding(7)
+            if entry.hasGift {
+                Text("🎁").font(.system(size: 12)).frame(
+                    maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(summary)
@@ -110,10 +119,13 @@ struct PetMoodView: View {
                     .font(.system(.headline, design: .rounded, weight: .bold))
                     .lineLimit(1)
                     .widgetAccentable()
-                Text(entry.pet.map { _ in entry.mood.headline } ?? "Move to hatch it")
-                    .font(.system(.caption2, design: .rounded))
-                    .lineLimit(1)
-                    .foregroundStyle(.secondary)
+                Text(
+                    entry.pet.map { pet in entry.hasGift ? "🎁 \(pet.name) found something!" : entry.mood.headline }
+                        ?? "Move to hatch it"
+                )
+                .font(.system(.caption2, design: .rounded))
+                .lineLimit(1)
+                .foregroundStyle(.secondary)
                 if entry.pet != nil {
                     HStack(spacing: 3) {
                         ForEach(Stat.allCases, id: \.self) { stat in
