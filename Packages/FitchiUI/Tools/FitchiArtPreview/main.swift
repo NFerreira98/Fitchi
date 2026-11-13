@@ -157,9 +157,14 @@ struct StageSheet: View {
             name: id, speciesID: id, traits: PetTraits(appetite: 0.5, playfulness: 0.5, stamina: 0.5, tidiness: 0.5),
             personality: .easygoing, hatchedAt: .now)
         let backdrops: [SceneBackdrop.Kind] = [.meadow, .forest, .beach, .bedroom, .snowyHill, .livingRoom]
+        // The big phone-sized row shows off weather and a cheer, in daylight.
+        let showcase = !controlsBelow
+        let weather: [Weather?] = [nil, Weather(kind: .rain), Weather(kind: .wind), nil, Weather(kind: .snow), nil]
         return PetStage(
             pet: pet, species: catalog.species(id: id), backdrop: backdrops[index % backdrops.count], style: style,
-            petScale: scale, controlsBelow: controlsBelow)
+            petScale: scale, controlsBelow: controlsBelow, light: showcase ? .day : nil,
+            weather: showcase ? weather[index % weather.count] : nil,
+            cheeredAt: showcase && index == 0 ? Date.now.addingTimeInterval(-0.55) : nil)
     }
 }
 
@@ -180,6 +185,24 @@ struct SceneSheet: View {
                                 .frame(width: 160, height: 150)
                                 .clipShape(RoundedRectangle(cornerRadius: 18))
                             Text("\(kind.rawValue.dropFirst(9)) · \(name)")
+                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                }
+            }
+            // Weather: a grey day, a shower, a windy spell and snow, outdoors and through a window.
+            ForEach([SceneBackdrop.Kind.meadow, .forest, .bedroom], id: \.self) { kind in
+                HStack(spacing: 10) {
+                    ForEach(Weather.Kind.allCases, id: \.self) { weather in
+                        VStack(spacing: 4) {
+                            SceneBackdrop(
+                                kind, time: 1_003.3, light: .day, season: weather == .snow ? .winter : .summer,
+                                weather: Weather(kind: weather)
+                            )
+                            .frame(width: 160, height: 150)
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            Text("\(kind.rawValue.dropFirst(9)) · \(weather.rawValue)")
                                 .font(.system(size: 12, weight: .medium, design: .rounded))
                                 .foregroundStyle(.white)
                         }

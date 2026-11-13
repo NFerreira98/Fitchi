@@ -31,6 +31,9 @@ public final class ActivityStore {
     private let clock: any GameClock
     private let calendar: Calendar
     private var isObserving = false
+    /// Called after every successful refresh, including background wake-ups from HealthKit
+    /// (when no view is on screen to notice).
+    public var onRefresh: (@MainActor () -> Void)?
 
     public init(
         source: any HealthDataSource,
@@ -103,6 +106,7 @@ public final class ActivityStore {
             earnings = rules.earnings(for: fetched, steps: fetchedSteps, since: installDate, calendar: calendar)
             lastRefreshed = now
             status = .ready
+            onRefresh?()
         } catch {
             status = .failed("Couldn't read Health data.")
         }

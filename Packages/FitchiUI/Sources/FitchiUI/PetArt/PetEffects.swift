@@ -14,6 +14,10 @@ public struct PetEffects: Hashable, Sendable {
     /// A puff of hearts, 0…1 through its rise.
     public var hearts: Double?
     public var prop: Prop?
+    /// Puddle water splashing up round the feet, 0…1.
+    public var splash: Double?
+    /// A burst of confetti, 0…1 through its fall.
+    public var confetti: Double?
 
     /// Care props, each with its own progress.
     public enum Prop: Hashable, Sendable {
@@ -63,6 +67,8 @@ enum EffectArt {
         if effects.zzz { zzz(context, clock: effects.clock, flipped: flipped) }
         if let thought = effects.thought { thoughtBubble(context, emoji: thought, flipped: flipped) }
         if let hearts = effects.hearts { self.hearts(context, progress: hearts) }
+        if let splash = effects.splash { self.splash(context, progress: splash) }
+        if let confetti = effects.confetti { self.confetti(context, progress: confetti) }
         switch effects.prop {
         case .bowl(let eaten): bowl(context, eaten: eaten)
         case .ball(let point): ball(context, at: point)

@@ -15,6 +15,8 @@ struct PetView: View {
 
     /// The latest care tap (or failed tap), driving the hop, floating reward, message and haptic.
     @State private var event: CareEvent?
+    /// Celebrates steps, active minutes, workouts and the Pep goal as they happen.
+    @State private var cheers = CheerBoard()
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
@@ -27,13 +29,14 @@ struct PetView: View {
                     pet: pet, species: pets.species(of: pet), mood: mood,
                     backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: style,
                     reaction: event?.reaction, petScale: style == .island ? 0.48 : (style == .horizon ? 0.38 : 0.42),
-                    afterglow: afterglow
+                    afterglow: afterglow, cheeredAt: cheers.current?.startedAt
                 )
                 .ignoresSafeArea()
                 VStack(spacing: 0) {
                     header(
                         balance: balance,
-                        status: event?.message ?? mood.headline(afterglow: afterglow))
+                        status: event?.message ?? cheers.current?.milestone.message(petName: pet.name)
+                            ?? mood.headline(afterglow: afterglow))
                     if let moment = pets.openMoment(at: timeline.date), event == nil {
                         giftButton(moment)
                     }
@@ -70,6 +73,17 @@ struct PetView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .sensoryFeedback(trigger: event) { _, new in new?.feedback }
+        .sensoryFeedback(.success, trigger: cheers.current) { _, new in new != nil }
+        .onChange(of: activity.lastRefreshed, initial: true) {
+            cheers.check(
+                at: .now, samples: activity.samples, steps: activity.steps, today: activity.today,
+                pepGoal: Int(activity.rules.dailySoftCap))
+        }
+        .task(id: cheers.current) {
+            guard cheers.current != nil else { return }
+            try? await Task.sleep(for: CheerBoard.showsFor)
+            cheers.finish()
+        }
         .sensoryFeedback(.success, trigger: pets.celebrations.first?.id) { _, new in new != nil }
         .sensoryFeedback(.success, trigger: pets.questNotices.first?.id) { _, new in new != nil }
         .task(id: event) {

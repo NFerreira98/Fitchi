@@ -1,8 +1,10 @@
 import FitchiCore
 import FitchiData
+import FitchiHealth
 import FitchiUI
 import Foundation
 import UserNotifications
+import WatchKit
 import WidgetKit
 
 /// Everything outside the app that follows the pet: the watch-face complication and care
@@ -93,5 +95,30 @@ enum CareReminders {
         case .energy: "sleepy"
         case .cleanliness: "grubby"
         }
+    }
+}
+
+extension CareReminders {
+    /// A milestone reached while the app isn't on screen (HealthKit woke it in the background):
+    /// a notification so the cheer isn't missed. The pet still celebrates when you next look.
+    /// Shares the care-reminder switch, and never at night.
+    @MainActor
+    static func announceCheers(_ pets: PetStore, activity: ActivityStore) {
+        guard WKApplication.shared().applicationState != .active, isEnabled, let pet = pets.activePet else { return }
+        let hour = Calendar.current.component(.hour, from: .now)
+        guard (7..<22).contains(hour) else { return }
+        let reached = Cheers.reached(
+            at: .now, samples: activity.samples, steps: activity.steps, today: activity.today,
+            pepGoal: Int(activity.rules.dailySoftCap))
+        let done = CheerLog.announced.ids.union(CheerLog.cheered.ids)
+        guard let top = Cheers.next(in: reached, cheered: done) else { return }
+        CheerLog.announced.mark(reached.map(\.id))
+        let content = UNMutableNotificationContent()
+        content.title = "\(pet.name) is cheering! 🎉"
+        content.body = "\(top.headline) Come and celebrate."
+        content.sound = .default
+        content.threadIdentifier = "fitchi.cheers"
+        let request = UNNotificationRequest(identifier: "fitchi.cheer.\(top.id)", content: content, trigger: nil)
+        Task { try? await UNUserNotificationCenter.current().add(request) }
     }
 }

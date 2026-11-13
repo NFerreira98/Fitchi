@@ -48,7 +48,8 @@ struct SoundTests {
     }
 
     static let sounds: [PetSound] =
-        (0..<4).map { .boop($0) } + [.purr, .stir, .hello, .bigHello, .happy] + CareAction.allCases.map { .care($0) }
+        (0..<4).map { .boop($0) } + [.purr, .stir, .hello, .bigHello, .happy, .cheer]
+        + CareAction.allCases.map { .care($0) }
 
     @Test(arguments: sounds)
     func soundsAreShortSoftAndClean(sound: PetSound) {

@@ -25,12 +25,18 @@ public struct SceneBackdrop: View {
     private let time: TimeInterval
     private let light: SceneLight
     private let season: Season
+    private let weather: Weather
 
     /// - Parameters:
     ///   - time: an animation clock in seconds (clouds drift, grass sways); 0 is a still picture.
     ///   - light: the time of day to light the scene for.
     ///   - season: the time of year (meadow, pond and forest change with it); summer is as drawn.
-    public init(_ kind: Kind, time: TimeInterval = 0, light: SceneLight = .day, season: Season = .summer) {
+    ///   - weather: rain, wind, snow or grey skies (`Weather(at:season:)`); clear in the shop.
+    public init(
+        _ kind: Kind, time: TimeInterval = 0, light: SceneLight = .day, season: Season = .summer,
+        weather: Weather = .clear
+    ) {
+        self.weather = weather
         self.kind = kind
         self.time = time
         self.light = light
@@ -49,7 +55,8 @@ public struct SceneBackdrop: View {
             let height = size.height / scale
             // The starry night is always night; everywhere else follows the real clock.
             let world = SceneWorld(
-                time: time, light: kind == .starryNight ? .day : light, season: kind.hasSeasons ? season : .summer)
+                time: time, light: kind == .starryNight ? .day : light, season: kind.hasSeasons ? season : .summer,
+                weather: weather.adapted(to: kind))
             switch kind {
             case .meadow: Meadow.draw(context, height: height, world: world)
             case .pond: Pond.draw(context, height: height, world: world)
@@ -63,6 +70,7 @@ public struct SceneBackdrop: View {
             }
             if !kind.isIndoor {
                 if kind.hasSeasons { SeasonArt.draw(context, height: height, horizon: kind.horizon, world: world) }
+                WeatherArt.draw(context, height: height, horizon: kind.horizon, world: world)
                 Haze.draw(context, horizon: kind.horizon, world: world)
             }
             Lighting.apply(context, height: height, world: world, indoor: kind.isIndoor)
@@ -71,7 +79,8 @@ public struct SceneBackdrop: View {
             case .meadow, .pond, .snowyHill, .beach, .forest:
                 Sky.nightSky(context, world: world)
                 if kind != .snowyHill && kind != .beach && world.season != .winter {
-                    Fireflies.draw(context, world: world, around: 60, strength: world.light.night)
+                    Fireflies.draw(
+                        context, world: world, around: 60, strength: world.light.night * (1 - world.weather.rain))
                 }
             case .bedroom: Lighting.lamp(context, at: Bedroom.lamp, world: world)
             case .livingRoom: Lighting.lamp(context, at: LivingRoom.lamp, world: world)
@@ -111,8 +120,10 @@ enum Sky {
             let center = CGPoint(x: 8 + 84 * progress, y: horizon - 2 - sin(.pi * progress) * (horizon - 14))
             let warmth = world.light.warmth
             let sun = Color(red: 1, green: 0.9 - 0.3 * warmth, blue: 0.5 - 0.25 * warmth)
-            context.fill(Path(ellipse: center, rx: 10, ry: 10), with: .color(sun.opacity(0.25)))
-            context.fill(Path(ellipse: center, rx: 6, ry: 6), with: .color(sun))
+            // Hidden behind grey cloud on a dull day.
+            let shows = 1 - 0.85 * world.weather.overcast
+            context.fill(Path(ellipse: center, rx: 10, ry: 10), with: .color(sun.opacity(0.25 * shows)))
+            context.fill(Path(ellipse: center, rx: 6, ry: 6), with: .color(sun.opacity(shows)))
         }
         // Clouds drift slowly across and wrap around.
         cloud(context, at: CGPoint(x: drift(22, speed: 0.35, world), y: 16), size: 1)
@@ -125,7 +136,7 @@ enum Sky {
         return (travelled < 0 ? travelled + 140 : travelled) - 20
     }
 
-    static func cloud(_ context: GraphicsContext, at center: CGPoint, size: CGFloat) {
+    static func cloud(_ context: GraphicsContext, at center: CGPoint, size: CGFloat, color: Color = .white) {
         var puff = Path()
         for (deltaX, deltaY, radius) in [(-7.0, 1.0, 5.0), (0, -2, 7), (8, 1, 5.5), (2, 3, 5)] {
             puff.addEllipse(
@@ -134,7 +145,7 @@ enum Sky {
                     width: radius * 2 * size, height: radius * 2 * size
                 ))
         }
-        context.fill(puff, with: .color(.white.opacity(0.9)))
+        context.fill(puff, with: .color(color.opacity(0.9)))
     }
 
     /// Star positions; the size is in `starSizes`.
@@ -157,7 +168,7 @@ enum Sky {
 
     /// The moon and stars over an outdoor scene as night falls (drawn after the dark is laid on).
     static func nightSky(_ context: GraphicsContext, world: SceneWorld) {
-        let night = world.light.night
+        let night = world.light.night * (1 - 0.9 * world.weather.overcast)
         guard night > 0.02 else { return }
         drawStars(context, world: world, strength: night)
         let moon = CGPoint(x: 72, y: 12)
@@ -303,8 +314,8 @@ private enum Pond {
         }
         lilyPad(context, at: CGPoint(x: 16, y: horizon + 18 + 0.4 * world.wave(0.9)), size: 6)
         lilyPad(context, at: CGPoint(x: 84, y: horizon + 10 + 0.4 * world.wave(0.9, 2)), size: 5)
-        reeds(context, baseX: 92, baseY: horizon + 6, sway: world.wave(1.1))
-        reeds(context, baseX: 6, baseY: horizon + 4, sway: world.wave(1.1, 1.3))
+        reeds(context, baseX: 92, baseY: horizon + 6, sway: world.sway(1.1))
+        reeds(context, baseX: 6, baseY: horizon + 4, sway: world.sway(1.1, 1.3))
         Flora.tufts(
             context, rows: [horizon + 36, horizon + 46],
             color: world.greenery(Color(red: 0.42, green: 0.68, blue: 0.38)),
@@ -353,7 +364,7 @@ enum Flora {
         for (row, baseY) in rows.enumerated() {
             for column in 0..<6 {
                 let x = CGFloat(column) * 18 + (row.isMultiple(of: 2) ? 6 : 14)
-                let sway = CGFloat(world.wave(1.4, Double(x) * 0.12 + Double(row))) * 0.7
+                let sway = CGFloat(world.sway(1.4, Double(x) * 0.12 + Double(row))) * 0.7
                 var tuft = Path()
                 tuft.move(to: CGPoint(x: x - 2, y: baseY))
                 tuft.addLine(to: CGPoint(x: x - 1 + sway, y: baseY - 2.5))
@@ -370,7 +381,7 @@ enum Flora {
         let petals = [Color(red: 1, green: 0.75, blue: 0.85), Color.white, Color(red: 1, green: 0.85, blue: 0.4)]
         for (index, base) in points.enumerated() {
             // A little nod in the breeze.
-            let center = CGPoint(x: base.x + CGFloat(world.wave(1.2, Double(index) * 2)) * 0.5, y: base.y)
+            let center = CGPoint(x: base.x + CGFloat(world.sway(1.2, Double(index) * 2)) * 0.5, y: base.y)
             for petal in 0..<5 {
                 let angle = Double(petal) / 5 * 2 * .pi
                 let spot = CGPoint(x: center.x + cos(angle) * 1.6, y: center.y + sin(angle) * 1.6)

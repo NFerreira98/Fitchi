@@ -22,6 +22,9 @@
         /// nil follows the calendar.
         @State private var season: Season?
         @State private var personality = Personality.easygoing
+        /// nil follows the day's own weather.
+        @State private var weather: Weather.Kind?
+        @State private var cheeredAt: Date?
         @State private var hellos = 0
         @State private var justWorkedOut = false
         /// A fixed id so the sandbox pet keeps the same wandering pattern while you change it.
@@ -81,7 +84,8 @@
                     PetStage(
                         pet: sandboxPet(species), species: species, mood: mood.mood, backdrop: backdrop,
                         style: .fullScene, petScale: 0.36, controlsBelow: false, light: timeOfDay.light,
-                        bigHellos: hellos, afterglow: justWorkedOut ? 1 : 0, season: season
+                        bigHellos: hellos, afterglow: justWorkedOut ? 1 : 0, season: season,
+                        weather: weather.map { Weather(kind: $0) }, cheeredAt: cheeredAt
                     )
                     .frame(height: 260)
                     .clipShape(.rect(cornerRadius: 16))
@@ -132,6 +136,13 @@
                         Text(season.rawValue.capitalized).tag(Season?.some(season))
                     }
                 }
+                Picker("Weather", selection: $weather) {
+                    Text("Today's").tag(Weather.Kind?.none)
+                    ForEach(Weather.Kind.allCases, id: \.self) { kind in
+                        Text(kind.rawValue.capitalized).tag(Weather.Kind?.some(kind))
+                    }
+                }
+                Button("Celebrate a milestone") { cheeredAt = .now }
                 Picker("Personality", selection: $personality) {
                     ForEach(Personality.allCases, id: \.self) { personality in
                         Text(personality.rawValue.capitalized).tag(personality)

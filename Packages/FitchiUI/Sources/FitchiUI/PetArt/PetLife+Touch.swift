@@ -10,8 +10,17 @@ extension PetLife {
         public var pettedFor: Double?
         /// 0…1, how pumped it still is from your last workout (`Afterglow` in Core).
         public var afterglow: Double
+        /// A milestone you just reached, being celebrated.
+        public var cheer: Cheer?
+        /// The weather it's standing out in (clear indoors).
+        public var weather: Weather
 
-        public init(greeting: Greeting? = nil, boop: Boop? = nil, pettedFor: Double? = nil, afterglow: Double = 0) {
+        public init(
+            greeting: Greeting? = nil, boop: Boop? = nil, pettedFor: Double? = nil, afterglow: Double = 0,
+            cheer: Cheer? = nil, weather: Weather = .clear
+        ) {
+            self.cheer = cheer
+            self.weather = weather
             self.greeting = greeting
             self.boop = boop
             self.pettedFor = pettedFor
@@ -42,11 +51,17 @@ extension PetLife {
     static func respond(
         to cues: Cues, at time: TimeInterval, seed: Int, mood: PetMood, still: Bool, on frame: inout PetFrame
     ) {
+        if !still, cues.weather.amount > 0.05 {
+            weatherReaction(cues.weather, at: time, seed: seed, mood: mood, on: &frame)
+        }
         if cues.afterglow > 0, !mood.isDown {
             pumped(cues.afterglow, clock: still ? 0 : time, seed: seed, on: &frame)
         }
         if let elapsed = cues.greeting?.elapsed(at: time) {
             greet(elapsed: still ? 0.3 : elapsed, on: &frame.pose)
+        }
+        if let elapsed = cues.cheer?.elapsed(at: time) {
+            cheer(elapsed: still ? 0.5 : elapsed, still: still, on: &frame)
         }
         if let held = cues.pettedFor {
             petted(for: still ? 1 : held, on: &frame)

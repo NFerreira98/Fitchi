@@ -14,6 +14,8 @@ public enum PetSound: Hashable, Sendable {
     case care(CareAction)
     /// A happy little tune (a gift, a celebration).
     case happy
+    /// A milestone fanfare: up the scale and a long, wobbly top note.
+    case cheer
 
     /// One chirp: a glide from one pitch to another (as multiples of the voice's pitch).
     struct Note: Sendable {
@@ -47,6 +49,14 @@ public enum PetSound: Hashable, Sendable {
                 Note(start: Double(index) * 0.09, length: 0.08, from: step, toward: step * 1.04)
             } + [Note(start: 0.38, length: 0.32, from: 1.6, toward: 2.1)]
         case .care(let action): Self.care(action)
+        case .cheer:
+            [1.0, 1.26, 1.5].enumerated().map { index, step in
+                Note(start: Double(index) * 0.09, length: 0.07, from: step, toward: step)
+            } + [
+                Note(start: 0.28, length: 0.3, from: 2, toward: 2.1),
+                Note(start: 0.62, length: 0.07, from: 1.5, toward: 1.6),
+                Note(start: 0.7, length: 0.22, from: 2, toward: 2.2),
+            ]
         case .happy:
             [1.0, 1.26, 1.5].enumerated().map { index, step in
                 Note(start: Double(index) * 0.11, length: index == 2 ? 0.22 : 0.1, from: step, toward: step)

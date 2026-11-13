@@ -53,6 +53,7 @@ struct SceneWorld {
     var time: Double
     var light: SceneLight
     var season: Season = .summer
+    var weather: Weather = .clear
 
     static let still = SceneWorld(time: 0, light: .day)
 

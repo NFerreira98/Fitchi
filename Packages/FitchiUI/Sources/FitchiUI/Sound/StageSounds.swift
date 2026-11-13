@@ -11,6 +11,7 @@ struct StageSounds: ViewModifier {
     let boops: Int
     let pats: Int
     let greeting: PetLife.Greeting?
+    let cheeredAt: Date?
     let quiet: Bool
 
     func body(content: Content) -> some View {
@@ -25,6 +26,9 @@ struct StageSounds: ViewModifier {
                     try? await Task.sleep(for: .seconds(wait))
                     say(greeting.isBig ? .bigHello : .hello)
                 }
+            }
+            .onChange(of: cheeredAt) { _, start in
+                if start != nil { say(.cheer) }
             }
             .onChange(of: reaction?.id) {
                 guard let reaction else { return }

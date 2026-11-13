@@ -83,6 +83,10 @@ public struct PetStage: View {
     private let afterglow: Double
     /// A fixed season to dress the scene for; nil follows the calendar.
     private let fixedSeason: Season?
+    /// Fixed weather (for trying it out); nil follows the day's own weather.
+    private let fixedWeather: Weather?
+    /// When the pet started celebrating a milestone, if it is.
+    private let cheeredAt: Date?
     /// Holding longer than this pets instead of booping.
     static let holdToPet: TimeInterval = 0.35
 
@@ -95,9 +99,12 @@ public struct PetStage: View {
     public init(
         pet: Pet, species: Species?, mood: PetMood = .content, backdrop: SceneBackdrop.Kind = .meadow,
         style: PetLayoutStyle, reaction: StageReaction? = nil, petScale: CGFloat = 0.5, controlsBelow: Bool = true,
-        light: SceneLight? = nil, bigHellos: Int = 0, afterglow: Double = 0, season: Season? = nil
+        light: SceneLight? = nil, bigHellos: Int = 0, afterglow: Double = 0, season: Season? = nil,
+        weather: Weather? = nil, cheeredAt: Date? = nil
     ) {
         self.fixedSeason = season
+        self.fixedWeather = weather
+        self.cheeredAt = cheeredAt
         self.afterglow = afterglow
         self.bigHellos = bigHellos
         self.controlsBelow = controlsBelow
@@ -122,9 +129,9 @@ public struct PetStage: View {
                 TimelineView(
                     .animation(minimumInterval: reduceMotion ? 0.5 : 1.0 / 20, paused: isLuminanceReduced)
                 ) { timeline in
-                    let frame = frame(at: timeline.date)
-                    let light = fixedLight ?? SceneLight(at: timeline.date)
                     let season = fixedSeason ?? Season(at: timeline.date)
+                    let frame = frame(at: timeline.date, weather: weather(at: timeline.date, season: season))
+                    let light = fixedLight ?? SceneLight(at: timeline.date)
                     let (center, drawn) = placement(x: frame.x, depth: frame.depth, in: size, petSize: petSize)
                     let feet = center.y + drawn / 2
                     let footing = backdrop.footing(in: season)
@@ -172,7 +179,8 @@ public struct PetStage: View {
         .modifier(
             StageSounds(
                 voice: PetVoice(petID: pet.id, speciesID: pet.speciesID), seed: PetLife.seed(for: pet.id), mood: mood,
-                reaction: reaction, boops: boops, pats: pats, greeting: greeting, quiet: isLuminanceReduced)
+                reaction: reaction, boops: boops, pats: pats, greeting: greeting, cheeredAt: cheeredAt,
+                quiet: isLuminanceReduced)
         )
         .sensoryFeedback(.impact(weight: .light), trigger: boops)
         .sensoryFeedback(.impact(flexibility: .soft), trigger: pats)
@@ -208,13 +216,6 @@ public struct PetStage: View {
         boops += 1
     }
 
-    /// Seconds of petting so far at `date`, once a hold has lasted long enough.
-    private func pettedFor(at date: Date) -> Double? {
-        guard let touch, !touch.swiped else { return nil }
-        let held = date.timeIntervalSince(touch.start) - Self.holdToPet
-        return held > 0 ? held : nil
-    }
-
     /// The pet is on screen again: say hello if it's been a while.
     private func arrive() {
         let now = Date.now.timeIntervalSinceReferenceDate
@@ -228,25 +229,15 @@ public struct PetStage: View {
         lastSeen = Date.now.timeIntervalSinceReferenceDate
     }
 
-    private func frame(at date: Date) -> PetFrame {
-        PetLife.frame(
-            at: date.timeIntervalSinceReferenceDate, seed: PetLife.seed(for: pet.id), mood: mood,
-            reaction: reaction.map {
-                PetLife.Reaction(action: $0.action, startedAt: $0.startedAt.timeIntervalSinceReferenceDate)
-            },
-            still: reduceMotion, visitors: backdrop.hasVisitors,
-            cues: PetLife.Cues(
-                greeting: greeting, boop: boop, pettedFor: pettedFor(at: date), afterglow: afterglow),
-            personality: pet.personality)
-    }
-
     /// The backdrop, alive: clouds drift, grass sways and the light follows the time of day.
     /// 12 fps is plenty for things this slow; it stops when the wrist is down.
     private var livingBackdrop: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 12, paused: isLuminanceReduced)) { timeline in
+            let season = fixedSeason ?? Season(at: timeline.date)
             SceneBackdrop(
                 backdrop, time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate,
-                light: fixedLight ?? SceneLight(at: timeline.date), season: fixedSeason ?? Season(at: timeline.date))
+                light: fixedLight ?? SceneLight(at: timeline.date), season: season,
+                weather: weather(at: timeline.date, season: season))
         }
     }
 
@@ -372,5 +363,32 @@ extension PetStage {
                 let (center, drawn) = placement(x: step.x, depth: step.depth, in: size, petSize: petSize)
                 return GroundMark(step: step, point: CGPoint(x: center.x, y: center.y + drawn / 2), petSize: drawn)
             }
+    }
+
+    /// The weather out in the scene (and through the window, indoors).
+    private func weather(at date: Date, season: Season) -> Weather {
+        (fixedWeather ?? Weather(at: date, season: season)).adapted(to: backdrop)
+    }
+
+    private func frame(at date: Date, weather: Weather) -> PetFrame {
+        PetLife.frame(
+            at: date.timeIntervalSinceReferenceDate, seed: PetLife.seed(for: pet.id), mood: mood,
+            reaction: reaction.map {
+                PetLife.Reaction(action: $0.action, startedAt: $0.startedAt.timeIntervalSinceReferenceDate)
+            },
+            still: reduceMotion, visitors: backdrop.hasVisitors,
+            cues: PetLife.Cues(
+                greeting: greeting, boop: boop, pettedFor: pettedFor(at: date), afterglow: afterglow,
+                cheer: cheeredAt.map { PetLife.Cheer(startedAt: $0.timeIntervalSinceReferenceDate) },
+                // Indoors it stays dry, whatever the window shows.
+                weather: backdrop.isIndoor ? .clear : weather),
+            personality: pet.personality)
+    }
+
+    /// Seconds of petting so far at `date`, once a hold has lasted long enough.
+    private func pettedFor(at date: Date) -> Double? {
+        guard let touch, !touch.swiped else { return nil }
+        let held = date.timeIntervalSince(touch.start) - Self.holdToPet
+        return held > 0 ? held : nil
     }
 }

@@ -29,6 +29,8 @@ struct FitchiWatchApp: App {
         // The complication and care reminders follow every change.
         pets.onChange { PetCompanions.refresh(pets) }
         PetCompanions.refresh(pets)
+        // Milestones reached while the app is in the background get a notification.
+        store.onRefresh = { CareReminders.announceCheers(pets, activity: store) }
         // Started here rather than in a view, so a background wake-up from HealthKit (which may
         // not render any UI) still sets up the observer.
         Task { await store.start(backgroundDelivery: true) }

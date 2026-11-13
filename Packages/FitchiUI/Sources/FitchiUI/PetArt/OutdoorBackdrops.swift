@@ -101,7 +101,7 @@ enum Beach {
         context.stroke(
             shore.trimmedPath(from: 0, to: 0.25), with: .color(.white),
             style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
-        palm(context, base: CGPoint(x: 8, y: horizon + 16), sway: world.wave(0.9))
+        palm(context, base: CGPoint(x: 8, y: horizon + 16), sway: world.sway(0.9))
         starfish(context, at: CGPoint(x: 86, y: horizon + 30))
         context.fill(Path(ellipse: CGPoint(x: 22, y: horizon + 34), rx: 2.4, ry: 1.6), with: .color(color(0xFFC7C2)))
     }

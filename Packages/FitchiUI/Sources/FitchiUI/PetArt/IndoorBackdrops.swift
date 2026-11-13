@@ -40,6 +40,7 @@ private func window(_ context: GraphicsContext, frame rect: CGRect, curtain: UIn
     glass.clip(to: Path(rect))
     let drift = CGFloat(world.cycle(60)) * (rect.width + 10) - 5
     Sky.cloud(glass, at: CGPoint(x: rect.minX + drift, y: rect.midY), size: 0.45)
+    WeatherArt.window(glass, rect: rect, world: world)
     let night = world.light.night
     if night > 0.01 {
         glass.fill(Path(rect), with: .color(color(0x1B2350).opacity(0.9 * night)))

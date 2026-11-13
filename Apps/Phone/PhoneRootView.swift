@@ -135,6 +135,7 @@ struct BackedUpPetView: View {
     @Environment(ActivityStore.self) private var activity
     let pet: Pet
     let lastBackup: Date?
+    @State private var cheers = CheerBoard()
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
@@ -145,13 +146,13 @@ struct BackedUpPetView: View {
                     pet: pet, species: pets.species(of: pet), mood: mood,
                     backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene,
                     petScale: 0.36,
-                    controlsBelow: false, afterglow: afterglow
+                    controlsBelow: false, afterglow: afterglow, cheeredAt: cheers.current?.startedAt
                 )
                 .aspectRatio(1.1, contentMode: .fit)
                 .clipShape(.rect(cornerRadius: 28))
                 Text(pet.name)
                     .font(FitchiTheme.Fonts.display(.title))
-                Text(mood.headline(afterglow: afterglow))
+                Text(cheers.current?.milestone.message(petName: pet.name) ?? mood.headline(afterglow: afterglow))
                     .font(FitchiTheme.Fonts.text(.subheadline))
                     .foregroundStyle(.secondary)
                 Label(backupLine(at: timeline.date), systemImage: "checkmark.shield")
@@ -162,6 +163,17 @@ struct BackedUpPetView: View {
                     .padding(.vertical, FitchiTheme.Spacing.s)
                     .background(.fill.tertiary, in: .rect(cornerRadius: 14))
             }
+        }
+        .sensoryFeedback(.success, trigger: cheers.current) { _, new in new != nil }
+        .onChange(of: activity.lastRefreshed, initial: true) {
+            cheers.check(
+                at: .now, samples: activity.samples, steps: activity.steps, today: activity.today,
+                pepGoal: Int(activity.rules.dailySoftCap))
+        }
+        .task(id: cheers.current) {
+            guard cheers.current != nil else { return }
+            try? await Task.sleep(for: CheerBoard.showsFor)
+            cheers.finish()
         }
     }
 
