@@ -15,7 +15,10 @@ struct PhoneRootView: View {
     var body: some View {
         TabView(selection: $tab) {
             Tab("Home", systemImage: "house.fill", value: "home") {
-                PhoneHomeView()
+                PhoneHomeView(showAllPets: { tab = "pets" })
+            }
+            Tab("Pets", systemImage: "pawprint.fill", value: "pets") {
+                PetsView()
             }
             Tab("Shop", systemImage: "bag.fill", value: "shop") {
                 ShopView()
@@ -65,6 +68,8 @@ struct PhoneHomeView: View {
     @Environment(PetStore.self) private var pets
     @Environment(BackupLink.self) private var backup
     @State private var showsDeveloper = false
+    /// Opens the Pets tab.
+    var showAllPets: () -> Void = {}
 
     var body: some View {
         ScrollView {
@@ -72,7 +77,7 @@ struct PhoneHomeView: View {
                 if let pet = pets.activePet {
                     BackedUpPetView(pet: pet, lastBackup: backup.lastExchange)
                     PhoneQuestsCard(petName: pet.name)
-                    if pets.roster.pets.count > 1 { PetRosterView() }
+                    if pets.roster.pets.count > 1 { PetRosterView(showAll: showAllPets) }
                 } else {
                     VStack(spacing: FitchiTheme.Spacing.s) {
                         Text("⌚️").font(.system(size: 56))
@@ -188,13 +193,20 @@ struct BackedUpPetView: View {
 /// Every pet you own. One lives on your watch; the rest rest (and get hungry more slowly).
 struct PetRosterView: View {
     @Environment(PetStore.self) private var pets
+    var showAll: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: FitchiTheme.Spacing.s) {
-            Text("Your pets").font(FitchiTheme.Fonts.display(.headline))
+            HStack {
+                Text("Your pets").font(FitchiTheme.Fonts.display(.headline))
+                Spacer()
+                Button("See all \(pets.roster.pets.count)", action: showAll)
+                    .font(FitchiTheme.Fonts.text(.subheadline, weight: .semibold))
+            }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: FitchiTheme.Spacing.m) {
-                    ForEach(pets.roster.pets) { pet in
+                    // Favourites first, then the newest.
+                    ForEach(Array(RosterQuery().apply(to: pets.roster.pets, in: pets.catalog).prefix(12))) { pet in
                         card(pet)
                     }
                 }

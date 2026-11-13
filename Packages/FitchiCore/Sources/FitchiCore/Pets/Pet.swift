@@ -25,6 +25,13 @@ public struct Pet: Identifiable, Codable, Hashable, Sendable {
     public private(set) var isActive: Bool
     public private(set) var stats: [Stat: StatAnchor]
     public var equipped: [AccessorySlot: String]
+    /// Starred by the player to showcase. Optional so saves from before favourites still load.
+    private var favorite: Bool?
+
+    public var isFavorite: Bool {
+        get { favorite ?? false }
+        set { favorite = newValue ? true : nil }
+    }
 
     public init(
         id: UUID = UUID(),

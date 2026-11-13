@@ -15,6 +15,19 @@ public struct CollectionEntry: Hashable, Sendable, Identifiable {
     /// For a special colouring: when it can hatch (snow, night, autumn…).
     public var condition: HatchCondition?
 
+    public init(
+        speciesID: String, variantID: String?, name: String, rarity: Rarity, isShiny: Bool, foundAt: Date? = nil,
+        condition: HatchCondition? = nil
+    ) {
+        self.speciesID = speciesID
+        self.variantID = variantID
+        self.name = name
+        self.rarity = rarity
+        self.isShiny = isShiny
+        self.foundAt = foundAt
+        self.condition = condition
+    }
+
     public var id: String { "\(speciesID)/\(variantID ?? "-")" }
     public var isFound: Bool { foundAt != nil }
 
