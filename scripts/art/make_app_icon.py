@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Generates Fitchi's app icon: a hi-bit pixel-art bear peeking over a counter.
+"""Generates Fitchi's app icon: a hi-bit pixel-art bear in a red workout sweatband,
+peeking over a counter.
 
 The bear is drawn procedurally on a 64x64 grid (shapes → cel shading → selective
 outline), then upscaled with nearest-neighbour to 1024x1024 so pixels stay crisp.
@@ -38,6 +39,10 @@ NOSE = (64, 38, 30)
 EYE = (44, 28, 24)
 EYE_SHINE = (255, 255, 255)
 BLUSH = (252, 150, 150)
+
+BAND = (226, 52, 58)
+BAND_LIGHT = (255, 104, 100)
+BAND_SHADE = (176, 30, 44)
 
 COUNTER = (246, 132, 120)
 COUNTER_LIGHT = (255, 172, 156)
@@ -111,6 +116,15 @@ def render() -> list[list[tuple[int, int, int]]]:
             for ex, ey, _ in ears:
                 if math.hypot(sx - (ex + (1 if ex < 32 else -1)), sy - (ey + 0.8)) <= 3.6:
                     px[y][x] = INNER_EAR
+
+    # ---- red workout sweatband across the forehead: four pixels deep in every column,
+    # bowing down toward the sides as it follows the round head (symmetric about x = 31.5)
+    for x in range(GRID):
+        drop = round(0.0075 * (x + 0.5 - 32) ** 2)
+        for row, colour in enumerate((BAND_LIGHT, BAND, BAND, BAND_SHADE)):
+            y = 26 + drop + row
+            if bear[y][x] and in_head(x + 0.5, y + 0.5):
+                px[y][x] = colour
 
     # ---- muzzle
     for y in range(GRID):
