@@ -132,3 +132,41 @@ struct PhoneHomeTests {
         #expect(phone.activePet?.id == pet.id)
     }
 }
+
+@MainActor
+@Suite("Comeback")
+struct ComebackStoreTests {
+    let suite = PetStoreTests()
+
+    @Test func aRunawayComesHomeAfterAnHourOfWalking() throws {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let clock = MutableClock(start)
+        let store = PetStore(
+            repository: GameRepository(container: try FitchiStore.makeContainer(inMemory: true)),
+            catalog: suite.catalog, clock: clock)
+        store.load()
+        let pet = try store.hatchStarter(samples: [], force: true)
+        #expect(store.comebackProgress(for: pet, samples: []) == nil)
+
+        store.sendAway(pet.id)
+        let gone = try #require(store.roster[pet.id])
+        #expect(gone.condition(at: start, in: store.decay) == .ranAway)
+        let walk = StepCount(start: start, end: start.addingTimeInterval(3_600), steps: 4_000)
+        clock.now = start.addingTimeInterval(3_600)
+        #expect(store.comebackProgress(for: gone, samples: [], steps: [walk])?.stepsRemaining == 2_000)
+        #expect(!store.bringHome(pet.id, samples: [], steps: [walk]), "not far enough yet")
+
+        let more = StepCount(start: clock.now, end: clock.now.addingTimeInterval(3_600), steps: 2_000)
+        clock.now = clock.now.addingTimeInterval(3_600)
+        #expect(store.bringHome(pet.id, samples: [], steps: [walk, more]))
+        let home = try #require(store.roster[pet.id])
+        #expect(home.condition(at: clock.now, in: store.decay) == .content)
+        #expect(store.comebackProgress(for: home, samples: [], steps: [walk, more]) == nil)
+    }
+}
+
+/// A clock the test moves forward by hand (only touched from the main actor).
+final class MutableClock: GameClock, @unchecked Sendable {
+    var now: Date
+    init(_ now: Date) { self.now = now }
+}

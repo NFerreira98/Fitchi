@@ -83,7 +83,44 @@ struct CareTests {
         let pet = TestSupport.pet(at: start)
         let gone = start.addingTimeInterval(30 * .day)
         let oldRun = TestSupport.sample("old", .run, start: start, minutes: 120)
-        #expect(ComebackQuest.v1.progress(for: pet, samples: [oldRun], at: gone, in: context) == 0)
+        #expect(ComebackQuest.v1.progress(for: pet, samples: [oldRun], at: gone, in: context)?.activeMinutes == 0)
+        #expect(ComebackQuest.v1.progress(for: pet, samples: [oldRun], at: start, in: context) == nil)
+    }
+
+    @Test func everydayStepsBringAPetHomeWithoutAWatch() throws {
+        var pet = TestSupport.pet(at: start)
+        let gone = start.addingTimeInterval(30 * .day)
+        let quest = ComebackQuest.v1
+        let leftAt = try #require(pet.ranAwayDate(at: gone, in: context))
+        // An iPhone-only player: just hourly step totals, 6,000 steps = 60 minutes.
+        let hours = (0..<3).map { hour in
+            StepCount(
+                start: gone.addingTimeInterval(Double(hour) * .hour),
+                end: gone.addingTimeInterval(Double(hour + 1) * .hour), steps: 1_500)
+        }
+        let before = StepCount(start: leftAt.addingTimeInterval(-.hour), end: leftAt, steps: 9_000)
+        let midway = try #require(quest.progress(for: pet, samples: [], steps: [before] + hours, at: gone, in: context))
+        #expect(midway.activeMinutes == 45)
+        #expect(midway.minutesRemaining == 15)
+        #expect(midway.stepsRemaining == 1_500)
+        #expect(!midway.isComplete)
+
+        let more = StepCount(
+            start: gone.addingTimeInterval(3 * .hour), end: gone.addingTimeInterval(4 * .hour), steps: 1_500)
+        let home = gone.addingTimeInterval(5 * .hour)
+        try quest.bringHome(&pet, samples: [], steps: hours + [more], at: home, in: context)
+        #expect(pet.value(of: .hunger, at: home, in: context) == quest.returnValue)
+        #expect(pet.condition(at: home, in: context) == .content)
+    }
+
+    @Test func aWorkoutUnderwayWhenThePetLeftCountsFromThenOn() throws {
+        let pet = TestSupport.pet(at: start)
+        let gone = start.addingTimeInterval(30 * .day)
+        let leftAt = try #require(pet.ranAwayDate(at: gone, in: context))
+        let run = TestSupport.sample("r", .run, start: leftAt.addingTimeInterval(-20 * 60), minutes: 50)
+        let manual = TestSupport.sample("m", .walk, start: leftAt, minutes: 90, userEntered: true)
+        let progress = ComebackQuest.v1.progress(for: pet, samples: [run, manual], at: gone, in: context)
+        #expect(progress.map { ($0.activeMinutes * 10).rounded() / 10 } == 30)
     }
 
     @Test func equippingRequiresOwnershipAndUsesSlot() throws {

@@ -58,6 +58,10 @@
                 }
                 Button("Remove test Pep", role: .destructive) { pets.removeTestPep(earnings: activity.earnings) }
                     .disabled(pets.testPep <= 0)
+                if let pet = pets.activePet {
+                    Button("Make \(pet.name) run away", role: .destructive) { pets.sendAway(pet.id) }
+                        .disabled(pets.comebackProgress(for: pet, samples: activity.samples) != nil)
+                }
                 HStack {
                     ForEach(["sparkle-egg", "golden-egg"], id: \.self) { egg in
                         Button("+ \(EggName.display(egg))") { pets.grantTestRewardEgg(egg) }
@@ -70,7 +74,8 @@
             } footer: {
                 Text(
                     "Syncs to your watch like real Pep. Removing takes back what's left of it; "
-                        + "anything bought with it stays bought. Test eggs appear on Home, ready to hatch like a streak reward."
+                        + "anything bought with it stays bought. Test eggs appear on Home, ready to hatch like a streak reward. "
+                        + "A pet sent away comes back with the real comeback quest (60 active minutes or 6,000 steps)."
                 )
             }
         }

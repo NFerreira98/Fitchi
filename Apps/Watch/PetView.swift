@@ -17,62 +17,23 @@ struct PetView: View {
     @State private var event: CareEvent?
     /// Celebrates steps, active minutes, workouts and the Pep goal as they happen.
     @State private var cheers = CheerBoard()
+    /// Counts homecomings, for the haptic.
+    @State private var welcomed = 0
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
-            let values = pet.values(at: timeline.date, in: pets.decay)
-            let mood = pet.mood(at: timeline.date, in: pets.decay)
-            let balance = pets.wallet(earnings: activity.earnings).balance
-            let afterglow = Afterglow.level(at: timeline.date, samples: activity.samples)
-            ZStack {
-                PetStage(
-                    pet: pet, species: pets.species(of: pet), mood: mood,
-                    backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: style,
-                    reaction: event?.reaction, petScale: style == .island ? 0.48 : (style == .horizon ? 0.38 : 0.42),
-                    afterglow: afterglow, cheeredAt: cheers.current?.startedAt
-                )
-                .ignoresSafeArea()
-                VStack(spacing: 0) {
-                    header(
-                        balance: balance,
-                        status: event?.message ?? cheers.current?.milestone.message(petName: pet.name)
-                            ?? mood.headline(afterglow: afterglow))
-                    if let moment = pets.openMoment(at: timeline.date), event == nil {
-                        giftButton(moment)
-                    }
-                    Spacer(minLength: 0)
-                    stats(values)
-                    careButtons(balance: balance)
-                }
-                .ignoresSafeArea(edges: .top)
-                if pets.celebrations.isEmpty, let notice = pets.questNotices.first {
-                    QuestNoticeCard(notice, petName: pet.name, compact: true)
-                        .padding(.horizontal, 8)
-                        .id(notice.id)
-                        .transition(.scale(scale: 0.6).combined(with: .opacity))
-                        .onTapGesture { pets.dismissQuestNotice() }
-                        .task(id: notice.id) {
-                            try? await Task.sleep(for: .seconds(3))
-                            pets.dismissQuestNotice()
-                        }
-                }
-                if let next = pets.celebrations.first {
-                    AchievementCelebration(next, compact: true)
-                        .padding(.horizontal, 8)
-                        .id(next.id)
-                        .transition(.scale(scale: 0.6).combined(with: .opacity))
-                        .onTapGesture { pets.dismissCelebration() }
-                        .task(id: next.id) {
-                            try? await Task.sleep(for: .seconds(3))
-                            pets.dismissCelebration()
-                        }
-                }
+            if let comeback = pets.comebackProgress(for: pet, samples: activity.samples, steps: activity.steps) {
+                ComebackView(
+                    pet: pet, species: pets.species(of: pet),
+                    backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), progress: comeback,
+                    compact: true, onWelcome: welcomeHome)
+            } else {
+                petScreen(at: timeline.date)
             }
-            .animation(.spring(duration: 0.45), value: pets.celebrations.first?.id)
-            .animation(.spring(duration: 0.45), value: pets.questNotices.first?.id)
         }
         .toolbar(.hidden, for: .navigationBar)
         .sensoryFeedback(trigger: event) { _, new in new?.feedback }
+        .sensoryFeedback(.success, trigger: welcomed)
         .sensoryFeedback(.success, trigger: cheers.current) { _, new in new != nil }
         .onChange(of: activity.lastRefreshed, initial: true) {
             cheers.check(
@@ -92,6 +53,68 @@ struct PetView: View {
             try? await Task.sleep(for: .seconds(4.2))
             event = nil
         }
+    }
+
+    /// The pet itself: its scene, header, gift, needs and care buttons.
+    @ViewBuilder
+    private func petScreen(at date: Date) -> some View {
+        let values = pet.values(at: date, in: pets.decay)
+        let mood = pet.mood(at: date, in: pets.decay)
+        let balance = pets.wallet(earnings: activity.earnings).balance
+        let afterglow = Afterglow.level(at: date, samples: activity.samples)
+        ZStack {
+            PetStage(
+                pet: pet, species: pets.species(of: pet), mood: mood,
+                backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: style,
+                reaction: event?.reaction, petScale: style == .island ? 0.48 : (style == .horizon ? 0.38 : 0.42),
+                afterglow: afterglow, cheeredAt: cheers.current?.startedAt
+            )
+            .ignoresSafeArea()
+            VStack(spacing: 0) {
+                header(
+                    balance: balance,
+                    status: event?.message ?? cheers.current?.milestone.message(petName: pet.name)
+                        ?? mood.headline(afterglow: afterglow))
+                if let moment = pets.openMoment(at: date), event == nil {
+                    giftButton(moment)
+                }
+                Spacer(minLength: 0)
+                stats(values)
+                careButtons(balance: balance)
+            }
+            .ignoresSafeArea(edges: .top)
+            if pets.celebrations.isEmpty, let notice = pets.questNotices.first {
+                QuestNoticeCard(notice, petName: pet.name, compact: true)
+                    .padding(.horizontal, 8)
+                    .id(notice.id)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .onTapGesture { pets.dismissQuestNotice() }
+                    .task(id: notice.id) {
+                        try? await Task.sleep(for: .seconds(3))
+                        pets.dismissQuestNotice()
+                    }
+            }
+            if let next = pets.celebrations.first {
+                AchievementCelebration(next, compact: true)
+                    .padding(.horizontal, 8)
+                    .id(next.id)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .onTapGesture { pets.dismissCelebration() }
+                    .task(id: next.id) {
+                        try? await Task.sleep(for: .seconds(3))
+                        pets.dismissCelebration()
+                    }
+            }
+        }
+        .animation(.spring(duration: 0.45), value: pets.celebrations.first?.id)
+        .animation(.spring(duration: 0.45), value: pets.questNotices.first?.id)
+    }
+
+    /// The comeback quest is done: the pet moves back in and runs over for a big hello.
+    private func welcomeHome() {
+        guard pets.bringHome(pet.id, samples: activity.samples, steps: activity.steps) else { return }
+        PetStage.bigHelloNext()
+        welcomed += 1
     }
 
     /// Name (tap for details), Pep balance and a one-line status or reaction.

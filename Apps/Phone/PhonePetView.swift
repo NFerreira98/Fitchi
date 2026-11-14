@@ -16,44 +16,22 @@ struct PhonePetView: View {
     /// The latest care tap or gift, driving the stage reaction, message and haptic.
     @State private var event: CareEvent?
     @State private var cheers = CheerBoard()
+    /// Counts homecomings, for the haptic.
+    @State private var welcomed = 0
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
-            let mood = pet.mood(at: timeline.date, in: pets.decay)
-            let afterglow = Afterglow.level(at: timeline.date, samples: activity.samples)
-            let balance = pets.wallet(earnings: activity.earnings).balance
-            VStack(spacing: FitchiTheme.Spacing.m) {
-                PetStage(
-                    pet: pet, species: pets.species(of: pet), mood: mood,
-                    backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene,
-                    reaction: event?.reaction, petScale: 0.36, controlsBelow: false, afterglow: afterglow,
-                    cheeredAt: cheers.current?.startedAt
-                )
-                .aspectRatio(1.1, contentMode: .fit)
-                .clipShape(.rect(cornerRadius: 28))
-                .overlay(alignment: .topTrailing) {
-                    if let moment = pets.openMoment(at: timeline.date), event == nil {
-                        giftButton(moment).padding(12)
-                    }
-                }
-                .animation(.spring(duration: 0.4), value: pets.openMoment(at: timeline.date)?.id)
-                header(balance: balance, status: status(mood: mood, afterglow: afterglow))
-                StatBarsView(values: pet.values(at: timeline.date, in: pets.decay))
-                    .padding(12)
-                    .background(.fill.tertiary, in: .rect(cornerRadius: 16))
-                careButtons(balance: balance)
-                if home == .watch {
-                    Label(backupLine(at: timeline.date), systemImage: "arrow.triangle.2.circlepath")
-                        .font(FitchiTheme.Fonts.text(.footnote))
-                        .foregroundStyle(.secondary)
-                }
-                PetVoiceRow(voice: PetVoice(petID: pet.id, speciesID: pet.speciesID), petName: pet.name)
-                    .padding(.horizontal, FitchiTheme.Spacing.m)
-                    .padding(.vertical, FitchiTheme.Spacing.s)
-                    .background(.fill.tertiary, in: .rect(cornerRadius: 14))
+            if let comeback = pets.comebackProgress(for: pet, samples: activity.samples, steps: activity.steps) {
+                ComebackView(
+                    pet: pet, species: pets.species(of: pet),
+                    backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), progress: comeback,
+                    compact: false, onWelcome: welcomeHome)
+            } else {
+                petScreen(at: timeline.date)
             }
         }
         .sensoryFeedback(trigger: event) { _, new in new?.feedback }
+        .sensoryFeedback(.success, trigger: welcomed)
         .sensoryFeedback(.success, trigger: cheers.current) { _, new in new != nil }
         .onChange(of: activity.lastRefreshed, initial: true) {
             cheers.check(
@@ -71,6 +49,51 @@ struct PhonePetView: View {
             try? await Task.sleep(for: .seconds(4.2))
             event = nil
         }
+    }
+
+    /// The pet itself: its scene, needs, care buttons and gift.
+    @ViewBuilder
+    private func petScreen(at date: Date) -> some View {
+        let mood = pet.mood(at: date, in: pets.decay)
+        let afterglow = Afterglow.level(at: date, samples: activity.samples)
+        let balance = pets.wallet(earnings: activity.earnings).balance
+        VStack(spacing: FitchiTheme.Spacing.m) {
+            PetStage(
+                pet: pet, species: pets.species(of: pet), mood: mood,
+                backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene,
+                reaction: event?.reaction, petScale: 0.36, controlsBelow: false, afterglow: afterglow,
+                cheeredAt: cheers.current?.startedAt
+            )
+            .aspectRatio(1.1, contentMode: .fit)
+            .clipShape(.rect(cornerRadius: 28))
+            .overlay(alignment: .topTrailing) {
+                if let moment = pets.openMoment(at: date), event == nil {
+                    giftButton(moment).padding(12)
+                }
+            }
+            .animation(.spring(duration: 0.4), value: pets.openMoment(at: date)?.id)
+            header(balance: balance, status: status(mood: mood, afterglow: afterglow))
+            StatBarsView(values: pet.values(at: date, in: pets.decay))
+                .padding(12)
+                .background(.fill.tertiary, in: .rect(cornerRadius: 16))
+            careButtons(balance: balance)
+            if home == .watch {
+                Label(backupLine(at: date), systemImage: "arrow.triangle.2.circlepath")
+                    .font(FitchiTheme.Fonts.text(.footnote))
+                    .foregroundStyle(.secondary)
+            }
+            PetVoiceRow(voice: PetVoice(petID: pet.id, speciesID: pet.speciesID), petName: pet.name)
+                .padding(.horizontal, FitchiTheme.Spacing.m)
+                .padding(.vertical, FitchiTheme.Spacing.s)
+                .background(.fill.tertiary, in: .rect(cornerRadius: 14))
+        }
+    }
+
+    /// The comeback quest is done: the pet moves back in and runs over for a big hello.
+    private func welcomeHome() {
+        guard pets.bringHome(pet.id, samples: activity.samples, steps: activity.steps) else { return }
+        PetStage.bigHelloNext()
+        welcomed += 1
     }
 
     private func status(mood: PetMood, afterglow: Double) -> String {
