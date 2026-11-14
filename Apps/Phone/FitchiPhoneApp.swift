@@ -9,12 +9,18 @@ struct FitchiPhoneApp: App {
     @State private var activity: ActivityStore
     @State private var pets: PetStore
     @State private var backup: BackupLink
+    /// The first-run guide is done (see `WelcomeView`). Health is only asked for after it.
+    @AppStorage(WelcomeView.seenKey) private var welcomed = false
 
     init() {
         FitchiTheme.Fonts.register()
         let store = ActivityStore.makeDefault(installDate: AppInstall.date())
         // The phone only grants the starter egg once it knows there's no watch (see `phoneHome`).
         let pets = PetStore.makeDefault(grantsStarterEgg: false)
+        // Players who already have a pet or an egg know the game: no guide for them.
+        if !pets.roster.pets.isEmpty || pets.starterEgg != nil {
+            UserDefaults.standard.set(true, forKey: WelcomeView.seenKey)
+        }
         let backup = BackupLink(
             pets: pets, installDate: { AppInstall.date() },
             adoptInstallDate: { date in
@@ -51,14 +57,24 @@ struct FitchiPhoneApp: App {
 
     var body: some Scene {
         WindowGroup {
-            PhoneRootView()
-                .fontDesign(.rounded)
-                .environment(activity)
-                .environment(pets)
-                .environment(backup)
-                .environment(\.petHome, PetHome(backup.watch))
-                .task { await activity.start() }
-                .onChange(of: backup.watch, initial: true) { watchPresenceChanged() }
+            Group {
+                if welcomed {
+                    PhoneRootView()
+                } else {
+                    WelcomeView { withAnimation { welcomed = true } }
+                }
+            }
+            .fontDesign(.rounded)
+            .environment(activity)
+            .environment(pets)
+            .environment(backup)
+            .environment(\.petHome, PetHome(backup.watch))
+            // Asks for Health (once the guide is done), then keeps activity current.
+            .task(id: welcomed) {
+                guard welcomed else { return }
+                await activity.start()
+            }
+            .onChange(of: backup.watch, initial: true) { watchPresenceChanged() }
         }
         .onChange(of: activity.lastRefreshed) { Self.claimAchievements(pets, activity: activity) }
         .onChange(of: scenePhase) { _, phase in

@@ -69,6 +69,7 @@ struct PhoneHomeView: View {
     @Environment(\.petHome) private var home
     @AppStorage(CareReminders.enabledKey) private var remindersOn = true
     @State private var showsDeveloper = false
+    @State private var showsGuide = false
     /// The starter pet that just hatched on this iPhone, for the reveal.
     @State private var newborn: Pet?
     /// Opens the Pets tab.
@@ -109,6 +110,9 @@ struct PhoneHomeView: View {
                         .background(.fill.tertiary, in: .rect(cornerRadius: 16))
                         .onChange(of: remindersOn) { PetCompanions.refresh(pets, sendsReminders: true) }
                 }
+                Button("How Fitchi works", systemImage: "questionmark.circle") { showsGuide = true }
+                    .font(FitchiTheme.Fonts.text(.footnote, weight: .semibold))
+                    .foregroundStyle(.secondary)
                 #if DEBUG
                     Button("Developer tools", systemImage: "hammer.fill") { showsDeveloper = true }
                         .font(FitchiTheme.Fonts.text(.footnote, weight: .semibold))
@@ -124,6 +128,7 @@ struct PhoneHomeView: View {
         } content: { pet in
             PhoneHatchView(pet: pet, isNewFind: true)
         }
+        .sheet(isPresented: $showsGuide) { WelcomeView(isFirstRun: false) { showsGuide = false } }
         #if DEBUG
             .sheet(isPresented: $showsDeveloper) { DeveloperView() }
         #endif
