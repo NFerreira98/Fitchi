@@ -6,6 +6,7 @@ Gamified fitness Tamagotchi: Apple Watch app + iPhone companion. See README.md f
 - `./scripts/bootstrap.sh` regenerates `Fitchi.xcodeproj` from `project.yml`. Run it after adding/removing files. Never edit the .xcodeproj directly.
 - `./scripts/test.sh --packages` runs the fast package tests (`swift test`, no simulator).
 - `./scripts/test.sh` runs the package tests and builds both apps for the simulator.
+- `./scripts/deploy.sh phone --no-launch` installs on your iPhone (the watch app rides along). `--device NAME|UDID` picks a device (`--devices` lists them), `--release` drops the developer tools: friends' phones get `--release` (free Apple ID: reinstall every 7 days, see `docs/FRIENDS.md`).
 - `swiftlint lint --strict` must pass (CI enforces it). Formatting is owned by swift-format (`.swift-format`).
 
 ## Architecture rules
