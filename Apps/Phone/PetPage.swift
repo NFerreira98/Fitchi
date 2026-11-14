@@ -1,5 +1,6 @@
 import FitchiCore
 import FitchiData
+import FitchiHealth
 import FitchiUI
 import SwiftUI
 
@@ -7,6 +8,7 @@ import SwiftUI
 /// side (yours, how many of each, and what's still to find).
 struct PetPage: View {
     @Environment(PetStore.self) private var pets
+    @Environment(ActivityStore.self) private var activity
     @Environment(\.petHome) private var home
     let petID: UUID
     @State private var name = ""
@@ -16,14 +18,29 @@ struct PetPage: View {
         if let pet = pets.roster[petID], let species = pets.species(of: pet) {
             ScrollView {
                 VStack(alignment: .leading, spacing: FitchiTheme.Spacing.l) {
-                    TimelineView(.periodic(from: .now, by: 60)) { timeline in
-                        PetStage(
-                            pet: pet, species: species, mood: pet.mood(at: timeline.date, in: pets.decay),
-                            backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene,
-                            petScale: 0.4, controlsBelow: false)
+                    if let comeback = pets.comebackProgress(
+                        for: pet, samples: activity.samples, steps: activity.steps)
+                    {
+                        // Ran away (a resting pet can too, just more slowly): its way home.
+                        ComebackView(
+                            pet: pet, species: species,
+                            backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), progress: comeback,
+                            compact: false
+                        ) {
+                            if pets.bringHome(pet.id, samples: activity.samples, steps: activity.steps) {
+                                PetStage.bigHelloNext()
+                            }
+                        }
+                    } else {
+                        TimelineView(.periodic(from: .now, by: 60)) { timeline in
+                            PetStage(
+                                pet: pet, species: species, mood: pet.mood(at: timeline.date, in: pets.decay),
+                                backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene,
+                                petScale: 0.4, controlsBelow: false)
+                        }
+                        .aspectRatio(1.3, contentMode: .fit)
+                        .clipShape(.rect(cornerRadius: 24))
                     }
-                    .aspectRatio(1.3, contentMode: .fit)
-                    .clipShape(.rect(cornerRadius: 24))
                     header(pet, species)
                     facts(pet, species)
                     traits(pet)

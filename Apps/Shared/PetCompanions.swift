@@ -39,6 +39,7 @@ enum CareReminders {
     static let enabledKey = "fitchi.careReminders"
     static let idPrefix = "fitchi.nudge."
     static let giftPrefix = "fitchi.gift."
+    static let warningPrefix = "fitchi.warn."
     /// watchOS keeps a limited number of pending notifications; a few ahead is plenty (and the
     /// same on the iPhone, where every change re-plans them anyway).
     static let maxPending = 6
@@ -58,7 +59,7 @@ enum CareReminders {
         guard !holdsPermissionPrompt else { return }
         let center = UNUserNotificationCenter.current()
         let pending = await center.pendingNotificationRequests().map(\.identifier)
-            .filter { $0.hasPrefix(idPrefix) || $0.hasPrefix(giftPrefix) }
+            .filter { $0.hasPrefix(idPrefix) || $0.hasPrefix(giftPrefix) || $0.hasPrefix(warningPrefix) }
         center.removePendingNotificationRequests(withIdentifiers: pending)
         guard isEnabled, let pet else { return }
         guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true else { return }
@@ -77,6 +78,7 @@ enum CareReminders {
             try? await center.add(
                 UNNotificationRequest(identifier: giftPrefix + gift.id, content: content, trigger: trigger))
         }
+        await scheduleWarnings(for: pet, at: now, in: decay, on: center)
         let nudges = CareNudges.plan(for: pet, after: now, in: decay).prefix(maxPending - upcomingGifts.count)
         for (index, nudge) in nudges.enumerated() {
             let content = UNMutableNotificationContent()
@@ -87,6 +89,43 @@ enum CareReminders {
                 timeInterval: max(1, nudge.date.timeIntervalSince(now)), repeats: false)
             try? await center.add(
                 UNNotificationRequest(identifier: "\(idPrefix)\(index)", content: content, trigger: trigger))
+        }
+    }
+
+    /// Feeling sick, packing its bags and running away, if nobody looks after the pet before
+    /// then (at most three, on top of the nudges and gifts). Care re-plans them all.
+    @MainActor
+    private static func scheduleWarnings(
+        for pet: Pet, at now: Date, in decay: DecayContext, on center: UNUserNotificationCenter
+    ) async {
+        for warning in NeglectWarnings.plan(for: pet, after: now, in: decay) {
+            let content = UNMutableNotificationContent()
+            (content.title, content.body) = words(for: warning.condition, name: pet.name)
+            content.sound = .default
+            content.threadIdentifier = "fitchi.warnings"
+            let trigger = UNTimeIntervalNotificationTrigger(
+                timeInterval: max(1, warning.date.timeIntervalSince(now)), repeats: false)
+            try? await center.add(
+                UNNotificationRequest(
+                    identifier: warningPrefix + warning.condition.rawValue, content: content, trigger: trigger))
+        }
+    }
+
+    static func words(for condition: PetCondition, name: String) -> (title: String, body: String) {
+        let quest = ComebackQuest.v1
+        return switch condition {
+        case .sick:
+            ("\(name) is feeling sick 🤒", "\(name) has gone too long without care. A meal and some fun will help.")
+        case .packing:
+            ("\(name) is packing its bags 🧳", "Last chance: check in on \(name) soon, or \(name) will run away.")
+        case .ranAway:
+            (
+                "\(name) ran away 🏃",
+                "Pets never leave for good. \(Int(quest.requiredMinutes)) active minutes (or about "
+                    + "\(Int(quest.requiredMinutes * quest.stepsPerMinute).formatted()) steps) brings \(name) home."
+            )
+        default:
+            ("\(name) misses you 💛", "Tap to check in on \(name).")
         }
     }
 
