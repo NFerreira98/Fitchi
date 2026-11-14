@@ -43,7 +43,18 @@ struct PetMoodEntry: TimelineEntry {
     var mood: PetMood { pet.map { $0.mood(at: date, in: context) } ?? .content }
     var wellbeing: Double { pet.map { $0.wellbeing(at: date, in: context) } ?? 0 }
     var values: [Stat: Double] { pet.map { $0.values(at: date, in: context) } ?? [:] }
-    var hasGift: Bool { glance.hasGift(at: date, calendar: context.calendar) }
+    /// A gift is waiting (only while the pet is around to have found it).
+    var hasGift: Bool { !hasRunAway && glance.hasGift(at: date, calendar: context.calendar) }
+    /// Ran away: the widgets show the pet far off and faded, with no needs to show.
+    var hasRunAway: Bool { pet != nil && mood.condition == .ranAway }
+
+    /// The line under the name: the gift, the way home, or the most pressing need.
+    var status: String {
+        guard let pet else { return "Move to hatch it" }
+        // The name is always shown just above, so these don't repeat it.
+        if hasRunAway { return "Ran away. Move to bring it home" }
+        return hasGift ? "🎁 Found something!" : mood.headline
+    }
 
     /// A still frame of the pet showing its mood (no walking on a watch face).
     var frame: PetFrame {
@@ -101,6 +112,8 @@ struct PetMoodView: View {
             PetFigure(
                 speciesID: pet.speciesID, palette: PetPalette(species: species, variant: pet.variant),
                 pose: entry.frame.pose, effects: entry.frame.effects, accessories: pet.equipped)
+            .saturation(entry.hasRunAway ? 0 : 1)
+            .opacity(entry.hasRunAway ? 0.4 : 1)
         } else if let species = entry.glance.species {
             Text(species.emoji ?? "🐾").font(.system(size: 22))
         } else {
@@ -111,7 +124,7 @@ struct PetMoodView: View {
     private var circular: some View {
         ZStack {
             Circle().stroke(.white.opacity(0.2), lineWidth: 3.5)
-            if entry.pet != nil {
+            if entry.pet != nil, !entry.hasRunAway {
                 Circle()
                     .trim(from: 0, to: max(0.02, entry.wellbeing / 100))
                     .stroke(ringColor, style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
@@ -136,14 +149,11 @@ struct PetMoodView: View {
                     .font(.system(.headline, design: .rounded, weight: .bold))
                     .lineLimit(1)
                     .widgetAccentable()
-                Text(
-                    entry.pet.map { pet in entry.hasGift ? "🎁 \(pet.name) found something!" : entry.mood.headline }
-                        ?? "Move to hatch it"
-                )
-                .font(.system(.caption2, design: .rounded))
-                .lineLimit(1)
-                .foregroundStyle(.secondary)
-                if entry.pet != nil {
+                Text(entry.status)
+                    .font(.system(.caption2, design: .rounded))
+                    .lineLimit(entry.hasRunAway ? 2 : 1)
+                    .foregroundStyle(.secondary)
+                if entry.pet != nil, !entry.hasRunAway {
                     HStack(spacing: 3) {
                         ForEach(Stat.allCases, id: \.self) { stat in
                             MiniBar(value: entry.values[stat] ?? 0, color: stat.color)
