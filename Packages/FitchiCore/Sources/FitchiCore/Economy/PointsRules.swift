@@ -26,6 +26,7 @@ public struct Earning: Codable, Hashable, Sendable, Identifiable {
 /// From v2, everyday steps (outside workouts and exercise minutes) also earn a little:
 /// one Pep per `stepsPerPep`, up to `stepPepDailyCap` a day, separate from the soft cap.
 /// From v3, workouts are never capped and steps-only days (no watch) earn generously.
+/// From v4, steps earn the same with or without a watch: 1 Pep per 100, no cap.
 public struct PointsRules: Hashable, Sendable {
     public var version: Int
     public var basePerMinute: Double
@@ -39,7 +40,8 @@ public struct PointsRules: Hashable, Sendable {
     public var welcomeBonus: Int
     /// Everyday steps per Pep; nil means steps earn nothing.
     public var stepsPerPep: Double?
-    public var stepPepDailyCap: Double
+    /// Most Pep steps can earn in a day; nil means no cap.
+    public var stepPepDailyCap: Double?
     /// Whether real workouts count towards the soft cap. From v3 only passive exercise minutes
     /// do: a long run or ride always pays in full.
     public var softCapsWorkouts: Bool
@@ -50,7 +52,7 @@ public struct PointsRules: Hashable, Sendable {
     public var stepsOnlyDayCap: Double?
 
     /// The rules the apps use now.
-    public static let current = v3
+    public static let current = v4
 
     public static let v1 = PointsRules(
         version: 1,
@@ -96,6 +98,20 @@ public struct PointsRules: Hashable, Sendable {
         return rules
     }()
 
+    /// v3 with one step rate for everyone: 1 Pep per 100 everyday steps, no cap, whether or not
+    /// a watch is worn. Under v3 wearing a watch paid less for the same walk (1 per 200 up to
+    /// 25, and its exercise minutes earn only 0.6 Pep each). Steps during workouts and exercise
+    /// minutes still don't count, so nothing is paid twice.
+    public static let v4: PointsRules = {
+        var rules = v3
+        rules.version = 4
+        rules.stepsPerPep = 100
+        rules.stepPepDailyCap = nil
+        rules.stepsOnlyDayStepsPerPep = nil
+        rules.stepsOnlyDayCap = nil
+        return rules
+    }()
+
     /// Raw Pep for a sample, before the daily cap.
     public func rawPep(for sample: ActivitySample) -> Double {
         let minutes = min(sample.minutes, maxMinutesPerSample)
@@ -135,7 +151,7 @@ public struct PointsRules: Hashable, Sendable {
             samples.filter { $0.kind == .passive && !$0.isUserEntered }.map { calendar.startOfDay(for: $0.start) })
         return totals.keys.sorted().compactMap { day in
             var perPep = stepsPerPep
-            var cap: Double? = stepPepDailyCap
+            var cap = stepPepDailyCap
             if let generous = stepsOnlyDayStepsPerPep, !watchDays.contains(day) {
                 perPep = generous
                 cap = stepsOnlyDayCap

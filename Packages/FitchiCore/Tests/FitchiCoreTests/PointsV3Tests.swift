@@ -15,10 +15,6 @@ struct PointsV3Tests {
         return StepCount(start: start, end: start + 3600, steps: steps)
     }
 
-    @Test func currentRulesAreV3() {
-        #expect(PointsRules.current == .v3)
-    }
-
     @Test func longWorkoutsPayInFullPastTheSoftCap() {
         // A 3-hour run: 180 × 1.2 × 1.6 = 345.6 raw, way past the 180 soft cap, all paid.
         let run = TestSupport.sample("marathon", .run, start: morning, minutes: 180)
