@@ -86,8 +86,7 @@ public extension Pet {
     /// For previews and developer tools; real pets run away on their own.
     func leftAlone(until date: Date, in context: DecayContext) -> Pet {
         var pet = self
-        let since = date.addingTimeInterval(-(context.config.runAwayAfter + .day))
-        for stat in Stat.allCases { pet.setStat(stat, to: 0, at: since) }
+        pet.markSentAway(at: date)
         return pet
     }
 }

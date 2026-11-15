@@ -27,6 +27,10 @@ public struct Pet: Identifiable, Codable, Hashable, Sendable {
     public var equipped: [AccessorySlot: String]
     /// Starred by the player to showcase. Optional so saves from before favourites still load.
     private var favorite: Bool?
+    /// Developer tools: the moment the pet was made to run away on the spot. Until the next
+    /// care it counts as long neglected (see `neglectStart`). Its needs are set to 0 at that
+    /// moment, so they are the newest and win the merge with the other device.
+    private var sentAway: Date?
 
     public var isFavorite: Bool {
         get { favorite ?? false }
@@ -98,6 +102,10 @@ public struct Pet: Identifiable, Codable, Hashable, Sendable {
         let threshold = context.config.neglectThreshold
         let lastCare = lastCareDate
         guard date >= lastCare, wellbeing(at: date, in: context) <= threshold else { return nil }
+        if let sentAway, lastCare <= sentAway {
+            // Neglected just long enough to have run away at `sentAway` (a minute's margin).
+            return sentAway.addingTimeInterval(-(context.config.runAwayAfter + 60))
+        }
         if wellbeing(at: lastCare, in: context) <= threshold { return lastCare }
         // Wellbeing only declines after the last care event, so binary-search the crossing.
         var low = lastCare
@@ -136,6 +144,12 @@ public struct Pet: Identifiable, Codable, Hashable, Sendable {
     // MARK: - Mutations (validated by Care / PetRoster)
 
     /// Sets a stat to `value` as of `date`.
+    /// Developer tools (see `sentAway`).
+    mutating func markSentAway(at date: Date) {
+        for stat in Stat.allCases { setStat(stat, to: 0, at: date) }
+        sentAway = date
+    }
+
     mutating func setStat(_ stat: Stat, to value: Double, at date: Date) {
         stats[stat] = StatAnchor(value: value.clamped(to: Stat.range), date: date)
     }
@@ -159,6 +173,7 @@ public struct Pet: Identifiable, Codable, Hashable, Sendable {
             let theirs = other.anchor(for: stat)
             if (theirs.date, theirs.value) > (mine.date, mine.value) { merged.stats[stat] = theirs }
         }
+        merged.sentAway = [sentAway, other.sentAway].compactMap { $0 }.max()
         return merged
     }
 
