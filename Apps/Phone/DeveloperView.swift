@@ -34,6 +34,7 @@
             NavigationStack {
                 Form {
                     pep
+                    DeveloperActivitySection()
                     sandbox
                 }
                 .navigationTitle("Developer")

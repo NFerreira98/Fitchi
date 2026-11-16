@@ -27,8 +27,11 @@ public final class ActivityStore {
 
     public private(set) var installDate: Date
     public let rules: PointsRules
+    /// Developer tools: pretend activity added on top of Health (see `SimulatedActivity`).
+    public internal(set) var simulated: SimulatedActivity
+    let simulatedDefaults: UserDefaults?
     private let source: any HealthDataSource
-    private let clock: any GameClock
+    let clock: any GameClock
     private let calendar: Calendar
     private var isObserving = false
     /// Called after every successful refresh, including background wake-ups from HealthKit
@@ -40,8 +43,11 @@ public final class ActivityStore {
         installDate: Date,
         rules: PointsRules = .current,
         clock: any GameClock = SystemClock(),
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        simulatedDefaults: UserDefaults? = nil
     ) {
+        self.simulatedDefaults = simulatedDefaults
+        self.simulated = SimulatedActivity.load(from: simulatedDefaults)
         self.source = source
         self.installDate = installDate
         self.rules = rules
@@ -101,9 +107,9 @@ public final class ActivityStore {
             let fetched = try await source.activity(since: installDate, until: now)
             // Steps are a bonus: if they can't be read, workouts and exercise minutes still count.
             let fetchedSteps = (try? await source.steps(since: installDate, until: now)) ?? []
-            samples = fetched
-            steps = fetchedSteps
-            earnings = rules.earnings(for: fetched, steps: fetchedSteps, since: installDate, calendar: calendar)
+            samples = fetched + simulated.samples
+            steps = fetchedSteps + simulated.steps
+            earnings = rules.earnings(for: samples, steps: steps, since: installDate, calendar: calendar)
             lastRefreshed = now
             status = .ready
             onRefresh?()
@@ -118,9 +124,11 @@ extension ActivityStore {
     public static func makeDefault(installDate: Date) -> ActivityStore {
         #if targetEnvironment(simulator)
             let start = Calendar.current.startOfDay(for: Date())
-            return ActivityStore(source: FakeHealthDataSource.sampleDay(), installDate: min(installDate, start))
+            return ActivityStore(
+                source: FakeHealthDataSource.sampleDay(), installDate: min(installDate, start),
+                simulatedDefaults: .standard)
         #else
-            return ActivityStore(source: HealthKitDataSource(), installDate: installDate)
+            return ActivityStore(source: HealthKitDataSource(), installDate: installDate, simulatedDefaults: .standard)
         #endif
     }
 

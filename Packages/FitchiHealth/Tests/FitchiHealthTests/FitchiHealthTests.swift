@@ -2,6 +2,7 @@ import FitchiCore
 import Foundation
 import HealthKit
 import Testing
+
 @testable import FitchiHealth
 
 private let calendar: Calendar = {
@@ -32,7 +33,10 @@ struct ActivityMapperTests {
     @Test func mapsWorkoutsWithEffortAndPausedTimeExcluded() throws {
         let mapper = ActivityMapper(effort: EffortEstimator(maxHeartRate: 190))
         let samples = mapper.samples(
-            workouts: [WorkoutRecord(id: "run", activityType: .running, start: morning, duration: 25 * 60, averageHeartRate: 160)],
+            workouts: [
+                WorkoutRecord(
+                    id: "run", activityType: .running, start: morning, duration: 25 * 60, averageHeartRate: 160)
+            ],
             exercise: []
         )
         let run = try #require(samples.first)
@@ -55,7 +59,9 @@ struct ActivityMapperTests {
 
     @Test func keepsHandEnteredFlag() {
         let samples = ActivityMapper().samples(
-            workouts: [WorkoutRecord(id: "typed", activityType: .running, start: morning, duration: 1800, isUserEntered: true)],
+            workouts: [
+                WorkoutRecord(id: "typed", activityType: .running, start: morning, duration: 1800, isUserEntered: true)
+            ],
             exercise: []
         )
         #expect(samples.first?.isUserEntered == true)
@@ -98,5 +104,34 @@ struct ActivityStoreTests {
         let noon = calendar.date(from: DateComponents(year: 2026, month: 3, day: 2, hour: 12)) ?? .distantPast
         let day = FakeHealthDataSource.sampleDay(endingAt: noon, calendar: calendar)
         #expect(day.samples.map(\.id) == ["fake-walk"])
+    }
+}
+
+@Suite("Simulated activity (developer tools)")
+@MainActor
+struct SimulatedActivityTests {
+    @Test func pretendWalksAndStepsCountBackToBackAndCanBeTakenBack() async throws {
+        let defaults = try #require(UserDefaults(suiteName: "fitchi.tests.simulated"))
+        defaults.removePersistentDomain(forName: "fitchi.tests.simulated")
+        let now = at(600)
+        let store = ActivityStore(
+            source: FakeHealthDataSource(), installDate: morning, clock: FixedClock(now), calendar: calendar,
+            simulatedDefaults: defaults)
+        await store.start()
+        await store.simulateWalk(minutes: 20)
+        await store.simulateSteps(2000)
+        // The steps start where the walk ends, so they aren't swallowed by it.
+        #expect(store.samples.first?.start == now)
+        #expect(store.steps.first?.start == now.addingTimeInterval(20 * 60))
+        #expect(store.today.pepEarned == 26 + 20)  // 20 min × 1.2 × 1.1 (moderate), 2,000 steps / 100
+        // Saved: a fresh store on the same defaults still has them.
+        let reopened = ActivityStore(
+            source: FakeHealthDataSource(), installDate: morning, clock: FixedClock(now), calendar: calendar,
+            simulatedDefaults: defaults)
+        #expect(reopened.simulated.walkMinutes == 20)
+        #expect(reopened.simulated.stepTotal == 2000)
+        await store.clearSimulated()
+        #expect(store.earnings.isEmpty)
+        #expect(defaults.data(forKey: SimulatedActivity.key) == nil)
     }
 }
