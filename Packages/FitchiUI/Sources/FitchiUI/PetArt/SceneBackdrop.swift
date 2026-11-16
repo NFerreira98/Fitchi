@@ -15,6 +15,8 @@ public struct SceneBackdrop: View {
         case bedroom = "backdrop-bedroom"
         case livingRoom = "backdrop-living-room"
         case kitchen = "backdrop-kitchen"
+        case garden = "backdrop-garden"
+        case playroom = "backdrop-playroom"
 
         /// Accepts shop ids ("backdrop-pond") and short names ("pond").
         public init(id: String) {
@@ -68,6 +70,8 @@ public struct SceneBackdrop: View {
             case .bedroom: Bedroom.draw(context, height: height, world: world)
             case .livingRoom: LivingRoom.draw(context, height: height, world: world)
             case .kitchen: Kitchen.draw(context, height: height, world: world)
+            case .garden: Garden.draw(context, height: height, world: world)
+            case .playroom: Playroom.draw(context, height: height, world: world)
             }
             if !kind.isIndoor {
                 if kind.hasSeasons { SeasonArt.draw(context, height: height, horizon: kind.horizon, world: world) }
@@ -77,7 +81,7 @@ public struct SceneBackdrop: View {
             Lighting.apply(context, height: height, world: world, indoor: kind.isIndoor)
             // Lights that shine through the dark: the moon and stars, fireflies, lamps.
             switch kind {
-            case .meadow, .pond, .snowyHill, .beach, .forest:
+            case .meadow, .pond, .snowyHill, .beach, .forest, .garden:
                 Sky.nightSky(context, world: world)
                 if kind != .snowyHill && kind != .beach && world.season != .winter {
                     Fireflies.draw(
@@ -86,6 +90,7 @@ public struct SceneBackdrop: View {
             case .bedroom: Lighting.lamp(context, at: Bedroom.lamp, world: world)
             case .livingRoom: Lighting.lamp(context, at: LivingRoom.lamp, world: world)
             case .kitchen: Kitchen.underCounterLights(context, world: world)
+            case .playroom: Lighting.lamp(context, at: Playroom.lamp, world: world)
             case .starryNight: break
             }
         }
@@ -94,7 +99,7 @@ public struct SceneBackdrop: View {
 }
 
 extension SceneBackdrop.Kind {
-    var isIndoor: Bool { self == .bedroom || self == .livingRoom || self == .kitchen }
+    var isIndoor: Bool { self == .bedroom || self == .livingRoom || self == .kitchen || self == .playroom }
 
     /// Whether little visitors (butterflies, birds, fireflies) drop by in this scene.
     public var hasVisitors: Bool { !isIndoor }

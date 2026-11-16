@@ -74,8 +74,8 @@ struct AchievementTests {
         let unlocked = Achievement.newlyUnlocked(
             TestSupport.catalog.achievements, progress: progress, alreadyUnlocked: ["first-steps"]
         )
-        // Three active days, and owning a pet earns "New Friend".
-        #expect(unlocked.map(\.id) == ["streak-3", "first-friend"])
+        // Three active days, 90 active minutes, and owning a pet earns "New Friend".
+        #expect(unlocked.map(\.id) == ["streak-3", "first-friend", "warm-up"])
     }
 
     @Test func collectingAndTimeTogetherCount() throws {
@@ -103,11 +103,12 @@ struct AchievementTests {
         #expect(progress.rarestFound == .rare)
         #expect(progress.daysTogether == 7)
         #expect(progress.backdropsOwned == 2)
+        #expect(progress.accessoriesOwned == 1)
 
         let unlocked = Set(
             Achievement.newlyUnlocked(catalog.achievements, progress: progress, alreadyUnlocked: []).map(\.id))
-        #expect(unlocked.isSuperset(of: ["first-shiny", "rare-find", "together-7", "decor-1"]))
-        #expect(!unlocked.contains("legend") && !unlocked.contains("decor-4"))
+        #expect(unlocked.isSuperset(of: ["first-shiny", "rare-find", "together-7", "decor-1", "dress-up-1"]))
+        #expect(!unlocked.contains("legend") && !unlocked.contains("decor-4") && !unlocked.contains("dress-up-5"))
         let decor = try #require(catalog.achievements.first { $0.id == "decor-4" })
         #expect(decor.criterion.progress(in: progress) == (2, 4))
     }
@@ -119,5 +120,18 @@ struct AchievementTests {
         #expect(achievements.allSatisfy { $0.reward > 0 && $0.icon != nil })
         let data = try JSONEncoder().encode(achievements)
         #expect(try JSONDecoder().decode([Achievement].self, from: data) == achievements)
+    }
+
+    /// "Own every …" goals must match the catalog, so a new item never makes one unreachable.
+    @Test func ownEverythingGoalsMatchTheCatalog() throws {
+        let catalog = TestSupport.catalog
+        let names = Set(catalog.achievements.map(\.name))
+        #expect(names.count == catalog.achievements.count, "achievement names are unique")
+        let accessories = catalog.items.count { $0.category == .accessory }
+        let backdrops = catalog.items.count { $0.category == .backdrop }
+        let wardrobe = try #require(catalog.achievements.first { $0.id == "dress-up-16" })
+        let decor = try #require(catalog.achievements.first { $0.id == "decor-8" })
+        #expect(wardrobe.criterion == .accessoriesOwned(accessories))
+        #expect(decor.criterion == .backdropsOwned(backdrops))
     }
 }

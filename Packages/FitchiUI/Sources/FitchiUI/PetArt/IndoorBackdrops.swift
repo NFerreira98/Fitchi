@@ -247,3 +247,105 @@ enum Kitchen {
         }
     }
 }
+
+/// A playroom: bunting across the wall, a window, a shelf of toys with a moon night-light, a
+/// tower of letter blocks and a round play mat.
+enum Playroom {
+    static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
+        room(context, height: height, wall: 0xD6F1EA, floor: 0xEBCB9F, planks: 0xCCA57A)
+        bunting(context, world: world)
+        window(context, frame: CGRect(x: 40, y: 16, width: 20, height: 18), curtain: 0xFFB3C7, world: world)
+        shelf(context)
+        blocks(context, base: CGPoint(x: 12, y: floorLine))
+        // A round play mat with a rainbow ring.
+        let mat = Path(ellipse: CGPoint(x: 50, y: floorLine + 22), rx: 32, ry: 9)
+        context.fill(mat, with: .color(color(0xFFF3C4)))
+        for (inset, hex) in [(2.0, 0xFF9EAE), (4, 0xFFD27A), (6, 0x9ED9B8)] {
+            context.stroke(
+                Path(ellipse: CGPoint(x: 50, y: floorLine + 22), rx: 32 - inset * 1.4, ry: 9 - inset * 0.4),
+                with: .color(color(UInt32(hex))), lineWidth: 1)
+        }
+        ball(context, at: CGPoint(x: 86, y: floorLine + 12))
+    }
+
+    /// The moon night-light on the shelf, for its glow at night.
+    static let lamp = CGPoint(x: 84, y: floorLine - 33)
+
+    /// Little flags strung across the top of the wall, swaying gently.
+    private static func bunting(_ context: GraphicsContext, world: SceneWorld) {
+        var string = Path()
+        string.move(to: CGPoint(x: 0, y: 5))
+        string.addQuadCurve(to: CGPoint(x: 100, y: 5), control: CGPoint(x: 50, y: 14))
+        context.stroke(string, with: .color(color(0x9C8A7A)), lineWidth: 0.5)
+        let colours: [UInt32] = [0xFF7B8E, 0xFFD24D, 0x6FC3E8, 0x8ED39A, 0xC59CF0]
+        for index in 0..<9 {
+            let along = (CGFloat(index) + 0.5) / 9
+            let x = along * 100
+            // The string's height at x (the same curve as above).
+            let y = 5 + 2 * along * (1 - along) * 9
+            let sway = CGFloat(world.sway(1.1, Double(index) * 0.9)) * 0.8
+            let flag = Path(
+                roundedPolygon: [
+                    CGPoint(x: x - 3, y: y), CGPoint(x: x + 3, y: y), CGPoint(x: x + sway, y: y + 6),
+                ], radius: 0.5)
+            context.fill(flag, with: .color(color(colours[index % colours.count])))
+        }
+    }
+
+    /// A shelf on the right wall with toys and the moon night-light.
+    private static func shelf(_ context: GraphicsContext) {
+        let wood = color(0xC08B5C)
+        for y in [floorLine - 29, floorLine - 14] {
+            context.fill(Path(CGRect(x: 72, y: y, width: 28, height: 2)), with: .color(wood))
+        }
+        context.fill(Path(CGRect(x: 72, y: floorLine - 29, width: 1.6, height: 29)), with: .color(wood))
+        // Top shelf: the night-light and a little stack of books.
+        context.fill(Path(ellipse: lamp, rx: 3.2, ry: 3.2), with: .color(color(0xFFE9A0)))
+        context.fill(
+            Path(ellipse: CGPoint(x: lamp.x + 1.6, y: lamp.y - 1), rx: 2.6, ry: 2.6), with: .color(color(0xD6F1EA)))
+        for (index, hex) in [0xE5484D, 0x4FA3E0, 0x8ED39A].enumerated() {
+            context.fill(
+                Path(CGRect(x: 90 + CGFloat(index) * 2.4, y: floorLine - 37, width: 2, height: 8)),
+                with: .color(color(UInt32(hex))))
+        }
+        // Bottom shelf: a teddy and a toy car.
+        let bear = color(0xB98656)
+        context.fill(Path(ellipse: CGPoint(x: 80, y: floorLine - 18), rx: 3.4, ry: 3.6), with: .color(bear))
+        context.fill(Path(ellipse: CGPoint(x: 80, y: floorLine - 23), rx: 2.6, ry: 2.5), with: .color(bear))
+        for side in [-1.0, 1] {
+            context.fill(
+                Path(ellipse: CGPoint(x: 80 + side * 2, y: floorLine - 25.2), rx: 1, ry: 1), with: .color(bear))
+        }
+        context.fill(
+            Path(roundedRect: CGRect(x: 88, y: floorLine - 20, width: 9, height: 4), cornerRadius: 1.5),
+            with: .color(color(0xFF7B8E)))
+        for x in [90.0, 95] {
+            context.fill(
+                Path(ellipse: CGPoint(x: x, y: floorLine - 15.6), rx: 1.2, ry: 1.2), with: .color(color(0x3A3440)))
+        }
+    }
+
+    /// A tower of letter blocks.
+    private static func blocks(_ context: GraphicsContext, base: CGPoint) {
+        let stack: [(CGPoint, UInt32)] = [
+            (CGPoint(x: -5, y: 0), 0xFF7B8E), (CGPoint(x: 1, y: 0), 0x6FC3E8), (CGPoint(x: -2, y: -6), 0xFFD24D),
+        ]
+        for (offset, hex) in stack {
+            let rect = CGRect(x: base.x + offset.x, y: base.y + offset.y - 6, width: 6, height: 6)
+            context.fill(Path(roundedRect: rect, cornerRadius: 0.8), with: .color(color(hex)))
+            context.stroke(
+                Path(roundedRect: rect.insetBy(dx: 1, dy: 1), cornerRadius: 0.5), with: .color(.white.opacity(0.7)),
+                lineWidth: 0.5)
+        }
+    }
+
+    private static func ball(_ context: GraphicsContext, at center: CGPoint) {
+        let ball = Path(ellipse: center, rx: 3.6, ry: 3.6)
+        context.fill(ball, with: .color(color(0x6FC3E8)))
+        var band = context
+        band.clip(to: ball)
+        band.fill(Path(CGRect(x: center.x - 4, y: center.y - 1, width: 8, height: 2)), with: .color(.white))
+        context.fill(
+            Path(ellipse: CGPoint(x: center.x, y: center.y + 3.6), rx: 3.4, ry: 0.7), with: .color(.black.opacity(0.1)))
+    }
+}

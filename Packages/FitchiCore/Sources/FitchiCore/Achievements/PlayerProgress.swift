@@ -16,6 +16,7 @@ public struct PlayerProgress: Hashable, Sendable {
     public var rarestFound: Rarity?
     public var daysTogether: Int = 0
     public var backdropsOwned: Int = 0
+    public var accessoriesOwned: Int = 0
 
     public init(
         activeMinutes: Double = 0,
@@ -59,6 +60,7 @@ public struct PlayerProgress: Hashable, Sendable {
             progress.daysTogether = max(0, days ?? 0)
         }
         progress.backdropsOwned = catalog.items.count { $0.category == .backdrop && inventory.owns($0.id) }
+        progress.accessoriesOwned = catalog.items.count { $0.category == .accessory && inventory.owns($0.id) }
         return progress
     }
 

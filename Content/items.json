@@ -21,6 +21,15 @@
   { "id": "red-bandana", "name": "Red Bandana", "description": "A classic look.", "category": "accessory", "price": 100, "slot": "neck" },
   { "id": "mini-backpack", "name": "Mini Backpack", "description": "Adventure-ready.", "category": "accessory", "price": 250, "slot": "back" },
   { "id": "hero-cape", "name": "Hero Cape", "description": "For pets with big ambitions.", "category": "accessory", "price": 400, "slot": "back" },
+  { "id": "pink-bow", "name": "Pink Bow", "description": "A little bow, worn at a jaunty angle.", "category": "accessory", "price": 80, "slot": "head" },
+  { "id": "bow-tie", "name": "Bow Tie", "description": "Dressed for a fancy dinner (of kibble).", "category": "accessory", "price": 90, "slot": "neck" },
+  { "id": "bell-collar", "name": "Bell Collar", "description": "Jingles with every step.", "category": "accessory", "price": 110, "slot": "neck" },
+  { "id": "round-specs", "name": "Round Specs", "description": "Very well read.", "category": "accessory", "price": 120, "slot": "face" },
+  { "id": "cozy-scarf", "name": "Cozy Scarf", "description": "Knitted for chilly walks.", "category": "accessory", "price": 130, "slot": "neck" },
+  { "id": "cozy-beanie", "name": "Cozy Beanie", "description": "Warm ears, pom-pom on top.", "category": "accessory", "price": 140, "slot": "head" },
+  { "id": "heart-glasses", "name": "Heart Glasses", "description": "Seeing the world through love.", "category": "accessory", "price": 160, "slot": "face" },
+  { "id": "fairy-wings", "name": "Fairy Wings", "description": "Shimmery and only slightly magical.", "category": "accessory", "price": 450, "slot": "back" },
+  { "id": "royal-crown", "name": "Royal Crown", "description": "For the ruler of the meadow.", "category": "accessory", "price": 600, "slot": "head" },
 
   { "id": "style-retro", "name": "Retro Pixel Style", "description": "Chunky, classic pixel art for every pet and scene.", "category": "artStyle", "price": 1500 },
   { "id": "style-painted", "name": "Painterly Style", "description": "Soft, glowing hand-painted art for every pet and scene.", "category": "artStyle", "price": 2500 },
@@ -31,5 +40,7 @@
   { "id": "backdrop-starry-night", "name": "Starry Night", "description": "A crescent moon, twinkling stars and fireflies.", "category": "backdrop", "price": 500 },
   { "id": "backdrop-bedroom", "name": "Cozy Bedroom", "description": "A comfy bed, a warm lamp and a soft rug.", "category": "backdrop", "price": 450 },
   { "id": "backdrop-living-room", "name": "Living Room", "description": "A big squishy sofa, pictures on the wall and a plant.", "category": "backdrop", "price": 450 },
-  { "id": "backdrop-kitchen", "name": "Kitchen", "description": "Checkered floor, counters and a fruit bowl.", "category": "backdrop", "price": 450 }
+  { "id": "backdrop-kitchen", "name": "Kitchen", "description": "Checkered floor, counters and a fruit bowl.", "category": "backdrop", "price": 450 },
+  { "id": "backdrop-garden", "name": "Flower Garden", "description": "Tulip beds, a picket fence and stepping stones. Blooms in spring.", "category": "backdrop", "price": 400 },
+  { "id": "backdrop-playroom", "name": "Playroom", "description": "Bunting, toys and a rainbow play mat, with a moon night-light.", "category": "backdrop", "price": 450 }
 ]

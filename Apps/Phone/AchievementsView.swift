@@ -101,7 +101,7 @@ enum AchievementGroup: CaseIterable {
         case .activeMinutes, .workouts, .streakDays, .pepEarned, .steps: self = .activity
         case .petsOwned, .collectionFound, .shiniesFound, .speciesFound, .rarityFound: self = .collection
         case .daysTogether: self = .together
-        case .backdropsOwned, .itemsPurchased: self = .home
+        case .backdropsOwned, .accessoriesOwned, .itemsPurchased: self = .home
         }
     }
 

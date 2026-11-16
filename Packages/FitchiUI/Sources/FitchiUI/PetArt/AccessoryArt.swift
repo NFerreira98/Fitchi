@@ -46,16 +46,16 @@ struct PetFit: Sendable {
 /// from `Content/items.json`; ids without a drawing are skipped.
 enum AccessoryArt {
     /// Every accessory id that has a drawing.
-    static let drawn: Set<String> = [
+    static let drawn = Set([
         "sweatband", "party-hat", "flower-crown", "sunglasses", "red-bandana", "mini-backpack", "hero-cape",
-    ]
+    ]).union(wardrobe)
 
     /// Parts that hang behind the pet: capes and backpacks.
     static func drawBehind(_ equipped: [AccessorySlot: String], _ ink: Ink, fit: PetFit) {
         switch equipped[.back] {
         case "hero-cape": cape(ink, fit: fit)
         case "mini-backpack": backpack(ink, fit: fit)
-        default: break
+        default: drawWardrobeBehind(equipped[.back], ink, fit: fit)
         }
     }
 
@@ -66,15 +66,23 @@ enum AccessoryArt {
         case "mini-backpack": straps(ink, fit: fit)
         default: break
         }
-        if equipped[.neck] == "red-bandana" { bandana(ink, fit: fit) }
+        if equipped[.neck] == "red-bandana" {
+            bandana(ink, fit: fit)
+        } else {
+            drawWardrobeNeck(equipped[.neck], ink, fit: fit)
+        }
         var head = ink
         head.context.translateBy(x: 0, y: headBob)
-        if equipped[.face] == "sunglasses" { sunglasses(head, fit: fit) }
+        if equipped[.face] == "sunglasses" {
+            sunglasses(head, fit: fit)
+        } else {
+            drawWardrobeFace(equipped[.face], head, fit: fit)
+        }
         switch equipped[.head] {
         case "sweatband": sweatband(head, fit: fit)
         case "party-hat": partyHat(head, fit: fit)
         case "flower-crown": flowerCrown(head, fit: fit)
-        default: break
+        default: drawWardrobeHead(equipped[.head], head, fit: fit)
         }
     }
 

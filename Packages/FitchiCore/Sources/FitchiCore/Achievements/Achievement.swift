@@ -59,6 +59,8 @@ public enum Criterion: Hashable, Sendable {
     case daysTogether(Int)
     /// Backdrops bought (the free meadow doesn't count).
     case backdropsOwned(Int)
+    /// Accessories bought for the wardrobe.
+    case accessoriesOwned(Int)
 
     public func isMet(by progress: PlayerProgress) -> Bool {
         let (current, target) = self.progress(in: progress)
@@ -81,6 +83,7 @@ public enum Criterion: Hashable, Sendable {
         case .rarityFound(let rarity): (progress.rarestFound.map { $0 >= rarity ? 1 : 0 } ?? 0, 1)
         case .daysTogether(let days): (Double(progress.daysTogether), Double(days))
         case .backdropsOwned(let count): (Double(progress.backdropsOwned), Double(count))
+        case .accessoriesOwned(let count): (Double(progress.accessoriesOwned), Double(count))
         }
     }
 }
@@ -93,6 +96,7 @@ extension Criterion: Codable {
     private enum Tag: String, Codable {
         case activeMinutes, workouts, streakDays, petsOwned, pepEarned, itemsPurchased
         case steps, collectionFound, shiniesFound, speciesFound, rarityFound, daysTogether, backdropsOwned
+        case accessoriesOwned
     }
 
     public init(from decoder: any Decoder) throws {
@@ -115,6 +119,7 @@ extension Criterion: Codable {
         case .rarityFound: self = .rarityFound(try container.decode(Rarity.self, forKey: .rarity))
         case .daysTogether: self = .daysTogether(try container.decode(Int.self, forKey: .days))
         case .backdropsOwned: self = .backdropsOwned(try container.decode(Int.self, forKey: .count))
+        case .accessoriesOwned: self = .accessoriesOwned(try container.decode(Int.self, forKey: .count))
         }
     }
 
@@ -145,6 +150,7 @@ extension Criterion: Codable {
         case .shiniesFound(let count): try encode(.shiniesFound, count: count, into: &container)
         case .speciesFound(let count): try encode(.speciesFound, count: count, into: &container)
         case .backdropsOwned(let count): try encode(.backdropsOwned, count: count, into: &container)
+        case .accessoriesOwned(let count): try encode(.accessoriesOwned, count: count, into: &container)
         case .rarityFound(let rarity):
             try container.encode(Tag.rarityFound, forKey: .type)
             try container.encode(rarity, forKey: .rarity)

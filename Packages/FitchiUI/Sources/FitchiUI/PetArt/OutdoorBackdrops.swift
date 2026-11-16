@@ -259,3 +259,97 @@ enum Forest {
         }
     }
 }
+
+/// A cottage garden: a hedge and a white picket fence along the horizon, tulip beds to either
+/// side and stepping stones across the lawn. Changes with the seasons like the meadow.
+enum Garden {
+    static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
+        let horizon: CGFloat = 56
+        Sky.draw(context, top: color(0x8FD3FF), bottom: color(0xE2F4FF), horizon: horizon, world: world)
+        // A row of round bushes behind the fence, each with a soft highlight.
+        var hedge = Path(CGRect(x: 0, y: horizon - 7, width: 100, height: 7))
+        for x in stride(from: 0.0, through: 100, by: 10) {
+            hedge.addEllipse(in: CGRect(x: x - 7.5, y: horizon - 15, width: 15, height: 15))
+        }
+        context.fill(hedge, with: .color(world.greenery(color(0x5FA866))))
+        for x in stride(from: 0.0, through: 100, by: 10) {
+            context.fill(
+                Path(ellipse: CGPoint(x: x - 2, y: horizon - 11), rx: 3, ry: 1.8),
+                with: .color(world.greenery(color(0x7CC27F)).opacity(0.8)))
+        }
+        fillGradient(context, CGRect(x: 0, y: horizon, width: 100, height: height - horizon), 0x8FD27A, 0x6CBB5E)
+        fence(context, base: horizon + 1)
+        Flora.tufts(
+            context, rows: [horizon + 14, horizon + 30], color: world.greenery(color(0x4F9A4A)), world: world)
+        // Stepping stones winding towards the front.
+        for (index, (x, y)) in [(52.0, 8.0), (46, 16), (53, 25), (45, 35)].enumerated() {
+            let size = 3.2 + CGFloat(index) * 0.7
+            context.fill(
+                Path(ellipse: CGPoint(x: x, y: horizon + y), rx: size, ry: size * 0.45),
+                with: .color(color(0xD9D2C3)))
+        }
+        bed(context, center: CGPoint(x: 13, y: horizon + 12), world: world, seed: 0)
+        bed(context, center: CGPoint(x: 88, y: horizon + 18), world: world, seed: 3)
+        wateringCan(context, at: CGPoint(x: 24, y: horizon + 22))
+    }
+
+    private static func fence(_ context: GraphicsContext, base: CGFloat) {
+        for y in [base - 6, base - 2.5] {
+            context.fill(Path(CGRect(x: 0, y: y, width: 100, height: 1.3)), with: .color(color(0xF4F1EA)))
+        }
+        for x in stride(from: 2.0, through: 98, by: 5) {
+            let picket = Path(
+                roundedPolygon: [
+                    CGPoint(x: x - 1.3, y: base), CGPoint(x: x - 1.3, y: base - 8), CGPoint(x: x, y: base - 9.6),
+                    CGPoint(x: x + 1.3, y: base - 8), CGPoint(x: x + 1.3, y: base),
+                ], radius: 0.4)
+            context.fill(picket, with: .color(.white))
+            context.stroke(picket, with: .color(color(0xC9C2B4)), lineWidth: 0.35)
+        }
+    }
+
+    /// A bed of soil with tulips nodding in the breeze (bare in winter, fuller in spring).
+    private static func bed(_ context: GraphicsContext, center: CGPoint, world: SceneWorld, seed: Int) {
+        context.fill(Path(ellipse: center, rx: 12, ry: 4), with: .color(color(0x8B6646)))
+        guard world.season != .winter else { return }
+        let colours: [UInt32] =
+            world.season == .autumn ? [0xF08A3C, 0xD9573B, 0xF2B640] : [0xFF5C7A, 0xFFD54D, 0xFF9EC0]
+        let count = world.season == .spring ? 6 : 4
+        for index in 0..<count {
+            let x = center.x - 9 + CGFloat(index) * (18 / CGFloat(count - 1))
+            let sway = CGFloat(world.sway(1.3, Double(index + seed) * 1.7)) * 0.8
+            let top = CGPoint(x: x + sway, y: center.y - 7 - CGFloat((index + seed) % 2) * 1.5)
+            var stem = Path()
+            stem.move(to: CGPoint(x: x, y: center.y))
+            stem.addQuadCurve(to: top, control: CGPoint(x: x, y: center.y - 4))
+            context.stroke(stem, with: .color(color(0x3E8A45)), lineWidth: 0.8)
+            context.fill(
+                Path(ellipse: CGPoint(x: x - 1.2, y: center.y - 2.5), rx: 1.6, ry: 0.7, degrees: -40),
+                with: .color(color(0x4FA052)))
+            var cup = Path()
+            cup.move(to: CGPoint(x: top.x - 1.7, y: top.y - 2))
+            cup.addLine(to: CGPoint(x: top.x - 0.6, y: top.y - 1))
+            cup.addLine(to: CGPoint(x: top.x, y: top.y - 2.4))
+            cup.addLine(to: CGPoint(x: top.x + 0.6, y: top.y - 1))
+            cup.addLine(to: CGPoint(x: top.x + 1.7, y: top.y - 2))
+            cup.addQuadCurve(to: CGPoint(x: top.x - 1.7, y: top.y - 2), control: CGPoint(x: top.x, y: top.y + 2.4))
+            context.fill(cup, with: .color(color(colours[(index + seed) % colours.count])))
+        }
+    }
+
+    private static func wateringCan(_ context: GraphicsContext, at base: CGPoint) {
+        let body = Path(roundedRect: CGRect(x: base.x - 3, y: base.y - 5, width: 6, height: 5), cornerRadius: 1.2)
+        var spout = Path()
+        spout.move(to: CGPoint(x: base.x + 2.5, y: base.y - 1.5))
+        spout.addLine(to: CGPoint(x: base.x + 6.5, y: base.y - 5.5))
+        context.stroke(spout, with: .color(color(0x4FA3E0)), style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+        var handle = Path()
+        handle.addArc(
+            center: CGPoint(x: base.x, y: base.y - 5), radius: 2.4, startAngle: .degrees(180), endAngle: .degrees(0),
+            clockwise: false)
+        context.stroke(handle, with: .color(color(0x3A86C2)), lineWidth: 0.9)
+        context.fill(body, with: .color(color(0x4FA3E0)))
+        context.fill(
+            Path(ellipse: CGPoint(x: base.x, y: base.y + 0.2), rx: 4.5, ry: 0.9), with: .color(.black.opacity(0.12)))
+    }
+}

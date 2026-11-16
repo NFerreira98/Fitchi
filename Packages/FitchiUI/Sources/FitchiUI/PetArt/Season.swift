@@ -22,7 +22,7 @@ extension Season {
 extension SceneBackdrop.Kind {
     /// The green scenes that change with the seasons (the snowy hill is always winter, the beach
     /// always summer).
-    var hasSeasons: Bool { self == .meadow || self == .pond || self == .forest }
+    var hasSeasons: Bool { self == .meadow || self == .pond || self == .forest || self == .garden }
 
     /// Where the far edge of the ground meets the sky, in the 100-wide art space.
     var horizon: CGFloat {
@@ -126,9 +126,9 @@ extension SceneBackdrop.Kind {
         switch self {
         case .snowyHill: return snow
         case .beach: return .prints(Color(red: 0.79, green: 0.64, blue: 0.42))
-        case .bedroom, .livingRoom, .kitchen: return .none
+        case .bedroom, .livingRoom, .kitchen, .playroom: return .none
         case .forest: return .puffs(Color(red: 0.72, green: 0.6, blue: 0.45))
-        case .meadow, .pond, .starryNight: return .puffs(Color(red: 0.93, green: 0.9, blue: 0.8))
+        case .meadow, .pond, .starryNight, .garden: return .puffs(Color(red: 0.93, green: 0.9, blue: 0.8))
         }
     }
 }
