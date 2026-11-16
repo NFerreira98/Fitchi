@@ -7,12 +7,14 @@
 #         add --no-launch to install without opening the app
 #         ./scripts/deploy.sh --devices                         # list connected devices
 #         ./scripts/deploy.sh phone --device "Sam's iPhone" --release   # a friend's phone
+#         ./scripts/deploy.sh testflight    # archive a Release build and upload it to TestFlight
 #
 # --device picks a device by name or UDID (otherwise the first paired one is used).
 # --release builds without the developer tools (test Pep, instant hatch): use it for friends.
 #
-# With a free Apple ID (Personal Team), installed apps stop opening after 7 days: reinstall over
-# the top to renew (the pet is kept; deleting the app loses it). See docs/FRIENDS.md.
+# testflight needs the paid Developer Program, the app created in App Store Connect and Xcode
+# signed in to your Apple ID (Settings > Accounts). Friends then install it from the TestFlight
+# app; see docs/FRIENDS.md. No devices need to be connected.
 #
 # The iPhone app carries the watch app inside it, so a phone install also updates the watch
 # (usually within a minute or two). The iPhone only forwards a watch app whose build number
@@ -37,8 +39,8 @@ while [ $# -gt 0 ]; do
     --release) config="Release" ;;
     --device) shift; device="${1:-}" ;;
     --devices) list=1 ;;
-    phone|watch|all) target="$1" ;;
-    *) echo "Usage: $0 [phone|watch|all] [--device NAME|UDID] [--release] [--no-launch] | --devices"; exit 1 ;;
+    phone|watch|all|testflight) target="$1" ;;
+    *) echo "Usage: $0 [phone|watch|all|testflight] [--device NAME|UDID] [--release] [--no-launch] | --devices"; exit 1 ;;
   esac
   shift
 done
@@ -108,8 +110,41 @@ phone() {
 }
 watch() { deploy FitchiWatch appleWatch com.nicholasferreira.fitchi.watchkitapp watchos "Apple Watch"; }
 
+# Archives a Release build (no developer tools) of the iPhone app, which carries the watch app
+# and widgets, and uploads it to App Store Connect. It shows up in TestFlight after Apple has
+# processed it (5–30 minutes).
+testflight() {
+  local team archive="$derived/Fitchi.xcarchive" options=".build/ExportOptions.plist"
+  team="$(sed -n 's/^DEVELOPMENT_TEAM *= *//p' Configs/Local.xcconfig | tr -d '[:space:]')"
+  [ -n "$team" ] || { echo "✗ No DEVELOPMENT_TEAM in Configs/Local.xcconfig"; exit 1; }
+  cat > "$options" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>method</key><string>app-store-connect</string>
+  <key>destination</key><string>upload</string>
+  <key>teamID</key><string>$team</string>
+  <key>signingStyle</key><string>automatic</string>
+  <key>manageAppVersionAndBuildNumber</key><false/>
+  <key>uploadSymbols</key><true/>
+</dict></plist>
+PLIST
+  echo "▶ Archiving FitchiPhone (Release, build $build_number)…"
+  rm -rf "$archive"
+  xcodebuild -project Fitchi.xcodeproj -scheme FitchiPhone -configuration Release \
+    -destination "generic/platform=iOS" -archivePath "$archive" -derivedDataPath "$derived" \
+    -allowProvisioningUpdates CURRENT_PROJECT_VERSION="$build_number" archive -quiet > .build/testflight-archive.log 2>&1 \
+    || { echo "✗ Archive failed — see .build/testflight-archive.log"; grep -m5 "error" .build/testflight-archive.log; exit 1; }
+  echo "▶ Uploading to App Store Connect…"
+  xcodebuild -exportArchive -archivePath "$archive" -exportOptionsPlist "$options" \
+    -exportPath ".build/testflight-export" -allowProvisioningUpdates > .build/testflight-upload.log 2>&1 \
+    || { echo "✗ Upload failed — see .build/testflight-upload.log"; grep -m5 -i "error" .build/testflight-upload.log; exit 1; }
+  echo "✓ Uploaded build $build_number. It appears in App Store Connect > TestFlight once processed."
+}
+
 case "$target" in
   phone) phone ;;
   watch) watch ;;
   all) phone; watch ;;
+  testflight) testflight ;;
 esac

@@ -56,6 +56,8 @@ targets:
       base:
         PRODUCT_NAME: Fitchi
         PRODUCT_BUNDLE_IDENTIFIER: com.nicholasferreira.fitchi
+        # No custom encryption (only Apple's HTTPS etc.): skips the export question on every upload.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Fitchi
@@ -95,6 +97,8 @@ targets:
       base:
         PRODUCT_NAME: Fitchi
         PRODUCT_BUNDLE_IDENTIFIER: com.nicholasferreira.fitchi.watchkitapp
+        # No custom encryption (only Apple's HTTPS etc.): skips the export question on every upload.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Fitchi
         INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.nicholasferreira.fitchi

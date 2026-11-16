@@ -1,59 +1,69 @@
 # Putting Fitchi on a friend's iPhone
 
-Without the paid Apple Developer Program there's no TestFlight, so a friend's iPhone gets the app
-the same way yours does: plugged into this Mac, signed with your free Apple ID (Personal Team).
-No Apple Watch is needed. With no watch paired, the iPhone becomes the pet's home: it gives them
-the starter egg, sends care reminders, and earns Pep from steps (see `PointsRules.v3`).
+Friends get Fitchi through **TestFlight**: they tap an invite link, the app installs like any
+other, updates arrive on their own, and each build lasts 90 days. No Apple Watch is needed.
+With no watch paired, the iPhone becomes the pet's home: it gives them the starter egg, sends
+care reminders, and earns Pep from steps.
 
-## The catch: 7 days
+## One-time setup (yours, in the browser)
 
-Apps signed with a free Apple ID stop opening **7 days** after they're installed. To renew,
-plug their phone in again and run the same install command. That reinstalls over the top
-and **keeps their pet**. Tell your friend:
-
-- **Never delete the app.** Deleting it deletes the pet (there's no watch backup for them).
-- If it won't open ("no longer available"), bring the phone over for a reinstall.
-
-## First time (about 10 minutes, phone in hand)
-
-1. **Connect:** plug their iPhone into this Mac with a cable and unlock it. On the phone, tap
-   **Trust This Computer** and enter the passcode.
-2. **Turn on Developer Mode:** on the phone, go to Settings › Privacy & Security ›
-   **Developer Mode**, switch it on, and restart when asked. After the restart, confirm
-   **Turn On**. If the switch isn't there yet, open Xcode › Window › Devices and Simulators with
-   the phone connected, and it will appear.
-3. **Find its name:**
+1. **Create the app** in [App Store Connect](https://appstoreconnect.apple.com) › Apps › **+** ›
+   New App: platform iOS, name "Fitchi" (if taken, any name; it's only shown in TestFlight for
+   now), primary language, bundle ID `com.nicholasferreira.fitchi`, SKU `fitchi`, full access.
+2. **Upload a build** from this Mac (no devices need to be connected):
    ```sh
-   ./scripts/deploy.sh --devices
+   ./scripts/deploy.sh testflight
    ```
-   Their phone should be listed as `paired`. Part of the name is enough for the next step.
-4. **Install** (Release build: no developer tools, no free test Pep):
-   ```sh
-   ./scripts/deploy.sh phone --device "Sam" --release
-   ```
-   The first time, this also registers their phone to your Apple ID (free accounts can only
-   register a small number of devices).
-5. **Trust you as the developer:** on the phone, go to Settings › General ›
-   **VPN & Device Management**, tap your Apple ID under Developer App, then **Trust**.
-6. **Open Fitchi:** allow Health access when asked. Steps and workouts are how it earns, so
-   at least Steps and Workouts are needed. Then walk to hatch the egg (or wait: it hatches on
-   its own within a day or so).
+   Release build, so no developer tools and no free test Pep. It shows up under the app's
+   **TestFlight** tab after Apple processes it (5–30 minutes).
+3. **Make a tester group:** TestFlight tab › External Testing › **+** › a group called
+   "Friends". Add the build to it and fill in the short "What to Test" note and beta review
+   contact details. The first build for external testers goes through a quick Apple review
+   (usually under a day); later builds mostly don't.
+4. **Invite:** in the group, turn on **Public Link** and send that link to friends, or add their
+   email addresses.
 
-## Every week after that
+## What your friend does
 
-Plug in, unlock, then run:
+1. Install **TestFlight** from the App Store.
+2. Tap your link (or the email invite) › **Accept** › **Install**.
+3. Open Fitchi and allow Health access when asked. Steps and workouts are how it earns, so at
+   least Steps and Workouts are needed. Then walk to hatch the egg.
+
+If they have an Apple Watch, the watch app usually installs with it. If not, they can install it
+once from the Watch app on the iPhone (Available Apps › Fitchi › **Install**). After that, never
+remove it from the watch: that deletes the watch's copy of the pet.
+
+**Never delete the app.** Deleting it deletes the pet (without a watch there's no backup).
+Updating from TestFlight keeps it. A friend who had the cable-installed version can install
+the TestFlight one over the top.
+
+## Sending an update
+
 ```sh
-./scripts/deploy.sh phone --device "Sam" --release
+./scripts/deploy.sh testflight
 ```
+
+Then in App Store Connect › TestFlight, add the new build to the Friends group. Friends see
+the update in the TestFlight app (or automatically, if they turned on automatic updates).
+Builds expire after 90 days, so upload at least that often.
 
 ## If something goes wrong
 
-- **"No paired iPhone called … found":** unlock the phone, check the cable, and run
-  `./scripts/deploy.sh --devices`. If it says `unpaired`, unplug, plug back in and tap Trust.
-- **Signing errors in `.build/deploy-FitchiPhone.log`:** open the project in Xcode once with
-  their phone connected and select it as the run destination. Xcode then sorts out the
-  provisioning profile for the new device.
-- **The app crashes straight away after installing:** the developer isn't trusted yet (step 5).
+- **Upload fails with "No suitable application records were found":** the app doesn't exist
+  in App Store Connect yet (setup step 1), or its bundle ID doesn't match.
+- **Signing or account errors in `.build/testflight-*.log`:** open Xcode › Settings › Accounts,
+  check you're signed in, select your team and click **Download Manual Profiles**, then retry.
+- **"Missing Compliance" on a build:** shouldn't happen (`ITSAppUsesNonExemptEncryption` is
+  NO); if it does, answer "None of the algorithms mentioned above".
 
-Later, if you join the paid program ($99/yr), TestFlight replaces all of this: your friend taps
-a link, updates arrive on their own, and builds last 90 days.
+## Backup: install with a cable
+
+For quick tests on a phone that's here, without waiting for TestFlight:
+
+1. Plug the iPhone into this Mac, unlock it and tap **Trust This Computer**.
+2. On the phone, turn on Settings › Privacy & Security › **Developer Mode** and restart.
+3. `./scripts/deploy.sh --devices` to find its name, then
+   `./scripts/deploy.sh phone --device "Sam" --release`.
+
+With the paid program, these installs last a year instead of 7 days.
