@@ -88,7 +88,7 @@ extension PetLife {
     /// in four on a rainy day, for a happy pet.
     static func puddleHop(at time: TimeInterval, seed: Int, mood: PetMood) -> Double? {
         let index = Int((time / slot).rounded(.down))
-        guard !mood.isDown, !mood.isTired, !strolls(in: index, seed: seed, mood: mood),
+        guard !mood.isDown, !mood.isTired, !strolls(in: index, seed: seed),
             !isNapping(in: index, seed: seed, mood: mood), noise(seed &+ 11, index) < 0.25
         else { return nil }
         let into = time - Double(index) * slot - 2

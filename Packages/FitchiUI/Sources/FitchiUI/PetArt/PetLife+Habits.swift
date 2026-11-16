@@ -13,7 +13,7 @@ extension PetLife {
     /// Seconds into a habit at `time`, if one is playing.
     static func habit(at time: TimeInterval, seed: Int, mood: PetMood) -> TimeInterval? {
         let index = Int((time / slot).rounded(.down))
-        guard !mood.isDown, !mood.isAsleep, !strolls(in: index, seed: seed, mood: mood),
+        guard !mood.isDown, !mood.isAsleep, !strolls(in: index, seed: seed),
             !isNapping(in: index, seed: seed, mood: mood), noise(seed &+ 8, index) < habitChance,
             visit(at: time, seed: seed, mood: mood) == nil
         else { return nil }

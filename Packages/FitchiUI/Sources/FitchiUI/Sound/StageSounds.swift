@@ -32,7 +32,11 @@ struct StageSounds: ViewModifier {
             }
             .onChange(of: reaction?.id) {
                 guard let reaction else { return }
-                say(reaction.action.map { .care($0) } ?? .happy)
+                // Once the pet has trotted over and the care begins.
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(PetLife.careApproach))
+                    say(reaction.action.map { .care($0) } ?? .happy)
+                }
             }
     }
 

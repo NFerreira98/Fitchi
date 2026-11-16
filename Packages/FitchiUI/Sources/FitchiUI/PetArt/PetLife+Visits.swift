@@ -52,7 +52,7 @@ extension PetLife {
     /// in good spirits.
     static func visit(at time: TimeInterval, seed: Int, mood: PetMood) -> Visitor? {
         let index = Int((time / slot).rounded(.down))
-        guard !mood.isDown, !mood.isAsleep, !strolls(in: index, seed: seed, mood: mood),
+        guard !mood.isDown, !mood.isAsleep, !strolls(in: index, seed: seed),
             !isNapping(in: index, seed: seed, mood: mood), noise(seed &+ 5, index) < visitChance
         else { return nil }
         let progress = (time - Double(index) * slot) / slot
@@ -129,8 +129,8 @@ extension PetLife {
         var frame = PetFrame()
         frame.effects.clock = clock
         frame.pose = PetPose.idle(at: clock, seed: Double(seed % 1000) / 25)
-        let start = position(at: greeting.startedAt, seed: seed, mood: mood)
-        let end = position(at: greeting.startedAt + greeting.duration, seed: seed, mood: mood)
+        let start = position(at: greeting.startedAt, seed: seed)
+        let end = position(at: greeting.startedAt + greeting.duration, seed: seed)
         let front = (x: 0.0, depth: 0.95)
         let run = 1.3
         let back = greeting.duration - 1.3

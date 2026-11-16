@@ -33,16 +33,31 @@ public enum PetLife {
             self.startedAt = startedAt
         }
 
+        /// The whole moment on a wandering stage: walking over, acting it out, strolling off.
         public var duration: TimeInterval { PetLife.duration(of: action) }
+        /// When it's over (the pet is back to its own wandering).
+        public var endsAt: TimeInterval { startedAt + duration }
     }
 
+    /// How long a care moment lasts on a wandering stage, walking over and back included.
     public static func duration(of action: CareAction?) -> TimeInterval {
+        careApproach + actDuration(of: action) + careReturn
+    }
+
+    /// How long the care itself takes, once the pet is there.
+    public static func actDuration(of action: CareAction?) -> TimeInterval {
         switch action {
         case .feed, .play, .wash: 2.8
         case .rest: 4
         case nil: 1.6
         }
     }
+
+    /// Seconds to walk over for care, and to stroll off again afterwards.
+    static let careApproach: TimeInterval = 1.1
+    static let careReturn: TimeInterval = 1.4
+    /// At night, how long a pet woken for care stays up before dozing off again.
+    static let nightLinger: TimeInterval = 20
 
     /// Seconds per behaviour slot: in each slot the pet either strolls somewhere or stays put.
     static let slot: TimeInterval = 6.5
@@ -64,23 +79,22 @@ public enum PetLife {
         let clock = still ? 0 : time
         frame.effects.clock = clock
 
-        if let reaction, time - reaction.startedAt < reaction.duration, time >= reaction.startedAt {
-            if wander && !still {
-                let place = position(at: reaction.startedAt, seed: seed, mood: mood)
-                frame.x = place.x
-                frame.depth = place.depth
-            } else {
-                frame.x = 0
+        if let reaction, time >= reaction.startedAt {
+            let elapsed = time - reaction.startedAt
+            if wander && !still, elapsed < reaction.duration {
+                return careFrame(reaction, elapsed: elapsed, seed: seed, mood: mood, clock: clock)
             }
-            frame.pose = PetPose.idle(at: clock, seed: Double(seed % 1000) / 25)
-            act(reaction, elapsed: still ? reaction.duration / 2 : time - reaction.startedAt, still: still, on: &frame)
-            return frame
+            if !(wander && !still), elapsed < actDuration(of: reaction.action) {
+                frame.pose = PetPose.idle(at: clock, seed: Double(seed % 1000) / 25)
+                act(reaction, elapsed: still ? actDuration(of: reaction.action) / 2 : elapsed, still: still, on: &frame)
+                return frame
+            }
         }
+        // Just looked after: wide awake for a while, whatever the nap schedule says.
+        let awakeUntil = reaction.map { $0.endsAt + (mood.isAsleep ? nightLinger : 0) }
 
         if mood.isAsleep {
-            sleep(&frame, amount: 1, clock: clock)
-            showNeeds(mood, clock: clock, asleep: true, on: &frame)
-            stir(cues, at: time, on: &frame)
+            nightSleep(&frame, at: time, seed: seed, mood: mood, awakeUntil: awakeUntil, still: still, cues: cues)
             return frame
         }
 
@@ -92,12 +106,12 @@ public enum PetLife {
 
         frame.pose = still ? PetPose() : PetPose.idle(at: clock, seed: Double(seed % 1000) / 25)
         if wander && !still {
-            let place = position(at: time, seed: seed, mood: mood)
+            let place = position(at: time, seed: seed)
             frame.x = place.x
             frame.depth = place.depth
             frame.pose.flipped = place.facingRight
             if let stride = place.stride { walk(&frame.pose, stride: stride) }
-            let nap = napAmount(at: time, seed: seed, mood: mood)
+            let nap = napAmount(at: time, seed: seed, mood: mood, awakeUntil: awakeUntil)
             if nap > 0 {
                 sleep(&frame, amount: nap, clock: clock)
                 showNeeds(mood, clock: clock, asleep: nap > 0.5, on: &frame)
@@ -138,7 +152,10 @@ public enum PetLife {
 
     /// Where the pet is at `time`. Each slot either starts a stroll to a new spot or stays; the
     /// spot is found by looking back to the most recent stroll.
-    static func position(at time: TimeInterval, seed: Int, mood: PetMood) -> Place {
+    ///
+    /// Deliberately the same whatever the mood: care changes the mood on the spot, and if that
+    /// changed where the pet had wandered, it would jump across the scene.
+    static func position(at time: TimeInterval, seed: Int) -> Place {
         let index = Int((time / slot).rounded(.down))
         let into = time - Double(index) * slot
         let lookBack = 16
@@ -149,7 +166,7 @@ public enum PetLife {
         var walkFrom = 0.0
         var depthFrom = 0.5
         for past in (index - lookBack)...index {
-            guard strolls(in: past, seed: seed, mood: mood) else { continue }
+            guard strolls(in: past, seed: seed) else { continue }
             let target = noise(seed &+ 1, past) * 2 - 1
             walkFrom = spot
             depthFrom = depth
@@ -158,10 +175,10 @@ public enum PetLife {
             // Each stroll also heads somewhere new front-to-back, so the pet roams the ground.
             depth = noise(seed &+ 2, past)
         }
-        guard strolls(in: index, seed: seed, mood: mood) else {
+        guard strolls(in: index, seed: seed) else {
             return Place(x: spot, depth: depth, facingRight: facingRight)
         }
-        let duration = strollDuration(across: spot - walkFrom, back: depth - depthFrom, mood: mood)
+        let duration = strollDuration(across: spot - walkFrom, back: depth - depthFrom)
         guard into < duration else { return Place(x: spot, depth: depth, facingRight: facingRight) }
         let progress = into / duration
         let eased = progress * progress * (3 - 2 * progress)
@@ -171,16 +188,16 @@ public enum PetLife {
     }
 
     /// How long a stroll takes, from how far it goes across and front to back.
-    static func strollDuration(across: Double, back: Double, mood: PetMood) -> Double {
-        let speed = mood.isDown || mood.isTired ? 0.22 : 0.4
+    static func strollDuration(across: Double, back: Double) -> Double {
         let distance = (across * across + back * 1.2 * back * 1.2).squareRoot()
-        return min(slot - 0.5, max(1.2, distance / speed))
+        return min(slot - 0.5, max(1.2, distance / 0.36))
     }
 
-    static func strolls(in index: Int, seed: Int, mood: PetMood) -> Bool {
-        if isNapping(in: index, seed: seed, mood: mood) { return false }
-        let chance = mood.isDown || mood.isTired ? 0.3 : (mood.isThriving ? 0.6 : 0.48)
-        return noise(seed, index) < chance
+    /// Whether the pet sets off somewhere in slot `index`. Never in the part of each window where
+    /// a catnap can fall, so napping or not (which depends on the mood) never moves the pet.
+    static func strolls(in index: Int, seed: Int) -> Bool {
+        if isNapSlot(index) { return false }
+        return noise(seed, index) < 0.62
     }
 
     /// A waddle: a little bounce on each step and a side-to-side lean, looking where it's going.
@@ -196,22 +213,48 @@ public enum PetLife {
 
     // MARK: - Sleep
 
-    static func isNapping(in index: Int, seed: Int, mood: PetMood) -> Bool {
+    /// The last `napSlots` of each nap window, where a catnap can fall.
+    static func isNapSlot(_ index: Int) -> Bool {
         let window = Int((Double(index) / Double(napWindow)).rounded(.down))
-        let position = index - window * napWindow
-        guard position >= napWindow - napSlots else { return false }
+        return index - window * napWindow >= napWindow - napSlots
+    }
+
+    static func isNapping(in index: Int, seed: Int, mood: PetMood) -> Bool {
+        guard isNapSlot(index) else { return false }
+        let window = Int((Double(index) / Double(napWindow)).rounded(.down))
         return noise(seed &+ 2, window) < (mood.isTired ? 0.6 : 0.12)
     }
 
     /// 0 awake … 1 asleep, easing in and out of a daytime catnap.
-    static func napAmount(at time: TimeInterval, seed: Int, mood: PetMood) -> Double {
+    /// - Parameter awakeUntil: a pet just looked after skips any catnap that began before this.
+    static func napAmount(
+        at time: TimeInterval, seed: Int, mood: PetMood, awakeUntil: TimeInterval? = nil
+    ) -> Double {
         let index = Int((time / slot).rounded(.down))
         guard isNapping(in: index, seed: seed, mood: mood) else { return 0 }
         let window = Int((Double(index) / Double(napWindow)).rounded(.down))
         let napStart = Double(window * napWindow + napWindow - napSlots) * slot
+        if let awakeUntil, napStart < awakeUntil { return 0 }
         let elapsed = time - napStart
         let total = Double(napSlots) * slot
         return min(1, elapsed / 1.2, (total - elapsed) / 1.2)
+    }
+
+    /// Asleep for the night, in its bed in the middle. Woken for care, it stays up until
+    /// `awakeUntil`, then dozes off again over a second and a half.
+    static func nightSleep(
+        _ frame: inout PetFrame, at time: TimeInterval, seed: Int, mood: PetMood, awakeUntil: TimeInterval?,
+        still: Bool, cues: Cues
+    ) {
+        let clock = frame.effects.clock
+        let drowsy = awakeUntil.map { min(1, max(0, (time - $0) / 1.5)) } ?? 1
+        if drowsy < 1 {
+            frame.pose = still ? PetPose() : PetPose.idle(at: clock, seed: Double(seed % 1000) / 25)
+            express(mood, clock: clock, seed: seed, on: &frame)
+        }
+        sleep(&frame, amount: drowsy, clock: clock)
+        showNeeds(mood, clock: clock, asleep: drowsy > 0.5, on: &frame)
+        stir(cues, at: time, on: &frame)
     }
 
     static func sleep(_ frame: inout PetFrame, amount: Double, clock: Double) {
@@ -291,57 +334,6 @@ public enum PetLife {
 }
 
 extension PetLife {
-    // MARK: - Care
-
-    static func act(_ reaction: Reaction, elapsed: Double, still: Bool, on frame: inout PetFrame) {
-        var pose = frame.pose
-        let progress = min(1, max(0, elapsed / reaction.duration))
-        switch reaction.action {
-        case .feed:
-            let eating = min(1, max(0, (elapsed - 0.4) / 1.9))
-            frame.effects.prop = .bowl(eaten: eating)
-            pose.headBob += 2.5
-            pose.lookX = 0
-            pose.lookY = 1
-            if eating > 0, eating < 1, !still {
-                pose.mouthOpen = abs(sin(elapsed * 2 * .pi * 2.4))
-                pose.eyesOpen = 0
-            } else if eating >= 1 {
-                pose.eyesOpen = 0
-                pose.mouthOpen = 0.5
-                frame.effects.hearts = (elapsed - 2.3) / 0.5
-            }
-        case .play:
-            let bounce = abs(sin(elapsed * .pi * 2.2))
-            let ball = CGPoint(x: 14 + 72 * progress, y: 88 - bounce * 44)
-            frame.effects.prop = .ball(ball)
-            pose.lookX = max(-1, min(1, (ball.x - 50) / 25))
-            pose.lookY = ball.y < 60 ? -0.8 : 0.3
-            pose.lift = still ? 0 : abs(sin(elapsed * .pi * 2.2 + 0.7)) * 7
-            pose.mouthOpen = 0.7
-            pose.tailAngle = sin(elapsed * 2 * .pi / 0.3) * 14
-        case .wash:
-            frame.effects.prop = elapsed < 2 ? .bubbles(elapsed / 2) : .sparkle((elapsed - 2) / 0.8)
-            pose.eyesOpen = 0
-            pose.mouthOpen = 0.4
-            if elapsed > 0.9, elapsed < 1.9, !still {
-                // Shake it off.
-                pose.tilt = sin(elapsed * 2 * .pi * 6) * 7 * sin(.pi * (elapsed - 0.9))
-                pose.earAngle = sin(elapsed * 2 * .pi * 6) * 12
-            }
-        case .rest:
-            frame.pose = pose
-            let amount = still ? 1 : min(1, elapsed / 0.5, (reaction.duration - elapsed) / 0.6)
-            sleep(&frame, amount: amount, clock: elapsed)
-            return
-        case nil:
-            pose.eyesOpen = 0
-            pose.mouthOpen = 0.8
-            pose.lift = still ? 0 : abs(sin(elapsed * 2 * .pi / 0.5)) * 4
-        }
-        frame.pose = pose
-    }
-
     // MARK: - Noise
 
     /// A stable pseudo-random number in 0..<1 for a pair of integers (SplitMix64).

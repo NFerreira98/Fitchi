@@ -54,16 +54,67 @@ struct PetLifeTests {
     @Test(arguments: [CareAction.feed, .play, .wash, .rest])
     func careActsOutThenEnds(action: CareAction) {
         let reaction = PetLife.Reaction(action: action, startedAt: 500)
-        let during = PetLife.frame(at: 501.2, seed: seed, mood: .content, reaction: reaction)
+        let acting = 500 + PetLife.careApproach + 1.2
+        let during = PetLife.frame(at: acting, seed: seed, mood: .content, reaction: reaction)
         switch action {
         case .rest: #expect(during.pose.sleep == 1)
         default: #expect(during.effects.prop != nil)
         }
-        // The pet holds still where it was standing while acting.
-        let standing = PetLife.frame(at: 500, seed: seed, mood: .content, reaction: reaction).x
-        #expect(during.x == standing)
-        let after = PetLife.frame(at: 500 + reaction.duration + 0.1, seed: seed, mood: .content, reaction: reaction)
+        let after = PetLife.frame(at: reaction.endsAt + 0.1, seed: seed, mood: .content, reaction: reaction)
         #expect(after.effects.prop == nil)
+    }
+
+    @Test(arguments: [CareAction.feed, .play, .wash, .rest])
+    func comesOverForCareAndWandersOffWithoutJumping(action: CareAction) {
+        for start in stride(from: 300.0, to: 900, by: 37) {
+            let reaction = PetLife.Reaction(action: action, startedAt: start)
+            let frames = stride(from: start - 0.5, to: reaction.endsAt + 1, by: 0.05).map {
+                PetLife.frame(at: $0, seed: seed, mood: .content, reaction: reaction)
+            }
+            let jumps = zip(frames, frames.dropFirst()).map { abs($1.x - $0.x) + abs($1.depth - $0.depth) }
+            #expect((jumps.max() ?? 0) < 0.12, "no teleporting at \(start)")
+            // Care happens near the front, where you are.
+            let acting = PetLife.frame(
+                at: start + PetLife.careApproach + 0.5, seed: seed, mood: .content, reaction: reaction)
+            #expect(acting.depth > 0.8)
+        }
+    }
+
+    @Test func caringChangesTheMoodButNotWhereThePetIs() {
+        let moods = [PetMood.content, PetMood(isHungry: true), PetMood(isTired: true), PetMood(condition: .sad)]
+        for time in stride(from: 0.0, to: 2_000, by: 3.3) {
+            let places = Set(
+                moods.map { mood in
+                    let frame = PetLife.frame(at: time, seed: seed, mood: mood)
+                    return [frame.x, frame.depth]
+                })
+            #expect(places.count == 1, "same spot whatever the mood at \(time)")
+        }
+    }
+
+    @Test func aPetJustLookedAfterDoesNotDropIntoACatnap() throws {
+        let tired = PetMood(isTired: true)
+        // A moment deep in one of its catnaps.
+        let napping = try #require(day.first { $0 > 200 && PetLife.napAmount(at: $0, seed: seed, mood: tired) >= 1 })
+        let reaction = PetLife.Reaction(action: .feed, startedAt: napping - PetLife.duration(of: .feed) - 0.5)
+        #expect(PetLife.frame(at: napping, seed: seed, mood: tired, reaction: reaction).pose.sleep == 0)
+        #expect(PetLife.frame(at: napping, seed: seed, mood: tired).pose.sleep == 1)
+    }
+
+    @Test func atNightItStaysUpAWhileAfterCareThenDozesOff() {
+        let night = PetMood(isAsleep: true)
+        let reaction = PetLife.Reaction(action: .play, startedAt: 500)
+        let awake = PetLife.frame(at: reaction.endsAt + 5, seed: seed, mood: night, reaction: reaction)
+        #expect(awake.pose.sleep == 0)
+        let later = PetLife.frame(
+            at: reaction.endsAt + PetLife.nightLinger + 2, seed: seed, mood: night, reaction: reaction)
+        #expect(later.pose.sleep == 1)
+        // It comes back to its bed in the middle, where it was sleeping.
+        #expect(
+            abs(
+                PetLife.frame(at: 499.9, seed: seed, mood: night).x
+                    - PetLife.frame(at: 500, seed: seed, mood: night, reaction: reaction).x) < 0.01)
+        #expect(abs(awake.x) < 0.01 && abs(awake.depth - 0.5) < 0.01)
     }
 
     @Test func reduceMotionKeepsThePetStill() {

@@ -58,7 +58,7 @@ struct TrailTests {
         // Each step is where the pet was when it landed.
         for (time, trail) in zip(times, trails) {
             for step in trail {
-                let place = PetLife.position(at: time - step.age, seed: seed, mood: .content)
+                let place = PetLife.position(at: time - step.age, seed: seed)
                 #expect(abs(place.x - step.x) < 0.001 && abs(place.depth - step.depth) < 0.001)
             }
         }

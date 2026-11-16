@@ -25,11 +25,11 @@ extension PetLife {
         let index = Int((time / slot).rounded(.down))
         let reach = Int((lasting / slot).rounded(.up))
         var steps: [Footstep] = []
-        for past in (index - reach)...index where strolls(in: past, seed: seed, mood: mood) {
+        for past in (index - reach)...index where strolls(in: past, seed: seed) {
             let start = Double(past) * slot
-            let begin = position(at: start + 0.0001, seed: seed, mood: mood)
-            let end = position(at: start + slot - 0.0001, seed: seed, mood: mood)
-            let duration = strollDuration(across: end.x - begin.x, back: end.depth - begin.depth, mood: mood)
+            let begin = position(at: start + 0.0001, seed: seed)
+            let end = position(at: start + slot - 0.0001, seed: seed)
+            let duration = strollDuration(across: end.x - begin.x, back: end.depth - begin.depth)
             for count in 1..<max(2, Int(duration / stepEvery) + 1) {
                 let landed = start + Double(count) * stepEvery
                 let age = time - landed
