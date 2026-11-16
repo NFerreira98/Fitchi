@@ -1,54 +1,6 @@
 import FitchiCore
 import SwiftUI
 
-/// How the pet screen is arranged. A display preference (Settings), not a purchase: some people
-/// find one layout easier to read or calmer to look at than another.
-public enum PetLayoutStyle: String, CaseIterable, Identifiable, Sendable {
-    /// The pet on a glowing patch of its world, on black. Calm and high-contrast.
-    case island
-    /// The world fills the screen and fades into black behind the controls.
-    case fullScene
-    /// The world across the top, stats and controls on plain black below. Easiest to read.
-    case horizon
-
-    public var id: String { rawValue }
-
-    /// UserDefaults key for `@AppStorage`.
-    public static let storageKey = "fitchi.petLayoutStyle"
-
-    public var title: String {
-        switch self {
-        case .island: "Island"
-        case .fullScene: "Full scene"
-        case .horizon: "Horizon"
-        }
-    }
-
-    public var summary: String {
-        switch self {
-        case .island: "Your pet on a glowing patch of its world. Calm, high contrast."
-        case .fullScene: "The whole screen is your pet's world."
-        case .horizon: "Scene on top, stats and buttons on black. Easiest to read."
-        }
-    }
-}
-
-/// A care moment the stage acts out (a bowl, a ball, bubbles or a nap) with a reward floating up.
-public struct StageReaction: Equatable, Sendable {
-    public let id: UUID
-    /// nil for a generic happy wiggle.
-    public let action: CareAction?
-    public let floater: String
-    public let startedAt: Date
-
-    public init(id: UUID = UUID(), action: CareAction? = nil, floater: String, startedAt: Date = .now) {
-        self.id = id
-        self.action = action
-        self.floater = floater
-        self.startedAt = startedAt
-    }
-}
-
 /// The pet living in its scene: backdrop, a pet that wanders, naps and shows its mood, care
 /// animations and floating rewards. Layouts decide how much of the scene shows (`style`) and
 /// where controls go; the stage itself is shared by the watch and the phone.
@@ -75,6 +27,9 @@ public struct PetStage: View {
     /// The watch puts stats and buttons over the bottom of the stage; a stage on its own (the
     /// phone) lets the pet use all the ground down to the bottom edge.
     private let controlsBelow: Bool
+    /// Points along the bottom of the stage covered by something else (the phone's care panel
+    /// rises over the scene): the ground stops above it so the pet is never hidden.
+    private let bottomInset: CGFloat
     /// A fixed time of day to light the scene for; nil follows the real clock.
     private let fixedLight: SceneLight?
     /// Each change plays the big hello (for trying it out).
@@ -100,8 +55,9 @@ public struct PetStage: View {
         pet: Pet, species: Species?, mood: PetMood = .content, backdrop: SceneBackdrop.Kind = .meadow,
         style: PetLayoutStyle, reaction: StageReaction? = nil, petScale: CGFloat = 0.5, controlsBelow: Bool = true,
         light: SceneLight? = nil, bigHellos: Int = 0, afterglow: Double = 0, season: Season? = nil,
-        weather: Weather? = nil, cheeredAt: Date? = nil
+        weather: Weather? = nil, cheeredAt: Date? = nil, bottomInset: CGFloat = 0
     ) {
+        self.bottomInset = bottomInset
         self.fixedSeason = season
         self.fixedWeather = weather
         self.cheeredAt = cheeredAt
@@ -131,7 +87,7 @@ public struct PetStage: View {
                 ) { timeline in
                     let season = fixedSeason ?? Season(at: timeline.date)
                     let frame = frame(at: timeline.date, weather: weather(at: timeline.date, season: season))
-                    let light = fixedLight ?? SceneLight(at: timeline.date)
+                    let light = fixedLight ?? SceneLight.now(timeline.date)
                     let (center, drawn) = placement(x: frame.x, depth: frame.depth, in: size, petSize: petSize)
                     let feet = center.y + drawn / 2
                     let footing = backdrop.footing(in: season)
@@ -161,7 +117,7 @@ public struct PetStage: View {
                                 .position(x: center.x + visitor.offsetX * drawn, y: feet - visitor.height * drawn)
                         }
                         if let reaction {
-                            FloatingReward(text: reaction.floater)
+                            FloatingReward(text: reaction.floater, action: reaction.action)
                                 .id(reaction.id)
                                 .position(x: center.x + drawn * 0.45, y: center.y - drawn * 0.4)
                         }
@@ -236,7 +192,7 @@ public struct PetStage: View {
             let season = fixedSeason ?? Season(at: timeline.date)
             SceneBackdrop(
                 backdrop, time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate,
-                light: fixedLight ?? SceneLight(at: timeline.date), season: season,
+                light: fixedLight ?? SceneLight.now(timeline.date), season: season,
                 weather: weather(at: timeline.date, season: season))
         }
     }
@@ -285,7 +241,10 @@ public struct PetStage: View {
             return (front - diameter * 0.12, front)
         case .fullScene, .horizon:
             let back = size.width * 0.6
-            let front = controlsBelow ? size.height * (style == .horizon ? 0.6 : 0.63) : size.height * 0.93
+            let front =
+                controlsBelow
+                ? size.height * (style == .horizon ? 0.6 : 0.63)
+                : min(size.height * 0.93, size.height - bottomInset - size.width * 0.04)
             return (min(back, front), max(back, front))
         }
     }

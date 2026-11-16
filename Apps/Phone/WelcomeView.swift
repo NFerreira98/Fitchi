@@ -109,8 +109,8 @@ struct WelcomeView: View {
                 }
                 HStack(spacing: 8) {
                     ForEach([CareAction.feed, .play, .wash, .rest], id: \.self) { action in
-                        Text(action.emoji)
-                            .font(.system(size: 22))
+                        CareIcon(action)
+                            .frame(width: 27, height: 27)
                             .frame(width: 42, height: 42)
                             .background(.thinMaterial, in: .circle)
                     }

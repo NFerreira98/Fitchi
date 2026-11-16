@@ -54,7 +54,7 @@ extension PetLife {
             // Content after being looked after.
             frame.pose.smile = max(frame.pose.smile, 0.8)
         }
-        showNeeds(mood, clock: clock, asleep: false, on: &frame)
+        showNeeds(mood, clock: clock, seed: seed, asleep: false, on: &frame)
         return frame
     }
 

@@ -4,20 +4,27 @@ import FitchiHealth
 import FitchiUI
 import SwiftUI
 
-/// The active pet on the iPhone, to play with just like on the watch: living in its scene, its
-/// needs, the four care buttons (buying the item if needed) and the day's gift to collect.
+/// The active pet on the iPhone, to play with just like on the watch: its world filling the top
+/// of the screen edge to edge, its name and mood floating over the sky, and a care panel rising
+/// out of the ground with its needs and the four care buttons (buying the item if needed).
 /// Care from either device syncs and is all kept (each need merges on its own).
 struct PhonePetView: View {
     @Environment(PetStore.self) private var pets
     @Environment(ActivityStore.self) private var activity
     @Environment(BackupLink.self) private var backup
     @Environment(\.petHome) private var home
+    @Environment(\.worldTint) private var tint
     let pet: Pet
+    /// The status bar's height: the scene runs under it, the name sits below it.
+    var topInset: CGFloat = 0
     /// The latest care tap or gift, driving the stage reaction, message and haptic.
     @State private var event: CareEvent?
     @State private var cheers = CheerBoard()
     /// Counts homecomings, for the haptic.
     @State private var welcomed = 0
+
+    /// How far the care panel rises up over the bottom of the scene.
+    static let panelOverlap: CGFloat = 40
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { timeline in
@@ -25,7 +32,10 @@ struct PhonePetView: View {
                 ComebackView(
                     pet: pet, species: pets.species(of: pet),
                     backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), progress: comeback,
-                    compact: false, onWelcome: welcomeHome)
+                    compact: false, onWelcome: welcomeHome
+                )
+                .padding(.horizontal, FitchiTheme.Spacing.l)
+                .padding(.top, topInset + FitchiTheme.Spacing.l)
             } else {
                 petScreen(at: timeline.date)
             }
@@ -46,36 +56,92 @@ struct PhonePetView: View {
         .task(id: event) {
             guard event != nil else { return }
             // Long enough for the care animation (a nap is the longest) to finish.
-            try? await Task.sleep(for: .seconds(4.2))
+            try? await Task.sleep(for: .seconds(PetLife.duration(of: .rest) + 0.2))
             event = nil
         }
     }
 
-    /// The pet itself: its scene, needs, care buttons and gift.
+    /// The pet itself: its scene across the top, then the care panel over the front of the ground.
     @ViewBuilder
     private func petScreen(at date: Date) -> some View {
         let mood = pet.mood(at: date, in: pets.decay)
         let afterglow = Afterglow.level(at: date, samples: activity.samples)
         let balance = pets.wallet(earnings: activity.earnings).balance
-        VStack(spacing: FitchiTheme.Spacing.m) {
-            PetStage(
-                pet: pet, species: pets.species(of: pet), mood: mood,
-                backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene,
-                reaction: event?.reaction, petScale: 0.36, controlsBelow: false, afterglow: afterglow,
-                cheeredAt: cheers.current?.startedAt
-            )
-            .aspectRatio(1.1, contentMode: .fit)
-            .clipShape(.rect(cornerRadius: 28))
-            .overlay(alignment: .topTrailing) {
-                if let moment = pets.openMoment(at: date), event == nil {
-                    giftButton(moment).padding(12)
+        VStack(spacing: 0) {
+            stage(mood: mood, afterglow: afterglow)
+                .overlay(alignment: .top) {
+                    header(balance: balance, status: status(mood: mood, afterglow: afterglow))
+                        .padding(.top, topInset + FitchiTheme.Spacing.s)
                 }
+                .overlay(alignment: .topTrailing) {
+                    if let moment = pets.openMoment(at: date), event == nil {
+                        giftButton(moment).padding(.top, topInset + 72).padding(.trailing, 18)
+                    }
+                }
+                .animation(.spring(duration: 0.4), value: pets.openMoment(at: date)?.id)
+            panel(balance: balance, at: date)
+                .padding(.horizontal, FitchiTheme.Spacing.l)
+                .padding(.top, -Self.panelOverlap)
+        }
+    }
+
+    private func stage(mood: PetMood, afterglow: Double) -> some View {
+        PetStage(
+            pet: pet, species: pets.species(of: pet), mood: mood,
+            backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), style: .fullScene,
+            reaction: event?.reaction, petScale: 0.36, controlsBelow: false, afterglow: afterglow,
+            cheeredAt: cheers.current?.startedAt, bottomInset: Self.panelOverlap
+        )
+        .aspectRatio(0.9, contentMode: .fit)
+        // The ground dissolves into the page at the sides of the panel instead of ending in a line.
+        .mask {
+            LinearGradient(
+                stops: [.init(color: .black, location: 0.86), .init(color: .clear, location: 1)],
+                startPoint: .top, endPoint: .bottom)
+        }
+        .overlay(alignment: .top) {
+            // Keeps the name and the status bar readable over a bright sky.
+            LinearGradient(colors: [.black.opacity(0.45), .clear], startPoint: .top, endPoint: .bottom)
+                .frame(height: topInset + 120)
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// Name and mood on the left, Pep on the right, floating over the sky.
+    private func header(balance: Int, status: String) -> some View {
+        HStack(alignment: .top, spacing: FitchiTheme.Spacing.m) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(pet.name)
+                    .font(FitchiTheme.Fonts.display(.largeTitle))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text(status)
+                    .font(FitchiTheme.Fonts.text(.subheadline, weight: .semibold))
+                    .opacity(event == nil ? 0.9 : 1)
+                    .contentTransition(.opacity)
+                    .animation(.easeInOut, value: status)
             }
-            .animation(.spring(duration: 0.4), value: pets.openMoment(at: date)?.id)
-            header(balance: balance, status: status(mood: mood, afterglow: afterglow))
+            Spacer(minLength: 0)
+            Text("✦ \(balance)")
+                .font(FitchiTheme.Fonts.display(.headline).monospacedDigit())
+                .foregroundStyle(FitchiTheme.Colors.points)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(.black.opacity(0.3), in: .capsule)
+                .contentTransition(.numericText(value: Double(balance)))
+                .animation(.snappy, value: balance)
+                .padding(.top, 6)
+                .accessibilityLabel("\(balance) Pep")
+        }
+        .foregroundStyle(.white)
+        .shadow(color: .black.opacity(0.45), radius: 3, y: 1)
+        .padding(.horizontal, FitchiTheme.Spacing.l)
+    }
+
+    /// Needs, care buttons and the little extras, on a card that overlaps the front of the ground.
+    private func panel(balance: Int, at date: Date) -> some View {
+        VStack(spacing: FitchiTheme.Spacing.m) {
             StatBarsView(values: pet.values(at: date, in: pets.decay))
-                .padding(12)
-                .background(.fill.tertiary, in: .rect(cornerRadius: 16))
             careButtons(balance: balance)
             if home == .watch {
                 Label(backupLine(at: date), systemImage: "arrow.triangle.2.circlepath")
@@ -85,8 +151,13 @@ struct PhonePetView: View {
             PetVoiceRow(voice: PetVoice(petID: pet.id, speciesID: pet.speciesID), petName: pet.name)
                 .padding(.horizontal, FitchiTheme.Spacing.m)
                 .padding(.vertical, FitchiTheme.Spacing.s)
-                .background(.fill.tertiary, in: .rect(cornerRadius: 14))
+                .background(tint.tile, in: .rect(cornerRadius: 14))
         }
+        .padding(FitchiTheme.Spacing.l)
+        .frame(maxWidth: .infinity)
+        .background(.regularMaterial, in: .rect(cornerRadius: 26))
+        .overlay(RoundedRectangle(cornerRadius: 26).strokeBorder(tint.cardEdge, lineWidth: 1))
+        .shadow(color: .black.opacity(tint.isDark ? 0.35 : 0.14), radius: 16, y: -2)
     }
 
     /// The comeback quest is done: the pet moves back in and runs over for a big hello.
@@ -98,26 +169,6 @@ struct PhonePetView: View {
 
     private func status(mood: PetMood, afterglow: Double) -> String {
         event?.message ?? cheers.current?.milestone.message(petName: pet.name) ?? mood.headline(afterglow: afterglow)
-    }
-
-    private func header(balance: Int, status: String) -> some View {
-        VStack(spacing: 2) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(pet.name).font(FitchiTheme.Fonts.display(.title))
-                Spacer()
-                Text("✦ \(balance) Pep")
-                    .font(FitchiTheme.Fonts.display(.headline).monospacedDigit())
-                    .foregroundStyle(FitchiTheme.Colors.points)
-                    .contentTransition(.numericText(value: Double(balance)))
-                    .animation(.snappy, value: balance)
-            }
-            Text(status)
-                .font(FitchiTheme.Fonts.text(.subheadline, weight: .medium))
-                .foregroundStyle(event == nil ? .secondary : .primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentTransition(.opacity)
-                .animation(.easeInOut, value: status)
-        }
     }
 
     // MARK: - Care and gifts
@@ -138,7 +189,7 @@ struct PhonePetView: View {
             care(action)
         } label: {
             VStack(spacing: 2) {
-                Text(action.emoji).font(.system(size: 26))
+                CareIcon(action).frame(width: 38, height: 38)
                 Text(action.title).font(FitchiTheme.Fonts.display(.subheadline))
                 Group {
                     if owned > 0 {
@@ -153,7 +204,7 @@ struct PhonePetView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
-            .background(.fill.tertiary, in: .rect(cornerRadius: 16))
+            .background(tint.tile, in: .rect(cornerRadius: 16))
             .opacity(affordable ? 1 : 0.55)
         }
         .buttonStyle(.plain)
@@ -248,9 +299,11 @@ struct PhoneEggView: View {
                 Text("About \(progress.stepsRemaining) more steps to hatch")
                     .font(FitchiTheme.Fonts.display(.headline))
                 let fallback = progress.fallbackDate.formatted(.dateTime.weekday(.wide).hour().minute())
-                Text("Carry your iPhone as you walk: any steps count, a workout counts faster. Otherwise it hatches by \(fallback).")
-                    .font(FitchiTheme.Fonts.text(.footnote))
-                    .foregroundStyle(.secondary)
+                Text(
+                    "Carry your iPhone as you walk: any steps count, a workout counts faster. Otherwise it hatches by \(fallback)."
+                )
+                .font(FitchiTheme.Fonts.text(.footnote))
+                .foregroundStyle(.secondary)
             }
             #if DEBUG
                 Button("Hatch now (debug)") { hatch(force: true) }

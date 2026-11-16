@@ -12,7 +12,7 @@ public struct CareEvent: Equatable {
 
     public init(action: CareAction, outcome: CareOutcome, petName: String, itemName: String?) {
         let gain = Int((outcome.changes[action.stat] ?? 0).rounded())
-        reaction = StageReaction(id: id, action: action, floater: "\(action.emoji) +\(gain)")
+        reaction = StageReaction(id: id, action: action, floater: "+\(gain)")
         let thing = itemName.map { "the \($0.lowercased())" } ?? "that"
         switch outcome.reaction {
         case .loved:
@@ -31,7 +31,7 @@ public struct CareEvent: Equatable {
     }
 
     public init(gift: PetMoment, petName: String) {
-        reaction = StageReaction(id: id, action: nil, floater: "\(gift.isLucky ? "🪙" : "🎁") +\(gift.pep)")
+        reaction = StageReaction(id: id, action: nil, floater: "+\(gift.pep) Pep")
         message = gift.isLucky ? "Lucky! \(petName) found \(gift.find)! 🪙" : "\(petName) found \(gift.find)! 🎁"
         feedback = .success
     }

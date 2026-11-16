@@ -44,7 +44,7 @@ struct PetLifeTests {
 
     @Test func needsShowOnThePet() {
         let hungry = PetLife.frame(at: 1, seed: seed, mood: PetMood(isHungry: true), wander: false)
-        #expect(hungry.effects.thought == CareAction.feed.emoji)
+        #expect(hungry.effects.thought == .feed)
         let dirty = PetLife.frame(at: 1, seed: seed, mood: PetMood(isDirty: true), wander: false)
         #expect(dirty.effects.stink && dirty.effects.smudges)
         let sad = PetLife.frame(at: 1, seed: seed, mood: PetMood(condition: .sad), wander: false)
@@ -140,5 +140,38 @@ struct PetLifeTests {
         }
         let biggestJump = zip(frames, frames.dropFirst()).map { abs($1 - $0) }.max() ?? 0
         #expect(biggestJump < 0.05, "no teleporting between spots")
+    }
+
+    @Test func eachNeedHasItsOwnProp() {
+        let hungry = (0..<40).map {
+            PetLife.frame(at: Double($0) * 0.1, seed: seed, mood: PetMood(isHungry: true), wander: false)
+        }
+        #expect(hungry.contains { ($0.effects.rumble ?? 0) > 0.5 })
+        let dirty = PetLife.frame(at: 1, seed: seed, mood: PetMood(isDirty: true), wander: false)
+        #expect(dirty.effects.fly != nil)
+        let sad = PetLife.frame(at: 1, seed: seed, mood: PetMood(condition: .sad), wander: false)
+        #expect(sad.effects.raincloud != nil && sad.pose.earAngle < -5)
+        let sick = PetLife.frame(at: 1, seed: seed, mood: PetMood(condition: .sick), wander: false)
+        #expect(sick.effects.thermometer && sick.effects.queasy && !sick.effects.suitcase)
+        let packing = PetLife.frame(at: 1, seed: seed, mood: PetMood(condition: .packing), wander: false)
+        #expect(packing.effects.suitcase && packing.effects.thermometer)
+        let asleep = PetLife.frame(at: 1, seed: seed, mood: PetMood(condition: .sad, isAsleep: true), wander: false)
+        #expect(asleep.effects.raincloud == nil, "it sleeps it off")
+    }
+
+    @Test func fidgetsWhileStandingAboutAndKicksTheGroundWhenBored() {
+        let times = stride(from: 0.0, to: 1_200, by: 0.2)
+        let kinds = Set(times.compactMap { PetLife.fidget(at: $0, seed: seed, mood: .content)?.kind })
+        #expect(kinds.count >= 6, "a good variety: \(kinds)")
+        #expect(!kinds.contains(.scuff), "only a bored pet scuffs")
+        let bored = times.map { PetLife.frame(at: $0, seed: seed, mood: PetMood(isBored: true)) }
+        #expect(bored.contains { $0.effects.scuff != nil })
+        // Fidgeting never moves the pet.
+        for time in stride(from: 0.0, to: 300, by: 0.7)
+        where PetLife.fidget(at: time, seed: seed, mood: .content) != nil {
+            let frame = PetLife.frame(at: time, seed: seed, mood: .content)
+            let place = PetLife.position(at: time, seed: seed)
+            #expect(frame.x == place.x && frame.depth == place.depth)
+        }
     }
 }

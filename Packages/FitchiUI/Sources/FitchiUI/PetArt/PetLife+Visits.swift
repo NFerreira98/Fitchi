@@ -118,7 +118,7 @@ extension PetLife {
             napAmount(at: greeting.startedAt, seed: seed, mood: mood) == 0
         else { return nil }
         var frame = bigGreeting(greeting, elapsed: elapsed, seed: seed, mood: mood, clock: clock)
-        showNeeds(mood, clock: clock, asleep: false, on: &frame)
+        showNeeds(mood, clock: clock, seed: seed, asleep: false, on: &frame)
         return frame
     }
 

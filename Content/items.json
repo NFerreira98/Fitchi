@@ -3,6 +3,7 @@
   { "id": "bone-biscuit", "name": "Bone Biscuit", "description": "Crunchy and beloved by dogs.", "category": "food", "price": 10, "effects": { "hunger": 30, "happiness": 10 } },
   { "id": "tuna-bites", "name": "Tuna Bites", "description": "Fishy little morsels.", "category": "food", "price": 10, "effects": { "hunger": 30, "happiness": 10 } },
   { "id": "bloodworm-snack", "name": "Bloodworm Snack", "description": "An aquatic delicacy.", "category": "food", "price": 10, "effects": { "hunger": 30, "happiness": 10 } },
+  { "id": "crisp-apple", "name": "Crisp Apple", "description": "Sweet and crunchy. Five of these, stacked, is about the right height for a little friend.", "category": "food", "price": 7, "effects": { "hunger": 22, "happiness": 6 } },
   { "id": "fresh-salad", "name": "Fresh Salad", "description": "Crisp greens for a light meal.", "category": "food", "price": 8, "effects": { "hunger": 25, "energy": 10 } },
   { "id": "treat", "name": "Treat", "description": "A little something special.", "category": "treat", "price": 5, "effects": { "hunger": 8, "happiness": 15 } },
   { "id": "tennis-ball", "name": "Tennis Ball", "description": "Fetch! Again!", "category": "toy", "price": 8, "effects": { "happiness": 35, "energy": -5 } },
@@ -30,6 +31,10 @@
   { "id": "heart-glasses", "name": "Heart Glasses", "description": "Seeing the world through love.", "category": "accessory", "price": 160, "slot": "face" },
   { "id": "fairy-wings", "name": "Fairy Wings", "description": "Shimmery and only slightly magical.", "category": "accessory", "price": 450, "slot": "back" },
   { "id": "royal-crown", "name": "Royal Crown", "description": "For the ruler of the meadow.", "category": "accessory", "price": 600, "slot": "head" },
+  { "id": "red-bow", "name": "Red Bow", "description": "Small, red, worn over one ear. Timeless.", "category": "accessory", "price": 95, "slot": "head" },
+  { "id": "dragonfly-clip", "name": "Dragonfly Clip", "description": "A blue dragonfly that landed in its fur and stayed.", "category": "accessory", "price": 150, "slot": "head" },
+  { "id": "star-sweater", "name": "Star Sweater", "description": "Blue, with little yellow stars. Knitted by someone who loves you.", "category": "accessory", "price": 220, "slot": "back" },
+  { "id": "yellow-raincoat", "name": "Yellow Raincoat", "description": "For puddle days and small adventures through small doors.", "category": "accessory", "price": 260, "slot": "back" },
 
   { "id": "style-retro", "name": "Retro Pixel Style", "description": "Chunky, classic pixel art for every pet and scene.", "category": "artStyle", "price": 1500 },
   { "id": "style-painted", "name": "Painterly Style", "description": "Soft, glowing hand-painted art for every pet and scene.", "category": "artStyle", "price": 2500 },

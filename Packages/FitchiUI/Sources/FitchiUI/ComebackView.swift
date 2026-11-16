@@ -165,7 +165,7 @@ struct ComebackScene: View {
                 let bob = fraction < 1 ? abs(sin(clock * 5)) * petSize * 0.05 : 0
                 ZStack {
                     SceneBackdrop(
-                        backdrop, time: clock, light: SceneLight(at: date), season: season,
+                        backdrop, time: clock, light: SceneLight.now(date), season: season,
                         weather: Weather(at: date, season: season))
                     LivingPetView(
                         species: species, speciesID: pet.speciesID, variant: pet.variant, excited: fraction >= 1,

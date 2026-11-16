@@ -13,6 +13,14 @@ struct PhoneRootView: View {
         ? "home" : (UserDefaults.standard.string(forKey: "startTab") ?? "home")
 
     var body: some View {
+        TimelineView(.everyMinute) { timeline in
+            tabs
+                // The world sets the look of the whole app: light by day, dark once the scene is.
+                .preferredColorScheme(SceneLight.now(timeline.date).night > 0.5 ? .dark : .light)
+        }
+    }
+
+    private var tabs: some View {
         TabView(selection: $tab) {
             Tab("Home", systemImage: "house.fill", value: "home") {
                 PhoneHomeView(showAllPets: { tab = "pets" })
@@ -76,14 +84,41 @@ struct PhoneHomeView: View {
     var showAllPets: () -> Void = {}
 
     var body: some View {
+        GeometryReader { geometry in
+            TimelineView(.everyMinute) { timeline in
+                let tint = WorldTint(
+                    backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID),
+                    light: SceneLight.now(timeline.date))
+                page(topInset: geometry.safeAreaInsets.top)
+                    .background(tint.page.ignoresSafeArea())
+                    .environment(\.worldTint, tint)
+                    // With a pet, its world runs up under the status bar.
+                    .ignoresSafeArea(edges: pets.activePet == nil ? [] : .top)
+            }
+        }
+        .fullScreenCover(item: $newborn) {
+            CareReminders.holdsPermissionPrompt = false
+            PetCompanions.refresh(pets, sendsReminders: home == .phone)
+        } content: { pet in
+            PhoneHatchView(pet: pet, isNewFind: true)
+        }
+        .sheet(isPresented: $showsGuide) { WelcomeView(isFirstRun: false) { showsGuide = false } }
+        #if DEBUG
+            .sheet(isPresented: $showsDeveloper) { DeveloperView() }
+        #endif
+    }
+
+    private func page(topInset: CGFloat) -> some View {
         ScrollView {
             VStack(spacing: FitchiTheme.Spacing.l * 2) {
                 if let pet = pets.activePet {
-                    PhonePetView(pet: pet)
-                    PhoneQuestsCard(petName: pet.name)
-                    if pets.roster.pets.count > 1 { PetRosterView(showAll: showAllPets) }
+                    PhonePetView(pet: pet, topInset: topInset)
+                    PhoneQuestsCard(petName: pet.name).padding(.horizontal, FitchiTheme.Spacing.l)
+                    if pets.roster.pets.count > 1 {
+                        PetRosterView(showAll: showAllPets).padding(.horizontal, FitchiTheme.Spacing.l)
+                    }
                 } else if pets.pendingEgg != nil {
-                    PhoneEggView { newborn = $0 }
+                    PhoneEggView { newborn = $0 }.padding(.horizontal, FitchiTheme.Spacing.l)
                 } else if home == .phone {
                     ProgressView()
                 } else {
@@ -101,13 +136,15 @@ struct PhoneHomeView: View {
                 today
                     .frame(maxWidth: .infinity)
                     .padding(FitchiTheme.Spacing.l)
-                    .background(.fill.tertiary, in: .rect(cornerRadius: 20))
+                    .worldCard(cornerRadius: 20)
+                    .padding(.horizontal, FitchiTheme.Spacing.l)
                 if home == .phone {
                     // Without a watch, the iPhone sends the "hungry" and gift notifications.
                     Toggle("Care reminders", systemImage: "bell.fill", isOn: $remindersOn)
                         .font(FitchiTheme.Fonts.text(.subheadline, weight: .semibold))
                         .padding(FitchiTheme.Spacing.m)
-                        .background(.fill.tertiary, in: .rect(cornerRadius: 16))
+                        .worldCard(cornerRadius: 16)
+                        .padding(.horizontal, FitchiTheme.Spacing.l)
                         .onChange(of: remindersOn) { PetCompanions.refresh(pets, sendsReminders: true) }
                 }
                 Button("How Fitchi works", systemImage: "questionmark.circle") { showsGuide = true }
@@ -119,19 +156,10 @@ struct PhoneHomeView: View {
                         .foregroundStyle(.secondary)
                 #endif
             }
-            .padding(FitchiTheme.Spacing.l)
+            .padding(.top, pets.activePet == nil ? FitchiTheme.Spacing.l : 0)
+            .padding(.bottom, FitchiTheme.Spacing.l)
         }
         .refreshable { await activity.refresh() }
-        .fullScreenCover(item: $newborn) {
-            CareReminders.holdsPermissionPrompt = false
-            PetCompanions.refresh(pets, sendsReminders: home == .phone)
-        } content: { pet in
-            PhoneHatchView(pet: pet, isNewFind: true)
-        }
-        .sheet(isPresented: $showsGuide) { WelcomeView(isFirstRun: false) { showsGuide = false } }
-        #if DEBUG
-            .sheet(isPresented: $showsDeveloper) { DeveloperView() }
-        #endif
     }
 
     @ViewBuilder private var today: some View {
@@ -205,7 +233,7 @@ struct PetRosterView: View {
         }
         .frame(width: 104)
         .padding(.vertical, FitchiTheme.Spacing.s)
-        .background(.fill.tertiary, in: .rect(cornerRadius: 16))
+        .worldCard(cornerRadius: 16)
     }
 }
 

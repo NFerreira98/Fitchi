@@ -44,6 +44,17 @@ public struct SceneLight: Hashable, Sendable {
     }
 
     static func smooth(_ value: Double) -> Double { StableNoise.smooth(value) }
+
+    /// The light right now. In the simulator, `-sceneHour 12` (etc.) at launch lights every
+    /// scene for that hour instead, for screenshots.
+    public static func now(_ date: Date = .now) -> SceneLight {
+        #if targetEnvironment(simulator)
+            if let hour = UserDefaults.standard.string(forKey: "sceneHour").flatMap(Double.init) {
+                return SceneLight(at: hour)
+            }
+        #endif
+        return SceneLight(at: date)
+    }
 }
 
 /// What a backdrop is drawn for: the animation clock (seconds; 0 for a still picture) and light.

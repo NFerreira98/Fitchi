@@ -101,23 +101,43 @@ public struct StatBarsView: View {
     }
 
     public var body: some View {
-        VStack(spacing: FitchiTheme.Spacing.s) {
+        VStack(spacing: FitchiTheme.Spacing.s + 2) {
             ForEach(Stat.allCases, id: \.self) { stat in
                 let value = values[stat] ?? 0
-                HStack(spacing: FitchiTheme.Spacing.s) {
-                    Image(systemName: stat.systemImage)
-                        .foregroundStyle(stat.color)
-                        .frame(width: 18)
-                    ProgressView(value: value, total: 100)
-                        .tint(stat.color)
+                HStack(spacing: FitchiTheme.Spacing.m) {
+                    StatIcon(stat).frame(width: 24, height: 24)
+                    bar(stat, value: value)
                     Text("\(Int(value.rounded()))")
-                        .font(.caption2.monospacedDigit())
-                        .frame(width: 26, alignment: .trailing)
+                        .font(FitchiTheme.Fonts.display(.footnote).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .frame(width: 28, alignment: .trailing)
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(stat.title): \(Int(value.rounded())) out of 100")
             }
         }
+    }
+
+    /// A rounded track with a glossy fill, like a bar of jelly.
+    private func bar(_ stat: Stat, value: Double) -> some View {
+        GeometryReader { geometry in
+            let filled = max(10, geometry.size.width * min(max(value, 0), 100) / 100)
+            ZStack(alignment: .leading) {
+                Capsule().fill(stat.color.opacity(0.2))
+                Capsule()
+                    .fill(stat.color)
+                    .overlay(alignment: .top) {
+                        Capsule()
+                            .fill(.white.opacity(0.4))
+                            .frame(height: 3)
+                            .padding(.horizontal, 3)
+                            .padding(.top, 1.5)
+                    }
+                    .frame(width: filled)
+            }
+        }
+        .frame(height: 10)
+        .animation(.spring(duration: 0.6), value: value)
     }
 }
 
@@ -136,7 +156,7 @@ extension CareAction {
         }
     }
 
-    /// Placeholder effect art until sprite animations exist.
+    /// For notification text; on screen the actions are drawn (`CareIcon`).
     public var emoji: String {
         switch self {
         case .feed: "🍖"

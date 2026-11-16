@@ -114,13 +114,13 @@ public enum PetLife {
             let nap = napAmount(at: time, seed: seed, mood: mood, awakeUntil: awakeUntil)
             if nap > 0 {
                 sleep(&frame, amount: nap, clock: clock)
-                showNeeds(mood, clock: clock, asleep: nap > 0.5, on: &frame)
+                showNeeds(mood, clock: clock, seed: seed, asleep: nap > 0.5, on: &frame)
                 stir(cues, at: time, on: &frame)
                 return frame
             }
         }
         express(mood, clock: still ? 0 : time, seed: seed, on: &frame)
-        showNeeds(mood, clock: clock, asleep: false, on: &frame)
+        showNeeds(mood, clock: clock, seed: seed, asleep: false, on: &frame)
         if wander, !still {
             standAbout(at: time, seed: seed, mood: mood, visitors: visitors, personality: personality, on: &frame)
         }
@@ -137,6 +137,8 @@ public enum PetLife {
             watch(visitor, on: &frame)
         } else if let personality, let elapsed = habit(at: time, seed: seed, mood: mood) {
             perform(personality, elapsed: elapsed, on: &frame)
+        } else {
+            fidget(at: time, seed: seed, mood: mood, on: &frame)
         }
     }
 
@@ -253,7 +255,7 @@ public enum PetLife {
             express(mood, clock: clock, seed: seed, on: &frame)
         }
         sleep(&frame, amount: drowsy, clock: clock)
-        showNeeds(mood, clock: clock, asleep: drowsy > 0.5, on: &frame)
+        showNeeds(mood, clock: clock, seed: seed, asleep: drowsy > 0.5, on: &frame)
         stir(cues, at: time, on: &frame)
     }
 
@@ -270,67 +272,16 @@ public enum PetLife {
         pose.tilt = 0
         pose.tailAngle *= 1 - amount
         pose.earAngle = -4 * amount
+        // Now and then a dream twitch of the ears and the tip of the tail.
+        let twitch = clock.truncatingRemainder(dividingBy: 7.3)
+        if twitch < 0.5 {
+            let flick = sin(twitch * 2 * .pi / 0.25) * sin(.pi * twitch / 0.5)
+            pose.earAngle += flick * 3 * amount
+            pose.tailAngle += flick * 4 * amount
+        }
         frame.pose = pose
         frame.effects.zzz = amount > 0.5
     }
-
-    // MARK: - Moods
-
-    /// Faces and body language for how the pet feels.
-    static func express(_ mood: PetMood, clock: Double, seed: Int, on frame: inout PetFrame) {
-        var pose = frame.pose
-        let offset = Double(seed % 97)
-        if mood.isDown {
-            pose.smile = mood.condition == .sad ? -0.6 : -1
-            pose.worry = mood.condition == .sad ? 0.7 : 1
-            pose.headBob += 1.5
-            pose.eyesOpen = min(pose.eyesOpen, 0.8)
-            pose.tailAngle *= 0.4
-        } else if mood.isHungry || mood.isBored {
-            pose.smile = 0
-            pose.worry = 0.3
-        }
-        if mood.isTired {
-            pose.eyesOpen = min(pose.eyesOpen, 0.55)
-            // A big yawn every 11 s.
-            let yawn = (clock + offset).truncatingRemainder(dividingBy: 11)
-            if yawn < 1.4 {
-                let open = sin(.pi * yawn / 1.4)
-                pose.mouthOpen = open
-                pose.eyesOpen = open > 0.4 ? 0 : pose.eyesOpen
-                pose.lift = 0
-            }
-        }
-        if mood.isThriving, pose.tilt == 0 {
-            // A happy hop every 9 s, and a puff of hearts every 18 s.
-            let beat = (clock + offset).truncatingRemainder(dividingBy: 9)
-            if beat < 0.6 {
-                pose.lift += sin(.pi * beat / 0.6) * 7
-                pose.eyesOpen = 0
-                pose.mouthOpen = 0.7
-            }
-            let puff = (clock + offset).truncatingRemainder(dividingBy: 18)
-            if puff < 1.6 { frame.effects.hearts = puff / 1.6 }
-        }
-        frame.pose = pose
-    }
-
-    /// Signs of what the pet needs: stink lines when dirty, a thought bubble for food or play.
-    static func showNeeds(_ mood: PetMood, clock: Double, asleep: Bool, on frame: inout PetFrame) {
-        frame.effects.stink = mood.isDirty
-        frame.effects.smudges = mood.isDirty
-        frame.effects.sweat = mood.condition == .sick || mood.condition == .packing
-        guard !asleep else { return }
-        // The bubble shows for 4 s of every 9, alternating when it wants both.
-        let wants = [mood.isHungry ? CareAction.feed : nil, mood.isBored ? .play : nil].compactMap { $0 }
-        guard !wants.isEmpty else { return }
-        let cycle = Int((clock / 9).rounded(.down))
-        let into = clock - Double(cycle) * 9
-        if into < 4 || clock == 0 {
-            frame.effects.thought = wants[abs(cycle) % wants.count].emoji
-        }
-    }
-
 }
 
 extension PetLife {

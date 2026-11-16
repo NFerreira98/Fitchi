@@ -57,6 +57,10 @@ enum CareReminders {
     @MainActor
     static func schedule(for pet: Pet?, gifts: [PetMoment], in decay: DecayContext) async {
         guard !holdsPermissionPrompt else { return }
+        #if targetEnvironment(simulator)
+            // `-skipNotificationPrompt YES` at launch keeps the permission sheet off screenshots.
+            if UserDefaults.standard.bool(forKey: "skipNotificationPrompt") { return }
+        #endif
         let center = UNUserNotificationCenter.current()
         let pending = await center.pendingNotificationRequests().map(\.identifier)
             .filter { $0.hasPrefix(idPrefix) || $0.hasPrefix(giftPrefix) || $0.hasPrefix(warningPrefix) }

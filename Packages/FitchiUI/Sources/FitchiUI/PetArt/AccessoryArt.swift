@@ -48,7 +48,7 @@ enum AccessoryArt {
     /// Every accessory id that has a drawing.
     static let drawn = Set([
         "sweatband", "party-hat", "flower-crown", "sunglasses", "red-bandana", "mini-backpack", "hero-cape",
-    ]).union(wardrobe)
+    ]).union(wardrobe).union(nods)
 
     /// Parts that hang behind the pet: capes and backpacks.
     static func drawBehind(_ equipped: [AccessorySlot: String], _ ink: Ink, fit: PetFit) {
@@ -64,7 +64,7 @@ enum AccessoryArt {
         switch equipped[.back] {
         case "hero-cape": clasp(ink, fit: fit)
         case "mini-backpack": straps(ink, fit: fit)
-        default: break
+        default: drawNodsFront(equipped[.back], ink, fit: fit)
         }
         if equipped[.neck] == "red-bandana" {
             bandana(ink, fit: fit)

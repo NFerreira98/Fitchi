@@ -44,7 +44,7 @@ struct PhoneQuestsCard: View {
                 .foregroundStyle(.secondary)
             }
             .padding(FitchiTheme.Spacing.l)
-            .background(.fill.tertiary, in: .rect(cornerRadius: 20))
+            .worldCard(cornerRadius: 20)
         }
         .fullScreenCover(item: $hatched) { hatched in
             PhoneHatchView(pet: hatched.pet, isNewFind: hatched.isNewFind, refund: hatched.refund)

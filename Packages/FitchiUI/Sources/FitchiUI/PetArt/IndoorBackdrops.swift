@@ -108,6 +108,7 @@ enum Bedroom {
 enum LivingRoom {
     static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         room(context, height: height, wall: 0xFFE3CC, floor: 0xD9A877, planks: 0xB98656)
+        Props.tinyDoor(context, at: CGPoint(x: 15, y: floorLine), world: world)
         // Framed pictures.
         for (rect, art) in [
             (CGRect(x: 36, y: 8, width: 14, height: 11), 0x9FD8B8),
@@ -214,6 +215,7 @@ enum Kitchen {
                 Path(ellipse: CGPoint(x: x, y: floorLine - 22.5), rx: 2.4, ry: 2.4), with: .color(color(UInt32(fruit))))
         }
         context.fill(Path(ellipse: CGPoint(x: 84.5, y: floorLine - 21), rx: 7, ry: 2), with: .color(color(0xC9A27A)))
+        Props.floorBowl(context, at: CGPoint(x: 24, y: floorLine + 10))
     }
 
     /// Wisps of steam curling up from the kettle.

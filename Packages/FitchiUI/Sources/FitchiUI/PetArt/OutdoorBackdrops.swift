@@ -29,11 +29,15 @@ enum SnowyHill {
     static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         let horizon: CGFloat = 54
         Sky.draw(context, top: color(0xA9C8F0), bottom: color(0xE8EEFB), horizon: horizon, world: world)
+        Distance.draw(context, horizon: horizon, style: .peaks, tint: color(0xB9CBE6), world: world)
         context.fill(rollingHills(height, base: horizon, lift: 14), with: .color(color(0xDCE7F7)))
         fillGradient(context, CGRect(x: 0, y: horizon + 6, width: 100, height: height), 0xFFFFFF, 0xE3ECF8)
+        GroundTexture.snow(context, from: horizon + 8, height: height, world: world)
         for (x, size) in [(10.0, 1.0), (88, 1.2), (77, 0.75)] {
             pine(context, at: CGPoint(x: x, y: horizon + 4 + (1 - size) * 6), size: size)
         }
+        Props.snowman(context, at: CGPoint(x: 16, y: horizon + 24))
+        Props.sled(context, at: CGPoint(x: 86, y: horizon + 34))
         snowfall(context, height: height, world: world)
         for (x, y) in [(30.0, horizon + 22), (70, horizon + 30)] {
             context.fill(Path(ellipse: CGPoint(x: x, y: y), rx: 7, ry: 1.2), with: .color(color(0xC9D8EE)))
@@ -82,6 +86,7 @@ enum Beach {
     static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         let horizon: CGFloat = 46
         Sky.draw(context, top: color(0x6EC6F5), bottom: color(0xD9F3FF), horizon: horizon, world: world)
+        Distance.draw(context, horizon: horizon, style: .islands, tint: color(0x7FB3CC), world: world)
         fillGradient(context, CGRect(x: 0, y: horizon, width: 100, height: 14), 0x4FB8DE, 0x7AD6EC)
         for (index, (startX, y)) in [(18.0, horizon + 4), (52, horizon + 7), (80, horizon + 3)].enumerated() {
             let x = startX + 3 * world.wave(0.6, Double(index) * 2)
@@ -99,11 +104,13 @@ enum Beach {
         shore.addLine(to: CGPoint(x: 100, y: height))
         shore.addLine(to: CGPoint(x: 0, y: height))
         context.fill(shore, with: .color(color(0xF7E3B5)))
+        GroundTexture.sand(context, from: horizon + 14, height: height, world: world)
         context.stroke(
             shore.trimmedPath(from: 0, to: 0.25), with: .color(.white),
             style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
         palm(context, base: CGPoint(x: 8, y: horizon + 16), sway: world.sway(0.9))
         starfish(context, at: CGPoint(x: 86, y: horizon + 30))
+        Props.bucketAndSpade(context, at: CGPoint(x: 74, y: horizon + 40))
         context.fill(Path(ellipse: CGPoint(x: 22, y: horizon + 34), rx: 2.4, ry: 1.6), with: .color(color(0xFFC7C2)))
     }
 
@@ -144,6 +151,7 @@ enum StarryNight {
         context.fill(Path(ellipse: CGPoint(x: 78, y: 16), rx: 7, ry: 7), with: .color(color(0xFFF2B8)))
         context.fill(Path(ellipse: CGPoint(x: 81.5, y: 13.5), rx: 6, ry: 6), with: .color(color(0x232A5A)))
         Sky.drawStars(context, world: world, strength: 1)
+        Distance.draw(context, horizon: horizon, style: .silhouette, tint: color(0x3A4F6E), world: world)
         // Now and then a shooting star streaks across.
         let streak = world.cycle(23)
         if world.time > 0, streak < 0.05 {
@@ -162,6 +170,7 @@ enum StarryNight {
         context.fill(rollingHills(height, base: horizon, lift: 12), with: .color(color(0x2E5A57)))
         fillGradient(context, CGRect(x: 0, y: horizon + 6, width: 100, height: height), 0x3C7A6A, 0x2B5C55)
         Flora.tufts(context, rows: [horizon + 14, horizon + 28], color: color(0x24504A), world: world)
+        Props.campfire(context, at: CGPoint(x: 82, y: horizon + 30), world: world)
         Fireflies.draw(context, world: world, around: horizon + 4, strength: 1)
     }
 }
@@ -170,6 +179,10 @@ enum Forest {
     static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         let horizon: CGFloat = 56
         Sky.draw(context, top: color(0xA8DCC4), bottom: color(0xE4F5E8), horizon: horizon, world: world)
+        Distance.draw(
+            context, horizon: horizon - 4, style: .treeline,
+            tint: world.greenery(color(0x86C49A)).mix(with: color(0xE4F5E8), by: 0.45),
+            world: world)
         // Two rows of round treetops: a hazy one behind, a darker one in front.
         for (index, x) in stride(from: -4.0, through: 104, by: 14).enumerated() {
             tree(
@@ -189,11 +202,15 @@ enum Forest {
             with: .linearGradient(
                 Gradient(colors: [world.greenery(color(0x7BC173)), world.greenery(color(0x5EA45C))]),
                 startPoint: CGPoint(x: 0, y: horizon), endPoint: CGPoint(x: 0, y: height)))
+        GroundTexture.grass(
+            context, from: horizon + 4, height: height, color: world.greenery(color(0x5EA45C)), world: world)
         Flora.tufts(
             context, rows: [horizon + 10, horizon + 24, horizon + 38], color: world.greenery(color(0x4C8C4A)),
             world: world)
         mushroom(context, at: CGPoint(x: 14, y: horizon + 22))
         mushroom(context, at: CGPoint(x: 88, y: horizon + 30))
+        Props.stump(context, at: CGPoint(x: 84, y: horizon + 40))
+        Props.treeTrunk(context, ground: horizon + 10, height: height)
         if world.time > 0, world.season != .winter { fallingLeaves(context, horizon: horizon, world: world) }
     }
 
@@ -266,6 +283,10 @@ enum Garden {
     static func draw(_ context: GraphicsContext, height: CGFloat, world: SceneWorld) {
         let horizon: CGFloat = 56
         Sky.draw(context, top: color(0x8FD3FF), bottom: color(0xE2F4FF), horizon: horizon, world: world)
+        Distance.draw(
+            context, horizon: horizon - 6, style: .hills,
+            tint: world.greenery(color(0x6CBB5E)).mix(with: color(0xE2F4FF), by: 0.5),
+            world: world)
         // A row of round bushes behind the fence, each with a soft highlight.
         var hedge = Path(CGRect(x: 0, y: horizon - 7, width: 100, height: 7))
         for x in stride(from: 0.0, through: 100, by: 10) {
@@ -278,6 +299,9 @@ enum Garden {
                 with: .color(world.greenery(color(0x7CC27F)).opacity(0.8)))
         }
         fillGradient(context, CGRect(x: 0, y: horizon, width: 100, height: height - horizon), 0x8FD27A, 0x6CBB5E)
+        GroundTexture.grass(
+            context, from: horizon + 4, height: height, color: world.greenery(color(0x6CBB5E)), path: false,
+            world: world)
         fence(context, base: horizon + 1)
         Flora.tufts(
             context, rows: [horizon + 14, horizon + 30], color: world.greenery(color(0x4F9A4A)), world: world)

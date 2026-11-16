@@ -1,3 +1,4 @@
+import FitchiCore
 import SwiftUI
 
 /// Things drawn around a pet that show how it feels or what it's doing: Zzz, stink lines, a
@@ -9,8 +10,8 @@ public struct PetEffects: Hashable, Sendable {
     public var stink = false
     public var smudges = false
     public var sweat = false
-    /// An emoji in a thought bubble ("I want food").
-    public var thought: String?
+    /// What it is thinking of in a thought bubble: a bowl when hungry, a ball when bored.
+    public var thought: CareAction?
     /// A puff of hearts, 0…1 through its rise.
     public var hearts: Double?
     public var prop: Prop?
@@ -18,6 +19,19 @@ public struct PetEffects: Hashable, Sendable {
     public var splash: Double?
     /// A burst of confetti, 0…1 through its fall.
     public var confetti: Double?
+    /// A tummy rumble, 0…1 (hungry).
+    public var rumble: Double?
+    /// Dust from a paw scuffing the ground, 0…1 (bored).
+    public var scuff: Double?
+    /// A fly buzzing round its head, with its clock (dirty).
+    public var fly: Double?
+    /// A thermometer in the corner of its mouth and green cheeks (sick).
+    public var thermometer = false
+    public var queasy = false
+    /// A rain cloud over its head, with its clock (sad).
+    public var raincloud: Double?
+    /// A packed suitcase beside it (packing its bags).
+    public var suitcase = false
 
     /// Care props, each with its own progress.
     public enum Prop: Hashable, Sendable {
@@ -59,13 +73,15 @@ enum EffectArt {
             context.stroke(drop, with: .color(ink.color.opacity(0.7)), lineWidth: 1.4)
             context.fill(drop, with: .color(Color(red: 0.62, green: 0.85, blue: 1)))
         }
+        drawNeedsOnBody(effects, context)
     }
 
     /// Effects around the pet. `flipped` moves the thought bubble behind the pet's head.
     static func drawAround(_ effects: PetEffects, _ context: GraphicsContext, flipped: Bool) {
         if effects.stink { stink(context, clock: effects.clock) }
+        drawNeedsAround(effects, context)
         if effects.zzz { zzz(context, clock: effects.clock, flipped: flipped) }
-        if let thought = effects.thought { thoughtBubble(context, emoji: thought, flipped: flipped) }
+        if let thought = effects.thought { thoughtBubble(context, want: thought, flipped: flipped) }
         if let hearts = effects.hearts { self.hearts(context, progress: hearts) }
         if let splash = effects.splash { self.splash(context, progress: splash) }
         if let confetti = effects.confetti { self.confetti(context, progress: confetti) }
@@ -121,7 +137,7 @@ enum EffectArt {
         }
     }
 
-    private static func thoughtBubble(_ context: GraphicsContext, emoji: String, flipped: Bool) {
+    private static func thoughtBubble(_ context: GraphicsContext, want: CareAction, flipped: Bool) {
         let side: Double = flipped ? -1 : 1
         let center = CGPoint(x: 50 + side * 33, y: 13)
         let puffs = [
@@ -132,7 +148,11 @@ enum EffectArt {
             context.stroke(circle, with: .color(ink.color.opacity(0.8)), lineWidth: 2.2)
             context.fill(circle, with: .color(.white))
         }
-        context.draw(Text(emoji).font(.system(size: 11)), at: CGPoint(x: center.x, y: center.y + 0.5))
+        // The little bowl or ball, drawn like the big ones.
+        var inside = context
+        inside.translateBy(x: center.x - 7.5, y: center.y - 7)
+        inside.scaleBy(x: 0.15, y: 0.15)
+        IconArt.draw(want, Ink(context: inside))
     }
 
     private static func hearts(_ context: GraphicsContext, progress: Double) {

@@ -18,9 +18,7 @@ public struct StatRing: View {
                 .trim(from: 0, to: max(0.02, min(value / 100, 1)))
                 .stroke(stat.color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-            Image(systemName: stat.systemImage)
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(stat.color)
+            StatIcon(stat).frame(width: 12, height: 12)
         }
         .frame(width: 24, height: 24)
         .animation(.spring(duration: 0.6), value: value)
@@ -49,9 +47,7 @@ public struct StatPip: View {
                     }
                 }
                 .frame(height: 5)
-            Image(systemName: stat.systemImage)
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(stat.color)
+            StatIcon(stat).frame(width: 12, height: 12)
         }
         .animation(.spring(duration: 0.6), value: value)
         .accessibilityElement(children: .ignore)
@@ -59,22 +55,26 @@ public struct StatPip: View {
     }
 }
 
-/// Rises and fades out once.
+/// Rises and fades out once: "+35" beside the little bowl, ball, bubbles or moon.
 struct FloatingReward: View {
     let text: String
+    var action: CareAction?
     @State private var risen = false
 
     var body: some View {
-        Text(text)
-            .font(FitchiTheme.Fonts.display(.headline, weight: .heavy).monospacedDigit())
-            .foregroundStyle(.white)
-            .shadow(color: .black.opacity(0.5), radius: 2)
-            .offset(y: risen ? -30 : 0)
-            .opacity(risen ? 0 : 1)
-            .onAppear {
-                withAnimation(.easeOut(duration: 1.4)) { risen = true }
-            }
-            .accessibilityHidden(true)
+        HStack(spacing: 3) {
+            if let action { CareIcon(action).frame(width: 20, height: 20) }
+            Text(text)
+                .font(FitchiTheme.Fonts.display(.headline, weight: .heavy).monospacedDigit())
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.5), radius: 2)
+        }
+        .offset(y: risen ? -30 : 0)
+        .opacity(risen ? 0 : 1)
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.4)) { risen = true }
+        }
+        .accessibilityHidden(true)
     }
 }
 

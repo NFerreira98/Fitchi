@@ -262,9 +262,9 @@ public struct GiftBubble: View {
     public var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 20, paused: reduceMotion)) { timeline in
             let time = timeline.date.timeIntervalSinceReferenceDate
-            Text(isLucky ? "🪙" : "🎁")
-                .font(.system(size: 22))
-                .padding(7)
+            GiftIcon(lucky: isLucky)
+                .frame(width: 28, height: 28)
+                .padding(6)
                 .background(Circle().fill(.white.opacity(0.92)))
                 .overlay(Circle().stroke(FitchiTheme.Colors.points, lineWidth: 2))
                 .shadow(color: .black.opacity(0.25), radius: 3, y: 2)

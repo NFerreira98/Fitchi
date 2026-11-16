@@ -211,8 +211,8 @@ struct PetView: View {
         return Button {
             care(action)
         } label: {
-            Text(action.emoji)
-                .font(.system(size: 17))
+            CareIcon(action)
+                .frame(width: 25, height: 25)
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(Color(white: 0.2).opacity(0.9)))
                 .overlay(alignment: .bottom) {

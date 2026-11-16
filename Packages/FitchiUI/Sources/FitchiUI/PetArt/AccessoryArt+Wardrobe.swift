@@ -9,7 +9,7 @@ extension AccessoryArt {
     ]
 
     static func drawWardrobeBehind(_ id: String?, _ ink: Ink, fit: PetFit) {
-        if id == "fairy-wings" { fairyWings(ink, fit: fit) }
+        if id == "fairy-wings" { fairyWings(ink, fit: fit) } else { drawNodsBehind(id, ink, fit: fit) }
     }
 
     static func drawWardrobeNeck(_ id: String?, _ ink: Ink, fit: PetFit) {
@@ -34,7 +34,7 @@ extension AccessoryArt {
         case "cozy-beanie": beanie(ink, fit: fit)
         case "royal-crown": crown(ink, fit: fit)
         case "pink-bow": bow(ink, fit: fit)
-        default: break
+        default: drawNodsHead(id, ink, fit: fit)
         }
     }
 

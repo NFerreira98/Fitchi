@@ -57,7 +57,7 @@
   {"id": "together-365", "name": "Best Friends Forever", "description": "Spend a whole year with your pets.", "reward": 2000, "icon": "birthday.cake.fill", "criterion": {"type": "daysTogether", "days": 365}},
   {"id": "dress-up-1", "name": "Dress Up", "description": "Buy your first accessory.", "reward": 25, "icon": "tshirt.fill", "criterion": {"type": "accessoriesOwned", "count": 1}},
   {"id": "dress-up-5", "name": "Fashionista", "description": "Own 5 accessories.", "reward": 200, "icon": "hanger", "criterion": {"type": "accessoriesOwned", "count": 5}},
-  {"id": "dress-up-16", "name": "Full Wardrobe", "description": "Own every accessory.", "reward": 1000, "icon": "wand.and.stars.inverse", "criterion": {"type": "accessoriesOwned", "count": 16}},
+  {"id": "dress-up-16", "name": "Full Wardrobe", "description": "Own every accessory.", "reward": 1000, "icon": "wand.and.stars.inverse", "criterion": {"type": "accessoriesOwned", "count": 20}},
   {"id": "shopper-5", "name": "First Errands", "description": "Make 5 purchases.", "reward": 30, "icon": "cart.fill", "criterion": {"type": "itemsPurchased", "count": 5}},
   {"id": "shopper-100", "name": "Shopaholic", "description": "Make 100 purchases.", "reward": 500, "icon": "bag.circle.fill", "criterion": {"type": "itemsPurchased", "count": 100}}
 ]
