@@ -24,11 +24,13 @@ struct ShopView: View {
                         .foregroundStyle(FitchiTheme.Colors.points)
                         .accessibilityLabel("Balance: \(balance) Pep")
                 }
+                .worldRow()
                 eggs
                 backdrops
                 accessories
                 comingSoon
             }
+            .worldPage()
             .navigationTitle("Shop")
             .confirmationDialog(
                 eggToBuy.map { "Buy a \($0.name) for \($0.price) Pep?" } ?? "",
@@ -79,6 +81,7 @@ struct ShopView: View {
                     + "Eggs favour colourings you haven't found, and a repeat gives 25% of its price back. "
                     + "Some colourings only hatch in rain, snow or wind, or at dawn, dusk or night.")
         }
+        .worldRow()
     }
 
     private func odds(_ egg: EggType) -> String {
@@ -111,6 +114,7 @@ struct ShopView: View {
         } footer: {
             Text("Backdrops work with every pet, everywhere you play.")
         }
+        .worldRow()
     }
 
     private func backdropRow(id: String, name: String, price: Int?) -> some View {
@@ -157,6 +161,7 @@ struct ShopView: View {
                 Text("Shown on \(pet.name). Buy once, wear on any pet; change outfits here or on your watch.")
             }
         }
+        .worldRow()
     }
 
     private func accessoryRow(_ item: ShopItem) -> some View {
@@ -210,6 +215,7 @@ struct ShopView: View {
         } footer: {
             Text("Art styles go on sale once they're drawn.")
         }
+        .worldRow()
     }
 
     private func message(for error: PetStore.PurchaseError) -> String {

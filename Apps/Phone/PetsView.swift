@@ -32,6 +32,7 @@ struct PetsView: View {
                 }
                 .padding(FitchiTheme.Spacing.l)
             }
+            .worldPage()
             .navigationTitle("Pets")
             .searchable(text: $query.text, prompt: "Name, species or colour")
             .toolbar { toolbar }

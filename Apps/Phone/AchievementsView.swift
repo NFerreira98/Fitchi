@@ -30,6 +30,7 @@ struct AchievementsView: View {
                     }
                     .padding(.vertical, 4)
                 }
+                .worldRow()
                 ForEach(AchievementGroup.allCases, id: \.self) { group in
                     let members = all.filter { AchievementGroup(of: $0.criterion) == group }
                     if !members.isEmpty {
@@ -39,9 +40,11 @@ struct AchievementsView: View {
                                     achievement: achievement, unlockedAt: unlocked[achievement.id], progress: progress)
                             }
                         }
+                        .worldRow()
                     }
                 }
             }
+            .worldPage()
             .navigationTitle("Achievements")
         }
     }

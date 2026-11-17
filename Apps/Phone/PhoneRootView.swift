@@ -12,27 +12,34 @@ struct PhoneRootView: View {
         ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] == nil
         ? "home" : (UserDefaults.standard.string(forKey: "startTab") ?? "home")
 
-    /// The world sets the look of the whole app: light by day, dark once the scene is.
-    @State private var scheme = Self.scheme(at: .now)
+    /// The light the whole app is coloured by (light or dark, the tinted pages), in 10-minute
+    /// steps so it only changes when the world visibly does.
+    @State private var light = Self.light(at: .now)
 
     var body: some View {
         tabs
-            .preferredColorScheme(scheme)
-            // Checked once a minute, but only a real change (dusk, dawn) touches the view tree.
-            // Don't drive this from a TimelineView: re-applying the colour scheme on every tick
-            // re-renders the tabs, and with another minute timeline inside a List (the shop's
-            // hatch banner) the two invalidate each other forever and the app freezes.
+            .preferredColorScheme(light.night > 0.5 ? .dark : .light)
+            .environment(
+                \.worldTint, WorldTint(backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID), light: light)
+            )
+            // Checked once a minute, but only a real change touches the view tree. Don't drive
+            // this from a TimelineView: re-applying the colour scheme on every tick re-renders the
+            // tabs, and with another minute timeline inside a List (the shop's hatch banner) the
+            // two invalidate each other forever and the app freezes.
             .task {
                 while !Task.isCancelled {
-                    let now = Self.scheme(at: .now)
-                    if now != scheme { scheme = now }
+                    let now = Self.light(at: .now)
+                    if now != light { light = now }
                     try? await Task.sleep(for: .seconds(60))
                 }
             }
     }
 
-    private static func scheme(at date: Date) -> ColorScheme {
-        SceneLight.now(date).night > 0.5 ? .dark : .light
+    private static func light(at date: Date) -> SceneLight {
+        let step: TimeInterval = 600
+        let rounded = Date(
+            timeIntervalSinceReferenceDate: (date.timeIntervalSinceReferenceDate / step).rounded(.down) * step)
+        return SceneLight.now(rounded)
     }
 
     private var tabs: some View {
@@ -100,16 +107,11 @@ struct PhoneHomeView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            TimelineView(.everyMinute) { timeline in
-                let tint = WorldTint(
-                    backdrop: SceneBackdrop.Kind(id: pets.inventory.activeBackdropID),
-                    light: SceneLight.now(timeline.date))
-                page(topInset: geometry.safeAreaInsets.top)
-                    .background(tint.page.ignoresSafeArea())
-                    .environment(\.worldTint, tint)
-                    // With a pet, its world runs up under the status bar.
-                    .ignoresSafeArea(edges: pets.activePet == nil ? [] : .top)
-            }
+            // The tint comes from `PhoneRootView`, shared with every tab.
+            page(topInset: geometry.safeAreaInsets.top)
+                .worldPage()
+                // With a pet, its world runs up under the status bar.
+                .ignoresSafeArea(edges: pets.activePet == nil ? [] : .top)
         }
         .fullScreenCover(item: $newborn) {
             CareReminders.holdsPermissionPrompt = false

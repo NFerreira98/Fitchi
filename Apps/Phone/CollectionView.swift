@@ -29,6 +29,7 @@ struct CollectionView: View {
                 }
                 .padding(FitchiTheme.Spacing.l)
             }
+            .worldPage()
             .navigationTitle("Collection")
         }
     }

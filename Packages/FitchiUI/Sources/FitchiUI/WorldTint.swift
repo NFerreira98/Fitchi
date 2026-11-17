@@ -56,10 +56,41 @@ private struct WorldCard: ViewModifier {
     }
 }
 
+/// A whole screen on the tinted page: the system's grey list or scroll background gives way to
+/// the world's colours.
+private struct WorldPage: ViewModifier {
+    @Environment(\.worldTint) private var tint
+
+    func body(content: Content) -> some View {
+        content
+            .scrollContentBackground(.hidden)
+            .background { tint.page.ignoresSafeArea() }
+    }
+}
+
+/// List rows as translucent cards on the tinted page.
+private struct WorldRow: ViewModifier {
+    @Environment(\.worldTint) private var tint
+
+    func body(content: Content) -> some View {
+        content.listRowBackground(tint.card)
+    }
+}
+
 extension View {
     /// Draws this view on a `WorldCard` for the current `worldTint`.
     public func worldCard(cornerRadius: CGFloat = 20) -> some View {
         modifier(WorldCard(cornerRadius: cornerRadius))
+    }
+
+    /// Puts a screen (a `List` or `ScrollView`) on the world's tinted page.
+    public func worldPage() -> some View {
+        modifier(WorldPage())
+    }
+
+    /// Gives a `List` section's rows the translucent card background. Apply to each `Section`.
+    public func worldRow() -> some View {
+        modifier(WorldRow())
     }
 }
 
