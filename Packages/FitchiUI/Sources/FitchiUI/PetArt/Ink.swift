@@ -30,6 +30,11 @@ public struct PetPose: Hashable, Sendable {
     public var flipped = false
     /// 0 = awake, 1 = curled up asleep: lower, flatter, eyes peacefully shut.
     public var sleep: Double = 0
+    /// How pink the cheeks are: a faint hint at rest, flushed when it's loved (petting, hearts).
+    public var blush: Double = PetPose.restingBlush
+
+    /// The everyday blush: just enough to warm the face.
+    public static let restingBlush = 0.3
 
     public init() {}
 
@@ -90,8 +95,11 @@ struct Ink {
             path, with: .color(color), style: StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round))
     }
 
-    func blush(at center: CGPoint, _ color: PetColor) {
-        context.fill(Path(ellipse: center, rx: 5, ry: 3), with: .color(color.color.opacity(0.55)))
+    /// Cheeks that flush with `amount` (`PetPose.blush`): faint and small at rest, rosy when loved.
+    func blush(at center: CGPoint, _ color: PetColor, amount: Double) {
+        let size = 0.75 + 0.25 * amount
+        context.fill(
+            Path(ellipse: center, rx: 5 * size, ry: 3 * size), with: .color(color.color.opacity(0.6 * amount)))
     }
 
     /// Big glossy eyes; they squeeze into a happy arc as they close.

@@ -37,8 +37,8 @@ enum PenguinArt {
         var head = ink
         head.context.translateBy(x: 0, y: pose.headBob)
         if let marking = palette.marking { markings(head, marking, pattern: palette.pattern, body: body) }
-        head.blush(at: CGPoint(x: 34, y: 57), palette.cheek)
-        head.blush(at: CGPoint(x: 66, y: 57), palette.cheek)
+        head.blush(at: CGPoint(x: 34, y: 57), palette.cheek, amount: pose.blush)
+        head.blush(at: CGPoint(x: 66, y: 57), palette.cheek, amount: pose.blush)
         head.eye(at: CGPoint(x: 41, y: 49), pose: pose, color: palette.eye)
         head.eye(at: CGPoint(x: 59, y: 49), pose: pose, color: palette.eye)
         beak(head, orange: orange, pose: pose)

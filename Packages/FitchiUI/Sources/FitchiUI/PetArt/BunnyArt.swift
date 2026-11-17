@@ -41,8 +41,8 @@ enum BunnyArt {
         }
         head.part(Path(ellipse: CGPoint(x: 45.5, y: 58), rx: 6, ry: 4.6), fluff, shaded: false, outlined: false)
         head.part(Path(ellipse: CGPoint(x: 54.5, y: 58), rx: 6, ry: 4.6), fluff, shaded: false, outlined: false)
-        head.blush(at: CGPoint(x: 30, y: 56), palette.cheek)
-        head.blush(at: CGPoint(x: 70, y: 56), palette.cheek)
+        head.blush(at: CGPoint(x: 30, y: 56), palette.cheek, amount: pose.blush)
+        head.blush(at: CGPoint(x: 70, y: 56), palette.cheek, amount: pose.blush)
         head.eye(at: CGPoint(x: 39, y: 48), pose: pose, color: palette.eye)
         head.eye(at: CGPoint(x: 61, y: 48), pose: pose, color: palette.eye)
         let nose = Path(ellipse: CGPoint(x: 50, y: 54.5), rx: 2.6, ry: 1.9)

@@ -36,8 +36,8 @@ enum DogArt {
                     Path(ellipse: CGPoint(x: x, y: 35.5), rx: 2.6, ry: 1.8), cream, shaded: false, outlined: false)
             }
         }
-        head.blush(at: CGPoint(x: 31, y: 56), palette.cheek)
-        head.blush(at: CGPoint(x: 69, y: 56), palette.cheek)
+        head.blush(at: CGPoint(x: 31, y: 56), palette.cheek, amount: pose.blush)
+        head.blush(at: CGPoint(x: 69, y: 56), palette.cheek, amount: pose.blush)
         head.eye(at: CGPoint(x: 39, y: 45), pose: pose, color: palette.eye)
         head.eye(at: CGPoint(x: 61, y: 45), pose: pose, color: palette.eye)
         let nose = Path(ellipse: CGPoint(x: 50, y: 54.5), rx: 4, ry: 2.8)

@@ -44,8 +44,8 @@ enum CatArt {
         head.part(Path(ellipse: CGPoint(x: 44.5, y: 58), rx: 6.5, ry: 5), white, shaded: false, outlined: false)
         head.part(Path(ellipse: CGPoint(x: 55.5, y: 58), rx: 6.5, ry: 5), white, shaded: false, outlined: false)
         whiskers(head, fur.line)
-        head.blush(at: CGPoint(x: 29, y: 56), palette.cheek)
-        head.blush(at: CGPoint(x: 71, y: 56), palette.cheek)
+        head.blush(at: CGPoint(x: 29, y: 56), palette.cheek, amount: pose.blush)
+        head.blush(at: CGPoint(x: 71, y: 56), palette.cheek, amount: pose.blush)
         head.eye(at: CGPoint(x: 38, y: 47), pose: pose, color: palette.eye)
         head.eye(at: CGPoint(x: 62, y: 47), pose: pose, color: palette.eye)
         let nose = Path(

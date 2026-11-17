@@ -91,6 +91,7 @@ extension PetLife {
         pose.smile = 1
         pose.lookX = 0
         pose.lookY = 0.1
+        pose.blush = max(pose.blush, PetPose.restingBlush + 0.5 * arc)
         switch variety % 4 {
         case 0:
             // A giggle: eyes squeezed shut, a wiggle side to side.
@@ -132,6 +133,7 @@ extension PetLife {
         pose.tailAngle = sin(held * 2 * .pi / 0.9) * 14
         pose.earAngle = -6 * settle
         pose.lift = 0
+        pose.blush = PetPose.restingBlush + (1 - PetPose.restingBlush) * settle
         frame.pose = pose
         let beat = held.truncatingRemainder(dividingBy: 1.8)
         if held > 0.6, beat < 1.2 { frame.effects.hearts = beat / 1.2 }

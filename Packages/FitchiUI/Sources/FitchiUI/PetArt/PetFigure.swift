@@ -72,6 +72,11 @@ public struct PetFigure: View {
             var drawn = pose
             drawn.squash += 0.1 * pose.sleep
             drawn.headBob += 3 * pose.sleep
+            if let hearts = effects.hearts {
+                drawn.blush = max(
+                    drawn.blush, PetPose.restingBlush + (1 - PetPose.restingBlush) * sin(.pi * min(max(hearts, 0), 1)))
+            }
+            if effects.confetti != nil { drawn.blush = 1 }
             var posed = context
             let ground = Ink.ground
             posed.translateBy(x: 50, y: ground - drawn.lift)

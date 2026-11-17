@@ -98,6 +98,7 @@ extension PetLife {
 
     /// A small hello on the spot, facing you: two hops with a grin and a wagging tail.
     static func greet(elapsed: TimeInterval, on pose: inout PetPose) {
+        pose.blush = max(pose.blush, 0.8)
         let hops = elapsed < 1.2 ? abs(sin(elapsed * .pi / 0.6)) : 0
         pose.lookX = 0
         pose.lookY = 0.2

@@ -43,8 +43,8 @@ enum AxolotlArt {
                 head, marking,
                 at: [CGPoint(x: 30, y: 34), CGPoint(x: 68, y: 31), CGPoint(x: 74, y: 40), CGPoint(x: 44, y: 28)])
         }
-        head.blush(at: CGPoint(x: 26, y: 55), palette.cheek)
-        head.blush(at: CGPoint(x: 74, y: 55), palette.cheek)
+        head.blush(at: CGPoint(x: 26, y: 55), palette.cheek, amount: pose.blush)
+        head.blush(at: CGPoint(x: 74, y: 55), palette.cheek, amount: pose.blush)
         head.eye(at: CGPoint(x: 36, y: 46), pose: pose, color: palette.eye)
         head.eye(at: CGPoint(x: 64, y: 46), pose: pose, color: palette.eye)
         head.mouth(at: CGPoint(x: 50, y: 55), pose: pose, tone: skin, width: 12)
