@@ -12,12 +12,27 @@ struct PhoneRootView: View {
         ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"] == nil
         ? "home" : (UserDefaults.standard.string(forKey: "startTab") ?? "home")
 
+    /// The world sets the look of the whole app: light by day, dark once the scene is.
+    @State private var scheme = Self.scheme(at: .now)
+
     var body: some View {
-        TimelineView(.everyMinute) { timeline in
-            tabs
-                // The world sets the look of the whole app: light by day, dark once the scene is.
-                .preferredColorScheme(SceneLight.now(timeline.date).night > 0.5 ? .dark : .light)
-        }
+        tabs
+            .preferredColorScheme(scheme)
+            // Checked once a minute, but only a real change (dusk, dawn) touches the view tree.
+            // Don't drive this from a TimelineView: re-applying the colour scheme on every tick
+            // re-renders the tabs, and with another minute timeline inside a List (the shop's
+            // hatch banner) the two invalidate each other forever and the app freezes.
+            .task {
+                while !Task.isCancelled {
+                    let now = Self.scheme(at: .now)
+                    if now != scheme { scheme = now }
+                    try? await Task.sleep(for: .seconds(60))
+                }
+            }
+    }
+
+    private static func scheme(at date: Date) -> ColorScheme {
+        SceneLight.now(date).night > 0.5 ? .dark : .light
     }
 
     private var tabs: some View {
