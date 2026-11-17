@@ -9,6 +9,8 @@
       {"id": "cocoa", "name": "Cocoa", "weight": 3, "colors": {"body": "#8A5A3C", "belly": "#D9B08C", "accent": "#5E3A26"}},
       {"id": "patch", "name": "Patch", "weight": 2, "colors": {"body": "#F6F1EA", "belly": "#FFFFFF", "accent": "#5A4436", "marking": "#5A4436"}, "pattern": "patches"},
       {"id": "frost", "name": "Frost", "weight": 2, "colors": {"body": "#8E98AA", "belly": "#F5F5F7", "accent": "#5D6678"}},
+      {"id": "min-pin", "name": "Min Pin", "weight": 2, "colors": {"body": "#332C3A", "belly": "#C97A3E", "accent": "#2B2533"}},
+      {"id": "rottie", "name": "Rottweiler", "weight": 2, "colors": {"body": "#2E2834", "belly": "#B5673A", "accent": "#241F2B"}},
       {"id": "puddle-pup", "name": "Puddle Pup", "weight": 2, "colors": {"body": "#8FB3CC", "belly": "#EAF2F8", "accent": "#3F5568", "marking": "#6E4F35"}, "pattern": "patches", "when": {"weather": "rain"}},
       {"id": "harvest", "name": "Harvest", "weight": 2, "colors": {"body": "#D9822B", "belly": "#FFE7C2", "accent": "#8C3F1C"}, "when": {"season": "autumn"}}
     ],
@@ -25,6 +27,7 @@
       {"id": "ginger", "name": "Ginger", "weight": 3, "colors": {"body": "#FFAA5C", "belly": "#FFF1DE", "accent": "#FFB0B8", "marking": "#E07F35"}, "pattern": "stripes"},
       {"id": "tuxedo", "name": "Tuxedo", "weight": 2, "colors": {"body": "#3B3A48", "belly": "#F7F5F2", "accent": "#FF9DB2"}},
       {"id": "calico", "name": "Calico", "weight": 1, "colors": {"body": "#F7F1EA", "belly": "#FFFFFF", "accent": "#FFB0C0", "marking": "#E89A52"}, "pattern": "patches"},
+      {"id": "lasagna", "name": "Lasagna", "weight": 2, "colors": {"body": "#F2922E", "belly": "#FFEBC8", "accent": "#FFB9A0", "marking": "#BA5F1F"}, "pattern": "stripes"},
       {"id": "snowdrift", "name": "Snowdrift", "weight": 2, "colors": {"body": "#F4F8FF", "belly": "#FFFFFF", "accent": "#A8C8F0", "marking": "#C9DCF2"}, "pattern": "stripes", "when": {"weather": "snow"}},
       {"id": "midnight", "name": "Midnight", "weight": 2, "colors": {"body": "#2A3052", "belly": "#454D80", "accent": "#FFD86B", "marking": "#3B4372"}, "pattern": "stripes", "when": {"time": "night"}}
     ],

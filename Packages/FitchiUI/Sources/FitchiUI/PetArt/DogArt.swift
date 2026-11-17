@@ -27,12 +27,15 @@ enum DogArt {
         if let marking = palette.marking, palette.pattern == .patches {
             Patches.draw(head, marking, clippedTo: face, blobs: [(CGPoint(x: 63, y: 43), 9)])
         }
-        // Floppy ears hang over the sides of the head and swing with `earAngle`.
-        let ear = Path(ellipse: CGPoint(x: 24, y: 44), rx: 8, ry: 15, degrees: 14)
-        let pivot = CGPoint(x: 28, y: 30)
-        head.part(ear.rotated(degrees: pose.earAngle, around: pivot), ears)
-        head.part(ear.rotated(degrees: pose.earAngle, around: pivot).mirrored, ears)
+        drawEars(head, palette: palette, pose: pose, ears: ears, cream: cream)
         head.part(Path(ellipse: CGPoint(x: 50, y: 58), rx: 12, ry: 8.5), cream, shaded: false)
+        if palette.id == "min-pin" || palette.id == "rottie" {
+            // The tan eyebrow pips both breeds wear.
+            for x in [39.0, 61] {
+                head.part(
+                    Path(ellipse: CGPoint(x: x, y: 35.5), rx: 2.6, ry: 1.8), cream, shaded: false, outlined: false)
+            }
+        }
         head.blush(at: CGPoint(x: 31, y: 56), palette.cheek)
         head.blush(at: CGPoint(x: 69, y: 56), palette.cheek)
         head.eye(at: CGPoint(x: 39, y: 45), pose: pose, color: palette.eye)
@@ -48,6 +51,39 @@ enum DogArt {
             head.context.fill(
                 Path(ellipse: CGPoint(x: 50, y: 63), rx: 2.6, ry: 2.2),
                 with: .color(Color(red: 1, green: 0.5, blue: 0.6)))
+        }
+    }
+
+    /// Most colourings wear the classic floppy ears; a couple of breeds get their own shape,
+    /// keyed off the colouring id (the colours stay data, only the ear outline changes).
+    private static func drawEars(_ head: Ink, palette: PetPalette, pose: PetPose, ears: Tone, cream: Tone) {
+        switch palette.id {
+        case "min-pin":
+            // Pricked ears standing tall: the min pin's trademark.
+            let ear = Path(
+                roundedPolygon: [CGPoint(x: 27, y: 42), CGPoint(x: 23, y: 13), CGPoint(x: 44, y: 29)], radius: 4)
+            let lining = Path(
+                roundedPolygon: [CGPoint(x: 29, y: 35), CGPoint(x: 27, y: 21), CGPoint(x: 38, y: 29)], radius: 2.5)
+            let pivot = CGPoint(x: 31, y: 36)
+            for flip in [false, true] {
+                let tilt = flip ? -pose.earAngle : pose.earAngle
+                let outer = ear.rotated(degrees: tilt, around: pivot)
+                let inner = lining.rotated(degrees: tilt, around: pivot)
+                head.part(flip ? outer.mirrored : outer, ears)
+                head.part(flip ? inner.mirrored : inner, cream, shaded: false, outlined: false)
+            }
+        case "rottie":
+            // Small, neat flop ears sitting close to the head.
+            let ear = Path(ellipse: CGPoint(x: 27, y: 38), rx: 7, ry: 11, degrees: 20)
+            let pivot = CGPoint(x: 30, y: 30)
+            head.part(ear.rotated(degrees: pose.earAngle, around: pivot), ears)
+            head.part(ear.rotated(degrees: pose.earAngle, around: pivot).mirrored, ears)
+        default:
+            // Floppy ears hang over the sides of the head and swing with `earAngle`.
+            let ear = Path(ellipse: CGPoint(x: 24, y: 44), rx: 8, ry: 15, degrees: 14)
+            let pivot = CGPoint(x: 28, y: 30)
+            head.part(ear.rotated(degrees: pose.earAngle, around: pivot), ears)
+            head.part(ear.rotated(degrees: pose.earAngle, around: pivot).mirrored, ears)
         }
     }
 }
